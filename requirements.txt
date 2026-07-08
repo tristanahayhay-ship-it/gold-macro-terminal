@@ -1,0 +1,6 @@
+streamlit==1.32.0
+plotly==5.19.0
+pandas==2.2.1
+requests==2.31.0
+beautifulsoup4==4.12.3
+openai==0.28.1
