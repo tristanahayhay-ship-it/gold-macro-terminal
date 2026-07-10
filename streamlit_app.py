@@ -367,7 +367,7 @@ if menu == "Dashboard Tổng Quan":
                         forecast_val = item.get("forecast", "---")
                         previous_val = item.get("previous", "---")
                         
-                        if cur_val == "USD" and importance_score in:
+                        if cur_val == "USD" and importance_score in [2, 3]:
                             status = "normal"
                             try:
                                 if actual_val != "---" and forecast_val != "---":
