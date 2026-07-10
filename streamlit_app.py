@@ -270,7 +270,7 @@ if menu == "Dashboard Tổng Overview":
                         if not previous_val: previous_val = "---"
                         
                         # Bộ lọc tin tức USD quan trọng (Đã vá lỗi cú pháp "in" hoàn chỉnh)
-                        if cur_val == "USD" and importance_score in:
+                        if cur_val == "USD" and importance_score in [2, 3]:
                             status = "normal"
                             try:
                                 if actual_val != "---" and forecast_val != "---":
