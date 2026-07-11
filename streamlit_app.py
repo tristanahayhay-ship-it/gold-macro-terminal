@@ -843,10 +843,8 @@ elif menu == "Dòng Tiền (Flow of Funds)":
     st.title("💸 Giám Sát Dòng Tiền Lớn (Smart Money Flow)")
     
     # 1. HÀM CÀO DỮ LIỆU THỰC TẾ CHUẨN QUỐC TẾ - CẬP NHẬT 30 PHÚT MỘT LẦN (ttl=1800)
-    # Đưa hàm này lên đầu Chuyên mục 3 để cấp nguồn số thật cho cả 3 thẻ chỉ số và biểu đồ phía dưới
     @st.cache_data(ttl=1800)  
     def tai_du_lieu_kho_gld_thuc_te_quoc_te():
-        # Chuỗi số liệu thực tế cập nhật liên tục từ hệ thống thế giới
         dates_real = ["22/06", "23/06", "24/06", "25/06", "26/06", "29/06", "30/06", "01/07", "02/07", "06/07", "07/07", "08/07", "09/07", "10/07"]
         gld_holdings = [1022.20, 1017.64, 1013.36, 1007.08, 1005.08, 1005.08, 1005.08, 1005.36, 1001.37, 1002.79, 1002.51, 1002.51, 1005.65, 1002.45]
         gld_net_change = [1.71, -4.56, -4.28, -6.28, -2.00, 0.00, 0.00, 0.28, -3.99, 1.42, -0.28, 0.00, 3.14, -3.20]
@@ -857,17 +855,13 @@ elif menu == "Dòng Tiền (Flow of Funds)":
         })
         return df_merged
 
-    # Triệu gọi nạp bảng số liệu thật từ thế giới
     df_etf = tai_du_lieu_kho_gld_thuc_te_quoc_te()
     
-    # TRÍCH XUẤT SỐ LIỆU THỰC TẾ PHIÊN MỚI NHẤT (Dòng cuối cùng của bảng dữ liệu)
-    gld_holding_real = df_etf["SL Nắm giữ (Tấn)"].iloc[-1]       # Kết quả thực tế: 1002.45
-    gld_change_real = df_etf["Thay đổi ròng (Tấn)"].iloc[-1]     # Kết quả thực tế: -3.20 (Nếu ngày mai là -5.0 thì biến này tự nhận là -5.0)
+    gld_holding_real = df_etf["SL Nắm giữ (Tấn)"].iloc[-1]
+    gld_change_real = df_etf["Thay đổi ròng (Tấn)"].iloc[-1]
 
-    # Định dạng chuỗi ký tự hiển thị dấu cộng/trừ tự động bám theo số thật
     gld_change_str = f"{gld_change_real:+} Tấn" if gld_change_real != 0 else "0.00 Tấn"
 
-    # ⚡ KHỞI TẠO FRAGMENT CHỈ BỌC RIÊNG KHỐI CHỈ SỐ ĐỂ NHẢY GIÂY HOÀN TOÀN TỰ ĐỘNG
     @st.fragment(run_every=1)
     def hien_thi_metrics_dong_tien_live(base_holdings, base_change_str):
         import numpy as np
@@ -875,12 +869,10 @@ elif menu == "Dòng Tiền (Flow of Funds)":
         
         np.random.seed(int(datetime.now().timestamp()))
         
-        # Số liệu gốc thực tế được cộng trừ giả lập siêu nhỏ tạo độ nhấp nháy theo giây cho mượt giao diện
         gld_tons_tick = round(base_holdings + np.random.uniform(-0.02, 0.02), 2)
         cot_contracts_tick = int(116817 + np.random.randint(-15, 15))
         real_yield_tick = round(2.31 + np.random.uniform(-0.002, 0.002), 2)
         
-        # GIỮ NGUYÊN 100% CẤU TRÚC LAYOUT 3 CỘT GỐC CỦA BẠN
         col1, col2, col3 = st.columns(3)
         with col1:
             # SỬA LỖI: Thay thế chữ gán cứng "-3.20 Tấn" bằng biến tự động base_change_str
@@ -890,7 +882,6 @@ elif menu == "Dòng Tiền (Flow of Funds)":
         with col3:
             st.metric("Real Yield (Lợi suất thực Mỹ)", f"{real_yield_tick}%", "-0.12% (Hỗ trợ Vàng)")
 
-    # KÍCH HOẠT GỌI HÀM HIỂN THỊ METRICS (Truyền giá trị thực tế vào hàm)
     hien_thi_metrics_dong_tien_live(gld_holding_real, gld_change_str)
         
     st.subheader("📊 Diễn biến luân chuyển dòng tiền thông minh")
