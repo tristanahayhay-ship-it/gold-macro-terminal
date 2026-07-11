@@ -695,77 +695,37 @@ elif menu == "Dữ Liệu Kinh Tế Mỹ":
 
         df_macro_chart = pd.DataFrame({"Thời gian": c_dates, "Giá trị": c_values})
         # ===============================================================================================
-        # ĐOẠN MÃ SỬA LỖI HIỂN THỊ ĐỒ THỊ KẾT HỢP (HIỆN RÕ CỘT & ĐƯỜNG, ẨN TƯƠNG TÁC SẠCH SẼ)
+        # MẪU 1: BIỂU ĐỒ VÙNG GRADIENT MỜ CHUYÊN NGHIỆP (TĨNH & GỌN GÀNG)
         # ===============================================================================================
         import plotly.graph_objects as go
 
         fig_macro = go.Figure()
 
-        # 1. Vẽ các cột đứng hiển thị giá trị lịch sử (Bổ sung thuộc tính chặn bong bóng thông tin)
-        fig_macro.add_trace(
-            go.Bar(
-                x=df_macro_chart["Thời gian"],
-                y=df_macro_chart["Giá trị"],
-                name="Chỉ số",
-                marker_color="#3b82f6",     # Cột màu xanh Neon
-                marker_line_width=0,        # Loại bỏ viền trắng quanh các cột
-                width=0.4,                  # Cân đối lại độ rộng cột thoáng đãng
-                hoverinfo="none"            # KHÓA: Di chuột vào cột không hiện thông tin thừa
-            )
-        )
-
-        # 2. Vẽ đường kẻ kết hợp nối các đỉnh chu kỳ
+        # Vẽ vùng phủ bóng Gradient kết hợp đường xu hướng
         fig_macro.add_trace(
             go.Scatter(
                 x=df_macro_chart["Thời gian"],
                 y=df_macro_chart["Giá trị"],
-                name="Tổng xu hướng",
-                mode="lines+markers",       
-                line=dict(color="#cbd5e1", width=2.5), 
-                marker=dict(size=6, color="#ffffff"),
-                hoverinfo="none"            # KHÓA: Di chuột vào đường kẻ không hiện thông tin thừa
+                mode="lines",                              # Chỉ hiện đường kẻ tối giản
+                line=dict(color="#3b82f6", width=2.5),     # Đường xu hướng màu xanh Neon sắc nét
+                fill="tozeroy",                            # Đổ màu vùng phủ xuống trục hoành
+                fillcolor="rgba(59, 130, 246, 0.05)",      # Màu bóng mờ siêu nhẹ không bị chói mắt
+                hoverinfo="none"
             )
         )
 
-        # 3. Tinh chỉnh giao diện Terminal và tự động căn tỷ lệ biên độ dao động giá
         fig_macro.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)',   
-            paper_bgcolor='rgba(0,0,0,0)',  
-            font=dict(color='#9ca3af', family='Arial', size=11), 
-            margin=dict(l=10, r=10, t=30, b=10), 
-            height=340,
-            showlegend=False,               
-            
-            # Cấu hình trục hoành (X-Axis)
-            xaxis=dict(
-                showgrid=False,             
-                linecolor='#374151',        
-                tickfont=dict(color='#9ca3af'),
-                fixedrange=True             # KHÓA: Người dùng không thể kéo/dịch chuyển trục ngang
-            ),
-            
-            # Cấu hình trục tung (Y-Axis)
+            plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='#64748b', family='Arial', size=11),
+            margin=dict(l=10, r=10, t=20, b=10), height=340, showlegend=False,
+            xaxis=dict(type="category", showgrid=False, linecolor='#374151', fixedrange=True),
             yaxis=dict(
-                showgrid=True,              
-                gridcolor='#1f2937',        
-                linecolor='rgba(0,0,0,0)',  
-                tickfont=dict(color='#9ca3af'),
-                side='right',               # Đẩy trục số sang phải chuẩn Terminal
-                fixedrange=True,            # KHÓA: Người dùng không thể cuộn chuột phóng to/thu nhỏ trục đứng
-                
-                # ÉP BIÊN ĐỘ TỰ ĐỘNG THÔNG MINH:
-                # Lấy giá trị nhỏ nhất trừ đi 1 và lớn nhất cộng thêm 1 để đồ thị uốn lượn nhô cao, không bị chạm đáy/trần
-                range=[min(c_values) - 1, max(c_values) + 1]
+                showgrid=True, gridcolor='#1e293b', linecolor='rgba(0,0,0,0)',
+                side='right', fixedrange=True, range=[min(c_values) - 0.5, max(c_values) + 0.5]
             )
         )
 
-        # 4. Xuất biểu đồ ra giao diện (Tắt thanh công cụ Bloomberg Toolbar phía trên bên phải)
-        st.plotly_chart(
-            fig_macro, 
-            use_container_width=True, 
-            config={'displayModeBar': False} # Ẩn sạch các nút chụp ảnh, phóng to, thu nhỏ của Plotly
-        )
-        # ===============================================================================================
+        st.plotly_chart(fig_macro, use_container_width=True, config={'displayModeBar': False})
 
         # 3️⃣ PHÁT BIỂU ĐIỀU HÀNH TỪ SÀN CHÍNH SÁCH FED THẬT
         st.markdown("---")
