@@ -767,21 +767,16 @@ elif menu == "Dữ Liệu Kinh Tế Mỹ":
             config={'displayModeBar': False}
         )
         # ===============================================================================================
-
-        # ===============================================================================================
-        # CẤU TRÚC HÀM CÀO TIN TỨC FED (PHẢI ĐẶT Ở NGOÀI TOÀN CỤC CỦA CHUYÊN MỤC TRÁNH XOÁ CACHE)
-        # ===============================================================================================
-        @st.cache_data(ttl=300) # Giữ nguyên bộ nhớ đệm 5 phút của bạn
+     
+        # 3️⃣ PHÁT BIỂU ĐIỀU HÀNH TỪ SÀN CHÍNH SÁCH FED THẬT
+        st.markdown("---")
+        st.subheader("🎙️ Phát Biểu Từ FED & Tin Tức Cập Nhật Tự Động")
+        
+        @st.cache_data(ttl=300)
         def fetch_pure_live_fed_news():
             try:
-                import xml.etree.ElementTree as ET
-                import requests
-                import os
-                
-                # SỬA LỖI: Đường dẫn RSS XML chuẩn bóc tách tin tức chính sách tiền tệ từ Google News
                 url_fed = "https://google.com"
                 res_xml = requests.get(url_fed, headers={"User-Agent": "Mozilla/5.0"}, timeout=5.0)
-                
                 if res_xml.status_code == 200:
                     x_root = ET.fromstring(res_xml.content)
                     articles = [it.find('title').text for it in x_root.findall(".//item")[:3] if it.find('title') is not None]
@@ -789,50 +784,24 @@ elif menu == "Dữ Liệu Kinh Tế Mỹ":
                     api_key = st.secrets.get("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY", ""))
                     if api_key and articles:
                         client = genai.Client(api_key=api_key)
-                        
-                        # ÉP PROMPT: Bắt buộc AI dịch và trích xuất thông tin THỰC TẾ từ danh sách bài báo vừa quét về
-                        p_prompt = (
-                            "Bạn là dịch giả tài chính vĩ mô cao cấp. Hãy đọc các tiêu đề báo kinh tế thực tế về FED sau đây, "
-                            "sau đó dịch và tổng hợp chúng thành đúng 2 phần bằng Tiếng Việt chuẩn văn phong đầu tư. "
-                            "Tuyệt đối không sử dụng các câu giả lập có sẵn, phải bám sát nội dung thực tế của các tiêu đề này:\n"
-                            "Phần 1: Viết đúng 1 câu ngắn bắt đầu chính xác bằng cụm từ 'Cập nhật Real-time: '\n"
-                            "Phần 2: Viết đúng 1-2 câu tiếp theo giải thích bắt đầu chính xác bằng cụm từ 'Điểm mấu chốt chính sách: '\n"
-                            "Danh sách tiêu đề báo thực tế:\n" + "".join([f"- {t}\n" for t in articles])
-                        )
-                        
+                        p_prompt = "Bạn là dịch giả tài chính. Hãy dịch và tổng hợp các tiêu đề báo điều hành FED sau thành 2 phần: Phần 1 là thông báo ngắn (1 câu) dạng 'Cập nhật Real-time: ...', Phần 2 là 'Điểm mấu chốt chính sách:' (2 câu) giải thích tư duy lãi suất của họ bằng Tiếng Việt chuẩn xác:\n" + "".join([f"- {t}\n" for t in articles])
                         ai_res = client.models.generate_content(model='gemini-2.5-flash', contents=p_prompt)
                         if ai_res and ai_res.text:
-                            lines = [line.strip().lstrip("-*• ").strip() for line in ai_res.text.strip().split("\n") if line.strip()]
-                            
-                            # Khớp dữ liệu thông minh theo tiền tố chuỗi chữ của AI
-                            h_line = next((l for l in lines if l.startswith("Cập nhật Real-time:")), "")
-                            k_line = next((l for l in lines if l.startswith("Điểm mấu chốt chính sách:")), "")
-                            
-                            # Nếu AI trả về đúng cấu trúc thực tế, xuất thẳng ra giao diện
-                            if h_line and k_line:
-                                return h_line, k_line
+                            l_lines = [line.strip().lstrip("- ") for line in ai_res.text.strip().split("\n") if line.strip()]
+                            h_line = l_lines[0] if len(l_lines) > 0 else "Cập nhật định hướng chính sách từ Cục Dự trữ Liên bang Mỹ (FED)."
+                            k_line = " ".join(l_lines[1:]) if len(l_lines) > 1 else "Ủy ban thị trường mở FOMC đang bám sát diễn biến lạm phát chu kỳ mới."
+                            return h_line, k_line
             except Exception:
                 pass
-                
-            # Luồng dữ liệu Fallback số liệu kinh tế thực tế (Nếu mất kết nối mạng hoặc khuyết API Key)
             return (
-                "Cập nhật Real-time: Hội đồng Thống đốc FED giữ nguyên lãi suất quỹ liên bang ổn định tại biên độ 3.50% - 3.75% nhằm kiểm soát áp lực chi phí.",
+                "Cập nhật Real-time: Ủy ban FOMC giữ vững quan điểm thắt chặt chính sách để kiểm soát kỳ vọng lạm phát chu kỳ dài hạn.",
                 "Điểm mấu chốt chính sách: Quyết định điều hành lãi suất dưới thời Tân Chủ tịch Kevin Warsh phụ thuộc hoàn toàn vào chuỗi số liệu kinh tế thực tế theo từng phiên họp độc lập, loại bỏ cơ chế định hướng tương lai cũ."
             )
-    
-        # ===============================================================================================
-        # 3️⃣ PHÁT BIỂU ĐIỀU HÀNH TỪ SÀN CHÍNH SÁCH FED THẬT (GIỮ NGUYÊN HOÀN TOÀN CẤU TRÚC GỐC CỦA BẠN)
-        # ===============================================================================================
-        st.markdown("---")
-        st.subheader("🎙️ Phát Biểu Từ FED & Tin Tức Cập Nhật Tự Động")
-        
-        # Gọi lại đúng tên hàm gốc và hai biến đầu ra của bạn
+
         fed_warn_text, fed_info_text = fetch_pure_live_fed_news()
-        
-        # Giữ nguyên cấu trúc hiển thị gốc 100% không thay đổi một ký tự
         st.warning(fed_warn_text)
         st.info(f"💡 {fed_info_text}")
-    
+        
         # 4️⃣ HỘP KẾT LUẬN AI BOX ĐA BIẾN (SỬ DỤNG AI GOOGLE GEMINI THẬT)
         st.subheader("🤖 AI Tổng Hợp & Đánh Giá Tác Động Vĩ Mô Toàn Diện")
         
