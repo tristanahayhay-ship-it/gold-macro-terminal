@@ -695,37 +695,78 @@ elif menu == "Dữ Liệu Kinh Tế Mỹ":
 
         df_macro_chart = pd.DataFrame({"Thời gian": c_dates, "Giá trị": c_values})
         # ===============================================================================================
-        # MẪU 1: BIỂU ĐỒ VÙNG GRADIENT MỜ CHUYÊN NGHIỆP (TĨNH & GỌN GÀNG)
+        # MẪU 1 NÂNG CẤP: HIỂN THỊ THỜI GIAN TRÊN ĐƯỜNG DÂY XU HƯỚNG & ẨN TRỤC DƯỚI
         # ===============================================================================================
         import plotly.graph_objects as go
 
         fig_macro = go.Figure()
 
-        # Vẽ vùng phủ bóng Gradient kết hợp đường xu hướng
+        # Cấu hình đường dây tích hợp nhãn văn bản chữ đè lên nút tọa độ
         fig_macro.add_trace(
             go.Scatter(
                 x=df_macro_chart["Thời gian"],
                 y=df_macro_chart["Giá trị"],
-                mode="lines",                              # Chỉ hiện đường kẻ tối giản
-                line=dict(color="#3b82f6", width=2.5),     # Đường xu hướng màu xanh Neon sắc nét
-                fill="tozeroy",                            # Đổ màu vùng phủ xuống trục hoành
-                fillcolor="rgba(59, 130, 246, 0.05)",      # Màu bóng mờ siêu nhẹ không bị chói mắt
+                
+                # ÉP CHẾ ĐỘ HIỂN THỊ: Hiện cả đường kẻ, chấm tròn và nhãn chữ (text)
+                mode="lines+markers+text",                 
+                
+                # Gán nội dung chữ chính là mảng mốc thời gian (ví dụ: '2026-07')
+                text=df_macro_chart["Thời gian"],          
+                
+                # VỊ TRÍ CHỮ: Đẩy chữ nằm lên phía trên bên trái của điểm nút để không bị đè vào đường dây
+                textposition="top left",                   
+                
+                # Định dạng phông chữ hiển thị trên đường dây nhỏ nhắn, tinh tế
+                textfont=dict(
+                    family="Arial",
+                    size=10,
+                    color="#64748b"                        # Màu chữ xám dịu mắt
+                ),
+                
+                line=dict(color="#3b82f6", width=2.5),     # Đường xu hướng xanh Neon
+                marker=dict(size=4, color="#3b82f6"),      # Chấm tròn nhỏ găm tâm chữ
+                fill="tozeroy",                            
+                fillcolor="rgba(59, 130, 246, 0.04)",      # Vòng phủ bóng mờ nhẹ
                 hoverinfo="none"
             )
         )
 
         fig_macro.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)', 
+            paper_bgcolor='rgba(0,0,0,0)',
             font=dict(color='#64748b', family='Arial', size=11),
-            margin=dict(l=10, r=10, t=20, b=10), height=340, showlegend=False,
-            xaxis=dict(type="category", showgrid=False, linecolor='#374151', fixedrange=True),
+            margin=dict(l=10, r=10, t=30, b=10), 
+            height=340, 
+            showlegend=False,
+            
+            # CẤU HÌNH TRỤC HOÀNH (X-AXIS): Ẩn hoàn toàn vì chữ đã đưa lên trên đường dây
+            xaxis=dict(
+                type="category", 
+                showgrid=False, 
+                showticklabels=False,                      # ẨN DÒNG CHỮ THỜI GIAN Ở ĐÁY BIỂU ĐỒ
+                linecolor='rgba(0,0,0,0)',                 # Ẩn luôn đường thẳng trục đáy
+                fixedrange=True
+            ),
+            
+            # Cấu hình trục tung (Y-Axis) đẩy sang phải chuẩn Bloomberg Terminal
             yaxis=dict(
-                showgrid=True, gridcolor='#1e293b', linecolor='rgba(0,0,0,0)',
-                side='right', fixedrange=True, range=[min(c_values) - 0.5, max(c_values) + 0.5]
+                showgrid=True, 
+                gridcolor='#1e293b', 
+                linecolor='rgba(0,0,0,0)',
+                side='right', 
+                fixedrange=True, 
+                # Nới rộng khoảng đệm trần thêm một chút để các dòng chữ không bị chạm mép trên
+                range=[min(c_values) - 0.5, max(c_values) + 1.2]
             )
         )
 
-        st.plotly_chart(fig_macro, use_container_width=True, config={'displayModeBar': False})
+        # Kết xuất biểu đồ tĩnh hoàn toàn ra màn hình ứng dụng
+        st.plotly_chart(
+            fig_macro, 
+            use_container_width=True, 
+            config={'displayModeBar': False}
+        )
+        # ===============================================================================================
 
         # 3️⃣ PHÁT BIỂU ĐIỀU HÀNH TỪ SÀN CHÍNH SÁCH FED THẬT
         st.markdown("---")
