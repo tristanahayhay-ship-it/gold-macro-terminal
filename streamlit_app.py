@@ -836,37 +836,39 @@ elif menu == "Dữ Liệu Kinh Tế Mỹ":
     # Kích hoạt gọi hàm chạy ngầm nhảy giây (Lùi về đúng mốc móng 4 dấu cách)
     render_macro_section_pure_realtime()
 
-    # ===================================================================================================
-    # 3. DÒNG TIỀN (FLOW OF FUNDS) - CẬP NHẬT SỐ LIỆU THỰC TẾ & NHẢY GIÂY REAL-TIME
-    # ===================================================================================================
-    # Thuật toán giả lập biến động Tick-Data từng giây (Bám sát xu hướng dao động của phiên)
-    import numpy as np
-    from datetime import datetime
+# ===================================================================================================
+# 3. DÒNG TIỀN (FLOW OF FUNDS) - KHỐI RẼ NHÁNH HIỂN THỊ CHÍNH (Lùi sát lề trái hoàn toàn)
+# ===================================================================================================
+elif menu == "Dòng Tiền (Flow of Funds)":
+    # BẮT BUỘC: Toàn bộ code bên dưới phải lùi vào đúng 4 khoảng trắng so với lề trái
+    st.title("💸 Giám Sát Dòng Tiền Lớn (Smart Money Flow)")
     
-    np.random.seed(int(datetime.now().timestamp()))
-    
-    # Tính toán biến động số liệu thực tế chu kỳ tháng 7/2026
-    gld_tons_tick = round(1002.45 + np.random.uniform(-0.02, 0.02), 2)
-    cot_contracts_tick = int(194200 + np.random.randint(-15, 15))
-    real_yield_tick = round(2.31 + np.random.uniform(-0.002, 0.002), 2)
-    
-    # Giữ nguyên hoàn toàn cấu trúc layout chia 3 cột st.columns(3) ban đầu của bạn
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric(
-            "Thay đổi Quỹ ETF Vàng (GLD) hôm nay", 
-            "-3.20 Tấn", 
-            f"Tổng trữ lượng thực: {gld_tons_tick:,} Tấn"
-        )
+        st.metric("Thay đổi Quỹ ETF Vàng (GLD) hôm nay", "+3.85 Tấn", "Tổng trữ lượng: 835.40 Tấn")
     with col2:
-        st.metric(
-            "COT Report (Vị thế mua ròng Đầu cơ)", 
-            f"+{cot_contracts_tick:,} Hợp đồng", 
-            "Phe Bull kiểm soát 84%"
-        )
+        st.metric("COT Report (Vị thế mua ròng Đầu cơ)", "+12,450 Hợp đồng", "Phe Bull kiểm soát 78%")
     with col3:
-        st.metric(
-            "Real Yield (Lợi suất thực Mỹ)", 
-            f"{real_yield_tick}%", 
-            "+0.01% (Áp lực nhẹ lên Vàng)"
-        )
+        st.metric("Real Yield (Lợi suất thực Mỹ)", "1.85%", "-0.12% (Hỗ trợ Vàng)")
+        
+    st.subheader("📊 Diễn biến luân chuyển dòng tiền thông minh")
+    
+    t1, t2, t3 = st.tabs(["Trữ lượng Quỹ ETF", "Báo cáo COT (Commitment of Traders)", "Dự trữ vàng NHTW"])
+    with t1:
+        st.write("📈 Biểu đồ so sánh tương quan biến động giá vàng và khối lượng nắm giữ của các quỹ ETF lớn (GLD, IAU):")
+        dates = pd.date_range(end=datetime.today(), periods=30)
+        df_etf = pd.DataFrame(index=dates, data={"Giá vàng": np.linspace(2300, 2354, 30), "ETF Nắm Giữ (Tấn)": np.linspace(820, 835, 30)})
+        st.line_chart(df_etf)
+    with t2:
+        st.write("📊 Dữ liệu trạng thái vị thế của các tổ chức tài chính lớn (Non-Commercial):")
+        st.info("Báo cáo COT mới nhất chỉ ra rằng các dòng tiền lớn (Hedge Funds) tiếp tục đóng vị thế Short và gia tăng mạnh vị thế Long XAUUSD tuần thứ 3 liên tiếp.")
+    with t3:
+        st.write("🏛️ Hoạt động mua gom của Ngân hàng trung ương (PBoC Trung Quốc, Ngân hàng Trung ương Nga, Ấn Độ...)")
+        st.success("Dữ liệu cập nhật: Trung Quốc tiếp tục gia tăng dự trữ vàng tháng thứ 18 liên tiếp, bổ sung thêm 60,000 ounces trong tháng vừa qua.")
+        
+    st.subheader("🤖 Nhận Định Nước Đi Dòng Tiền Từ AI")
+    st.markdown("""
+    <div class="ai-box">
+        <b>Phân tích hành vi cá mập:</b> Dòng tiền không nằm ở tài sản rủi ro cao mà đang có xu hướng dịch chuyển dòng vốn (Capital rotation) từ thị trường trái phiếu ngắn hạn Mỹ trực tiếp sang thị trường vàng vật chất và quỹ tín thác. Đây là hành vi tích lũy tài sản dài hạn (Smart Money Accumulation).
+    </div>
+    """, unsafe_allow_html=True)
