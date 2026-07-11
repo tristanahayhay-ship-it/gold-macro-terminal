@@ -694,10 +694,77 @@ elif menu == "Dữ Liệu Kinh Tế Mỹ":
             elif "US10Y" in selected_macro: c_values[-1] = us10y_tick
 
         df_macro_chart = pd.DataFrame({"Thời gian": c_dates, "Giá trị": c_values})
-        fig_macro = px.bar(df_macro_chart, x="Thời gian", y="Giá trị", title=f"Lịch sử chu kỳ chỉ số: {selected_macro}", color="Giá trị", color_continuous_scale="Blues")
-        fig_macro.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#cbd5e1'), margin=dict(l=10, r=10, t=40, b=10), height=340)
-        st.plotly_chart(fig_macro, use_container_width=True)
+        c_dates, c_values = fetch_pure_chart_history(selected_macro, months_range)
         
+        if len(c_values) > 0:
+            if "DXY" in selected_macro: c_values[-1] = dxy_tick
+            elif "US10Y" in selected_macro: c_values[-1] = us10y_tick
+
+        df_macro_chart = pd.DataFrame({"Thời gian": c_dates, "Giá trị": c_values})
+        
+        # ===============================================================================================
+        # ĐOẠN ĐÃ DÁN ĐÈ THAY THẾ (TỪ ĐÂY ĐẾN HẾT KHỐI PLOTLY)
+        # ===============================================================================================
+        import plotly.graph_objects as go
+
+        # 1. Khởi tạo khung biểu đồ phức hợp
+        fig_macro = go.Figure()
+
+        # 2. Vẽ các cột đứng hiển thị giá trị lịch sử
+        fig_macro.add_trace(
+            go.Bar(
+                x=df_macro_chart["Thời gian"],
+                y=df_macro_chart["Giá trị"],
+                name="Chỉ số",
+                marker_color="#3b82f6",     # Cột màu xanh Neon
+                marker_line_width=0,        # Xóa viền trắng quanh các cột
+                width=0.35                  # Thu hẹp cột tạo khoảng thoáng thẩm mỹ như ảnh mẫu
+            )
+        )
+
+        # 3. Vẽ đường kẻ kết hợp nối các đỉnh chu kỳ
+        fig_macro.add_trace(
+            go.Scatter(
+                x=df_macro_chart["Thời gian"],
+                y=df_macro_chart["Giá trị"],
+                name="Tổng xu hướng",
+                mode="lines+markers",       # Hiện đường kẻ và chấm tròn đỉnh
+                line=dict(color="#cbd5e1", width=2.5), # Đường kẻ màu xám bạc
+                marker=dict(size=6, color="#ffffff")   # Điểm chấm tròn màu trắng trên đỉnh
+            )
+        )
+
+        # 4. Tinh chỉnh giao diện Terminal (Khóa tương tác, tối giản, đẩy trục sang phải)
+        fig_macro.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',   # Nền đồ thị trong suốt
+            paper_bgcolor='rgba(0,0,0,0)',  # Nền giấy trong suốt
+            font=dict(color='#9ca3af', family='Arial', size=11), # Chữ xám dịu mắt
+            margin=dict(l=10, r=10, t=30, b=10), 
+            height=340,
+            showlegend=False,               # Ẩn chú thích thừa
+            
+            xaxis=dict(
+                showgrid=False,             # Ẩn lưới dọc
+                linecolor='#374151',        # Đường trục x xám tối
+                tickfont=dict(color='#9ca3af')
+            ),
+            yaxis=dict(
+                showgrid=True,              # Hiện lưới ngang đối chiếu
+                gridcolor='#1f2937',        # Đường lưới ngang mờ tối
+                linecolor='rgba(0,0,0,0)',  # Ẩn hẳn đường trục dọc
+                tickfont=dict(color='#9ca3af'),
+                side='right',               # Đẩy trục số sang phải chuẩn Terminal
+                autorange=True              # Tự động co giãn sát biên độ để các cột uốn lượn rõ rệt
+            )
+        )
+
+        # 5. Xuất biểu đồ tĩnh: Khóa hoàn toàn tương tác và ẩn thanh công cụ Hover-toolbar
+        st.plotly_chart(
+            fig_macro, 
+            use_container_width=True, 
+            config={'displayModeBar': False, 'staticPlot': True}
+        )
+   
         # 3️⃣ PHÁT BIỂU ĐIỀU HÀNH TỪ SÀN CHÍNH SÁCH FED THẬT
         st.markdown("---")
         st.subheader("🎙️ Phát Biểu Từ FED & Tin Tức Cập Nhật Tự Động")
