@@ -476,293 +476,293 @@ Yêu cầu: Viết ngắn gọn, trực diện bằng tiếng Việt. Sử dụn
             unsafe_allow_html=True
         )
 
-    # ===============================================================================================
-    # 📰 TIN TỨC TÀI CHÍNH VĨ MÔ DỊCH TIẾNG VIỆT CHUYÊN SÂU QUA GEMINI AI (REAL-TIME)
-    # ===============================================================================================
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.subheader("📰 Bài báo phân tích vĩ mô chuyên sâu")
-    st.caption("Luồng tin tức vĩ mô liên thông bóc tách từ cổng truyền thông quốc tế - Tự động dịch bởi Gemini AI")
-
-    @st.cache_data(ttl=300)  # Lưu bộ nhớ đệm 5 phút để tránh quá tải API và tối ưu tốc độ app
-    def fetch_live_macro_news_vietnamese():
-        live_news_list = []
-        try:
+        # ===============================================================================================
+        # 📰 TIN TỨC TÀI CHÍNH VĨ MÔ DỊCH TIẾNG VIỆT CHUYÊN SÂU QUA GEMINI AI (REAL-TIME)
+        # ===============================================================================================
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.subheader("📰 Bài báo phân tích vĩ mô chuyên sâu")
+        st.caption("Luồng tin tức vĩ mô liên thông bóc tách từ cổng truyền thông quốc tế - Tự động dịch bởi Gemini AI")
+    
+        @st.cache_data(ttl=300)  # Lưu bộ nhớ đệm 5 phút để tránh quá tải API và tối ưu tốc độ app
+        def fetch_live_macro_news_vietnamese():
+            live_news_list = []
+            try:
+                import xml.etree.ElementTree as ET
+                import requests
+                import os
+                
+                # 1. Quét dữ liệu RSS từ Google News Finance Mỹ
+                url = "https://google.com"
+                headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+                response = requests.get(url, headers=headers, timeout=5.0)
+                
+                raw_articles = []
+                if response.status_code == 200:
+                    root = ET.fromstring(response.content)
+                    for item in root.findall(".//item")[:4]:
+                        title_full = item.find("title").text if item.find("title") is not None else ""
+                        link = item.find("link").text if item.find("link") is not None else "https://google.com"
+                        pub_date = item.find("pubDate").text if item.find("pubDate") is not None else "Vừa cập nhật"
+                        
+                        if " - " in title_full:
+                            title, publisher = title_full.rsplit(" - ", 1)
+                        else:
+                            title = title_full
+                            publisher = "Tin tức Quốc tế"
+                            
+                        raw_articles.append({"title": title.strip(), "publisher": publisher.strip(), "time": pub_date[:16], "link": link})
+                
+                # 2. Khởi tạo Gemini AI để dịch toàn bộ tiêu đề sang thuật ngữ tài chính Tiếng Việt
+                api_key = st.secrets.get("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY", ""))
+                
+                if api_key and raw_articles:
+                    client = genai.Client(api_key=api_key)
+                    
+                    # Gom toàn bộ tiêu đề thành một văn bản để dịch một lần duy nhất (Tiết kiệm lượt gọi API)
+                    translation_prompt = "Bạn là một dịch giả tài chính vĩ mô cao cấp. Hãy dịch chính xác các tiêu đề báo kinh tế sau sang Tiếng Việt chuẩn văn phong đầu tư, ngắn gọn, trực diện, giữ nguyên tên thương hiệu nhà xuất bản nếu cần. Xuất ra dạng danh sách cách nhau bởi dấu xuống dòng, không kèm số thứ tự:\n"
+                    for a in raw_articles:
+                        translation_prompt += f"- {a['title']}\n"
+                    
+                    ai_response = client.models.generate_content(
+                        model='gemini-2.5-flash',
+                        contents=translation_prompt
+                    )
+                    
+                    if ai_response and ai_response.text:
+                        translated_titles = [line.strip().lstrip("- ").strip() for line in ai_response.text.strip().split("\n") if line.strip()]
+                        
+                        # Khớp tiêu đề đã dịch vào danh sách bài báo ban đầu
+                        for i, article in enumerate(raw_articles):
+                            if i < len(translated_titles):
+                                article["title"] = translated_titles[i]
+                            live_news_list.append(article)
+                else:
+                    # Nếu không có API Key, nạp thẳng danh sách thô để ứng dụng không bị dừng hình
+                    live_news_list = raw_articles
+                    
+            except Exception:
+                pass
+                
+            # Luồng Fallback Tiếng Việt (Nếu mất hoàn toàn kết nối Internet hoặc lỗi API)
+            if not live_news_list:
+                live_news_list = [
+                    {"title": "Giá vàng tăng vọt áp sát đỉnh lịch sử do áp lực dữ liệu lạm phát Mỹ", "publisher": "Bloomberg", "time": "Mới cập nhật", "link": "https://bloomberg.com"},
+                    {"title": "Đồng Đô la suy yếu khi kỳ vọng FED cắt giảm lãi suất ngày càng tăng cao", "publisher": "Reuters", "time": "Mới cập nhật", "link": "https://reuters.com"},
+                    {"title": "Căng thẳng địa chính trị Trung Đông tiếp tục thúc đẩy dòng tiền trú ẩn an toàn", "publisher": "MarketWatch", "time": "Mới cập nhật", "link": "https://marketwatch.com"},
+                    {"title": "Các Ngân hàng Trung ương đẩy mạnh gom Vàng do lo ngại mất giá tiền tệ", "publisher": "Financial Times", "time": "Mới cập nhật", "link": "https://ft.com"}
+                ]
+            return live_news_list
+    
+        # Gọi hàm nạp dữ liệu tin tức thực tế Tiếng Việt
+        macro_news = fetch_live_macro_news_vietnamese()
+    
+        # Phân bổ lưới hiển thị 2 cột song song chuẩn thiết kế CSS của bạn
+        col_news1, col_news2 = st.columns(2)
+    
+        with col_news1:
+            if len(macro_news) > 0:
+                n1 = macro_news[0]
+                st.markdown(f"""
+                <div class="news-card">
+                    <h4>[{n1['publisher']}] {n1['title']}</h4>
+                    <p style='color:#64748b; font-size:12px; margin-bottom:8px;'>📅 Xuất bản: {n1['time']}</p>
+                    <p style='font-size:13px; color:#cbd5e1;'>Tin tức liên thông vĩ mô được dịch thuật tự động từ các cổng thông tin tài chính toàn cầu.</p>
+                    <a href="{n1['link']}" target="_blank" style="color:#3b82f6; text-decoration:none; font-size:13px; font-weight:bold;">Đọc bài báo gốc ↗</a>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            if len(macro_news) > 2:
+                st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
+                n3 = macro_news[2]
+                st.markdown(f"""
+                <div class="news-card">
+                    <h4>[{n3['publisher']}] {n3['title']}</h4>
+                    <p style='color:#64748b; font-size:12px; margin-bottom:8px;'>📅 Xuất bản: {n3['time']}</p>
+                    <p style='font-size:13px; color:#cbd5e1;'>Cập nhật diễn biến tâm lý dòng tiền lớn và động thái của các Ngân hàng Trung ương toàn cầu.</p>
+                    <a href="{n3['link']}" target="_blank" style="color:#3b82f6; text-decoration:none; font-size:13px; font-weight:bold;">Đọc bài báo gốc ↗</a>
+                </div>
+                """, unsafe_allow_html=True)
+    
+        with col_news2:
+            if len(macro_news) > 1:
+                n2 = macro_news[1]
+                st.markdown(f"""
+                <div class="news-card">
+                    <h4>[{n2['publisher']}] {n2['title']}</h4>
+                    <p style='color:#64748b; font-size:12px; margin-bottom:8px;'>📅 Xuất bản: {n2['time']}</p>
+                    <p style='font-size:13px; color:#cbd5e1;'>Tin tức liên thông vĩ mô được dịch thuật tự động từ các cổng thông tin tài chính toàn cầu.</p>
+                    <a href="{n2['link']}" target="_blank" style="color:#3b82f6; text-decoration:none; font-size:13px; font-weight:bold;">Đọc bài báo gốc ↗</a>
+                </div>
+                """, unsafe_allow_html=True)
+    
+            if len(macro_news) > 3:
+                st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
+                n4 = macro_news[3]
+                st.markdown(f"""
+                <div class="news-card">
+                    <h4>[{n4['publisher']}] {n4['title']}</h4>
+                    <p style='color:#64748b; font-size:12px; margin-bottom:8px;'>📅 Xuất bản: {n4['time']}</p>
+                    <p style='font-size:13px; color:#cbd5e1;'>Cập nhật diễn biến tâm lý dòng tiền lớn và động thái của các Ngân hàng Trung ương toàn cầu.</p>
+                    <a href="{n4['link']}" target="_blank" style="color:#3b82f6; text-decoration:none; font-size:13px; font-weight:bold;">Đọc bài báo gốc ↗</a>
+                </div>
+                """, unsafe_allow_html=True)
+    
+        st.title("🇺🇸 Chỉ Số Kinh Tế Vĩ Mô Mỹ (Real-time & Historical)")
+        
+        # 🚀 KÍCH HOẠT LUỒNG LIVE STREAMING TOÀN KHỐI - CẬP NHẬT CHUẨN XÁC TỪNG GIÂY PHÚT
+        @st.fragment(run_every=1)
+        def render_macro_section_pure_realtime():
             import xml.etree.ElementTree as ET
             import requests
             import os
-            
-            # 1. Quét dữ liệu RSS từ Google News Finance Mỹ
-            url = "https://google.com"
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-            response = requests.get(url, headers=headers, timeout=5.0)
-            
-            raw_articles = []
-            if response.status_code == 200:
-                root = ET.fromstring(response.content)
-                for item in root.findall(".//item")[:4]:
-                    title_full = item.find("title").text if item.find("title") is not None else ""
-                    link = item.find("link").text if item.find("link") is not None else "https://google.com"
-                    pub_date = item.find("pubDate").text if item.find("pubDate") is not None else "Vừa cập nhật"
-                    
-                    if " - " in title_full:
-                        title, publisher = title_full.rsplit(" - ", 1)
-                    else:
-                        title = title_full
-                        publisher = "Tin tức Quốc tế"
-                        
-                    raw_articles.append({"title": title.strip(), "publisher": publisher.strip(), "time": pub_date[:16], "link": link})
-            
-            # 2. Khởi tạo Gemini AI để dịch toàn bộ tiêu đề sang thuật ngữ tài chính Tiếng Việt
-            api_key = st.secrets.get("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY", ""))
-            
-            if api_key and raw_articles:
-                client = genai.Client(api_key=api_key)
-                
-                # Gom toàn bộ tiêu đề thành một văn bản để dịch một lần duy nhất (Tiết kiệm lượt gọi API)
-                translation_prompt = "Bạn là một dịch giả tài chính vĩ mô cao cấp. Hãy dịch chính xác các tiêu đề báo kinh tế sau sang Tiếng Việt chuẩn văn phong đầu tư, ngắn gọn, trực diện, giữ nguyên tên thương hiệu nhà xuất bản nếu cần. Xuất ra dạng danh sách cách nhau bởi dấu xuống dòng, không kèm số thứ tự:\n"
-                for a in raw_articles:
-                    translation_prompt += f"- {a['title']}\n"
-                
-                ai_response = client.models.generate_content(
-                    model='gemini-2.5-flash',
-                    contents=translation_prompt
-                )
-                
-                if ai_response and ai_response.text:
-                    translated_titles = [line.strip().lstrip("- ").strip() for line in ai_response.text.strip().split("\n") if line.strip()]
-                    
-                    # Khớp tiêu đề đã dịch vào danh sách bài báo ban đầu
-                    for i, article in enumerate(raw_articles):
-                        if i < len(translated_titles):
-                            article["title"] = translated_titles[i]
-                        live_news_list.append(article)
-            else:
-                # Nếu không có API Key, nạp thẳng danh sách thô để ứng dụng không bị dừng hình
-                live_news_list = raw_articles
-                
-        except Exception:
-            pass
-            
-        # Luồng Fallback Tiếng Việt (Nếu mất hoàn toàn kết nối Internet hoặc lỗi API)
-        if not live_news_list:
-            live_news_list = [
-                {"title": "Giá vàng tăng vọt áp sát đỉnh lịch sử do áp lực dữ liệu lạm phát Mỹ", "publisher": "Bloomberg", "time": "Mới cập nhật", "link": "https://bloomberg.com"},
-                {"title": "Đồng Đô la suy yếu khi kỳ vọng FED cắt giảm lãi suất ngày càng tăng cao", "publisher": "Reuters", "time": "Mới cập nhật", "link": "https://reuters.com"},
-                {"title": "Căng thẳng địa chính trị Trung Đông tiếp tục thúc đẩy dòng tiền trú ẩn an toàn", "publisher": "MarketWatch", "time": "Mới cập nhật", "link": "https://marketwatch.com"},
-                {"title": "Các Ngân hàng Trung ương đẩy mạnh gom Vàng do lo ngại mất giá tiền tệ", "publisher": "Financial Times", "time": "Mới cập nhật", "link": "https://ft.com"}
-            ]
-        return live_news_list
-
-    # Gọi hàm nạp dữ liệu tin tức thực tế Tiếng Việt
-    macro_news = fetch_live_macro_news_vietnamese()
-
-    # Phân bổ lưới hiển thị 2 cột song song chuẩn thiết kế CSS của bạn
-    col_news1, col_news2 = st.columns(2)
-
-    with col_news1:
-        if len(macro_news) > 0:
-            n1 = macro_news[0]
-            st.markdown(f"""
-            <div class="news-card">
-                <h4>[{n1['publisher']}] {n1['title']}</h4>
-                <p style='color:#64748b; font-size:12px; margin-bottom:8px;'>📅 Xuất bản: {n1['time']}</p>
-                <p style='font-size:13px; color:#cbd5e1;'>Tin tức liên thông vĩ mô được dịch thuật tự động từ các cổng thông tin tài chính toàn cầu.</p>
-                <a href="{n1['link']}" target="_blank" style="color:#3b82f6; text-decoration:none; font-size:13px; font-weight:bold;">Đọc bài báo gốc ↗</a>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        if len(macro_news) > 2:
-            st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
-            n3 = macro_news[2]
-            st.markdown(f"""
-            <div class="news-card">
-                <h4>[{n3['publisher']}] {n3['title']}</h4>
-                <p style='color:#64748b; font-size:12px; margin-bottom:8px;'>📅 Xuất bản: {n3['time']}</p>
-                <p style='font-size:13px; color:#cbd5e1;'>Cập nhật diễn biến tâm lý dòng tiền lớn và động thái của các Ngân hàng Trung ương toàn cầu.</p>
-                <a href="{n3['link']}" target="_blank" style="color:#3b82f6; text-decoration:none; font-size:13px; font-weight:bold;">Đọc bài báo gốc ↗</a>
-            </div>
-            """, unsafe_allow_html=True)
-
-    with col_news2:
-        if len(macro_news) > 1:
-            n2 = macro_news[1]
-            st.markdown(f"""
-            <div class="news-card">
-                <h4>[{n2['publisher']}] {n2['title']}</h4>
-                <p style='color:#64748b; font-size:12px; margin-bottom:8px;'>📅 Xuất bản: {n2['time']}</p>
-                <p style='font-size:13px; color:#cbd5e1;'>Tin tức liên thông vĩ mô được dịch thuật tự động từ các cổng thông tin tài chính toàn cầu.</p>
-                <a href="{n2['link']}" target="_blank" style="color:#3b82f6; text-decoration:none; font-size:13px; font-weight:bold;">Đọc bài báo gốc ↗</a>
-            </div>
-            """, unsafe_allow_html=True)
-
-        if len(macro_news) > 3:
-            st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
-            n4 = macro_news[3]
-            st.markdown(f"""
-            <div class="news-card">
-                <h4>[{n4['publisher']}] {n4['title']}</h4>
-                <p style='color:#64748b; font-size:12px; margin-bottom:8px;'>📅 Xuất bản: {n4['time']}</p>
-                <p style='font-size:13px; color:#cbd5e1;'>Cập nhật diễn biến tâm lý dòng tiền lớn và động thái của các Ngân hàng Trung ương toàn cầu.</p>
-                <a href="{n4['link']}" target="_blank" style="color:#3b82f6; text-decoration:none; font-size:13px; font-weight:bold;">Đọc bài báo gốc ↗</a>
-            </div>
-            """, unsafe_allow_html=True)
-
-    st.title("🇺🇸 Chỉ Số Kinh Tế Vĩ Mô Mỹ (Real-time & Historical)")
+            import numpy as np
     
-    # 🚀 KÍCH HOẠT LUỒNG LIVE STREAMING TOÀN KHỐI - CẬP NHẬT CHUẨN XÁC TỪNG GIÂY PHÚT
-    @st.fragment(run_every=1)
-    def render_macro_section_pure_realtime():
-        import xml.etree.ElementTree as ET
-        import requests
-        import os
-        import numpy as np
-
-        # --- TẦNG LUỒNG DỮ LIỆU NỀN TẢNG REAL-TIME TỪ SÀN GIAO DỊCH ---
-        @st.cache_data(ttl=5)  # Lưu đệm 5 giây để cập nhật siêu tốc nhưng không bị khóa IP
-        def get_macro_live_feed():
-            feeds = {"DXY": "DX-Y.NYB", "US10Y": "^TNX", "XAU": "GC=F"}
-            feed_results = {}
-            for k, sym in feeds.items():
+            # --- TẦNG LUỒNG DỮ LIỆU NỀN TẢNG REAL-TIME TỪ SÀN GIAO DỊCH ---
+            @st.cache_data(ttl=5)  # Lưu đệm 5 giây để cập nhật siêu tốc nhưng không bị khóa IP
+            def get_macro_live_feed():
+                feeds = {"DXY": "DX-Y.NYB", "US10Y": "^TNX", "XAU": "GC=F"}
+                feed_results = {}
+                for k, sym in feeds.items():
+                    try:
+                        t = yf.Ticker(sym)
+                        hist = t.history(period="2d")
+                        if len(hist) >= 2:
+                            feed_results[k] = hist['Close'].iloc[-1]
+                    except Exception:
+                        pass
+                return feed_results
+    
+            live_feed = get_macro_live_feed()
+            dxy_live = round(live_feed.get("DXY", 104.15), 2)
+            us10y_live = round(live_feed.get("US10Y", 4.21), 2)
+            xau_live = round(live_feed.get("XAU", 2354.50), 2)
+    
+            # Thuật toán nội suy Tick-Data siêu nhỏ bám theo giá sàn khớp lệnh để tạo nhịp nhảy giây chính xác
+            np.random.seed(int(datetime.now().timestamp()))
+            dxy_tick = round(dxy_live + np.random.uniform(-0.002, 0.002), 3)
+            us10y_tick = round(us10y_live + np.random.uniform(-0.001, 0.001), 3)
+    
+            current_timestamp_str = datetime.now().strftime("%d/%m/%Y — %H:%M:%S")
+            
+            # 1️⃣ BẢNG CẬP NHẬT TRẠNG THÁI THỰC TẾ (SỐ LIỆU CHUẨN CHÍNH XÁC TỪNG GIÂY)
+            st.subheader("📋 Bảng cập nhật trạng thái thực tế")
+            st.markdown(f"<div style='text-align: right; font-size: 12px; color: #3b82f6; font-weight: bold; margin-top: -35px;'>⏳ Hệ thống kiểm toán Live-Feed: `{current_timestamp_str}`</div>", unsafe_allow_html=True)
+            
+            macro_indicators = {
+                "Chỉ số": ["💵 DXY Index (Sức mạnh Đô la)", "📉 US10Y Yield (Lợi suất 10 năm)", "CPI Inflation (Lạm phát Mỹ)", "Core CPI (Lạm phát lõi)", "NFP (Bảng lương phi nông nghiệp)", "Tỷ lệ thất nghiệp", "GDP Quý (Tăng trưởng)", "PMI Sản xuất"],
+                "Kỳ báo cáo": ["Real-time (Từng giây)", "Real-time (Từng giây)", "Tháng mới nhất", "Tháng mới nhất", "Tháng mới nhất", "Tháng mới nhất", "Quý mới nhất", "Tháng mới nhất"],
+                "Giá trị thực tế": [f"{dxy_tick}", f"{us10y_tick}%", "4.2%", "2.8%", "+57K", "4.2%", "2.1%", "48.4"],
+                "Dự báo trước đó": ["104.00", "4.25%", "4.2%", "2.8%", "+114K", "4.3%", "1.6%", "49.0"],
+                "Trạng thái đối với Vàng": ["⚠️ Nghịch đảo (DXY tăng ép Vàng giảm)", "⚠️ Chi phí cơ hội (Yield tăng áp lực Vàng)", "Nghịch đảo mạnh", "Nghịch đảo mạnh", "📈 Thuận chiều (Việc làm yếu đẩy Vàng tăng)", "📈 Thuận chiều (Thất nghiệp tăng đẩy Vàng tăng)", "⚠️ Đối nghịch chu kỳ", "📉 Nghịch đảo"]
+            }
+            st.dataframe(pd.DataFrame(macro_indicators), use_container_width=True)
+            # 2️⃣ BIỂU ĐỒ LỊCH SỬ DỮ LIỆU ĐỘNG (CHUẨN XÁC 100% THEO TỪNG GIÂY PHÚT)
+            st.subheader("📈 Biểu đồ lịch sử dữ liệu (Tùy chỉnh thời gian)")
+            selected_macro = st.selectbox("Chọn chỉ số để xem biểu đồ lịch sử:", ["DXY Index (Real-time)", "US10Y Yield (Real-time)", "CPI Lạm phát (Tháng)"], key="section2_sb")
+            months_range = st.slider("Chọn khoảng thời gian lịch sử (tháng):", 6, 36, 12, key="section2_sl")
+            
+            @st.cache_data(ttl=10)
+            def fetch_pure_chart_history(macro_name, months):
+                ticker_symbol = "DX-Y.NYB" if "DXY" in macro_name else ("^TNX" if "US10Y" in macro_name else "FREG=F")
                 try:
-                    t = yf.Ticker(sym)
-                    hist = t.history(period="2d")
-                    if len(hist) >= 2:
-                        feed_results[k] = hist['Close'].iloc[-1]
+                    e_date = datetime.today()
+                    s_date = e_date - timedelta(days=months * 30)
+                    t_obj = yf.Ticker(ticker_symbol)
+                    df_h = t_obj.history(start=s_date, end=e_date)
+                    if not df_h.empty:
+                        df_res = df_h['Close'].resample('ME').last().reset_index()
+                        df_res['Date_Str'] = df_res['Date'].dt.strftime('%Y-%m')
+                        if "CPI" in macro_name:
+                            df_res['Val_Final'] = (df_res['Close'] / df_res['Close'].iloc) * 4.2
+                        elif "US10Y" in macro_name:
+                            df_res['Val_Final'] = df_res['Close']
+                        else:
+                            df_res['Val_Final'] = df_res['Close']
+                        return df_res['Date_Str'].tolist(), df_res['Val_Final'].tolist()
                 except Exception:
                     pass
-            return feed_results
-
-        live_feed = get_macro_live_feed()
-        dxy_live = round(live_feed.get("DXY", 104.15), 2)
-        us10y_live = round(live_feed.get("US10Y", 4.21), 2)
-        xau_live = round(live_feed.get("XAU", 2354.50), 2)
-
-        # Thuật toán nội suy Tick-Data siêu nhỏ bám theo giá sàn khớp lệnh để tạo nhịp nhảy giây chính xác
-        np.random.seed(int(datetime.now().timestamp()))
-        dxy_tick = round(dxy_live + np.random.uniform(-0.002, 0.002), 3)
-        us10y_tick = round(us10y_live + np.random.uniform(-0.001, 0.001), 3)
-
-        current_timestamp_str = datetime.now().strftime("%d/%m/%Y — %H:%M:%S")
-        
-        # 1️⃣ BẢNG CẬP NHẬT TRẠNG THÁI THỰC TẾ (SỐ LIỆU CHUẨN CHÍNH XÁC TỪNG GIÂY)
-        st.subheader("📋 Bảng cập nhật trạng thái thực tế")
-        st.markdown(f"<div style='text-align: right; font-size: 12px; color: #3b82f6; font-weight: bold; margin-top: -35px;'>⏳ Hệ thống kiểm toán Live-Feed: `{current_timestamp_str}`</div>", unsafe_allow_html=True)
-        
-        macro_indicators = {
-            "Chỉ số": ["💵 DXY Index (Sức mạnh Đô la)", "📉 US10Y Yield (Lợi suất 10 năm)", "CPI Inflation (Lạm phát Mỹ)", "Core CPI (Lạm phát lõi)", "NFP (Bảng lương phi nông nghiệp)", "Tỷ lệ thất nghiệp", "GDP Quý (Tăng trưởng)", "PMI Sản xuất"],
-            "Kỳ báo cáo": ["Real-time (Từng giây)", "Real-time (Từng giây)", "Tháng mới nhất", "Tháng mới nhất", "Tháng mới nhất", "Tháng mới nhất", "Quý mới nhất", "Tháng mới nhất"],
-            "Giá trị thực tế": [f"{dxy_tick}", f"{us10y_tick}%", "4.2%", "2.8%", "+57K", "4.2%", "2.1%", "48.4"],
-            "Dự báo trước đó": ["104.00", "4.25%", "4.2%", "2.8%", "+114K", "4.3%", "1.6%", "49.0"],
-            "Trạng thái đối với Vàng": ["⚠️ Nghịch đảo (DXY tăng ép Vàng giảm)", "⚠️ Chi phí cơ hội (Yield tăng áp lực Vàng)", "Nghịch đảo mạnh", "Nghịch đảo mạnh", "📈 Thuận chiều (Việc làm yếu đẩy Vàng tăng)", "📈 Thuận chiều (Thất nghiệp tăng đẩy Vàng tăng)", "⚠️ Đối nghịch chu kỳ", "📉 Nghịch đảo"]
-        }
-        st.dataframe(pd.DataFrame(macro_indicators), use_container_width=True)
-        # 2️⃣ BIỂU ĐỒ LỊCH SỬ DỮ LIỆU ĐỘNG (CHUẨN XÁC 100% THEO TỪNG GIÂY PHÚT)
-        st.subheader("📈 Biểu đồ lịch sử dữ liệu (Tùy chỉnh thời gian)")
-        selected_macro = st.selectbox("Chọn chỉ số để xem biểu đồ lịch sử:", ["DXY Index (Real-time)", "US10Y Yield (Real-time)", "CPI Lạm phát (Tháng)"], key="section2_sb")
-        months_range = st.slider("Chọn khoảng thời gian lịch sử (tháng):", 6, 36, 12, key="section2_sl")
-        
-        @st.cache_data(ttl=10)
-        def fetch_pure_chart_history(macro_name, months):
-            ticker_symbol = "DX-Y.NYB" if "DXY" in macro_name else ("^TNX" if "US10Y" in macro_name else "FREG=F")
-            try:
-                e_date = datetime.today()
-                s_date = e_date - timedelta(days=months * 30)
-                t_obj = yf.Ticker(ticker_symbol)
-                df_h = t_obj.history(start=s_date, end=e_date)
-                if not df_h.empty:
-                    df_res = df_h['Close'].resample('ME').last().reset_index()
-                    df_res['Date_Str'] = df_res['Date'].dt.strftime('%Y-%m')
-                    if "CPI" in macro_name:
-                        df_res['Val_Final'] = (df_res['Close'] / df_res['Close'].iloc) * 4.2
-                    elif "US10Y" in macro_name:
-                        df_res['Val_Final'] = df_res['Close']
-                    else:
-                        df_res['Val_Final'] = df_res['Close']
-                    return df_res['Date_Str'].tolist(), df_res['Val_Final'].tolist()
-            except Exception:
-                pass
-            dates = pd.date_range(end=datetime.today(), periods=months, freq='ME').strftime('%Y-%m').tolist()
-            return dates, [104.0] * months
-
-        c_dates, c_values = fetch_pure_chart_history(selected_macro, months_range)
-        
-        if len(c_values) > 0:
-            if "DXY" in selected_macro: c_values[-1] = dxy_tick
-            elif "US10Y" in selected_macro: c_values[-1] = us10y_tick
-
-        df_macro_chart = pd.DataFrame({"Thời gian": c_dates, "Giá trị": c_values})
-        fig_macro = px.bar(df_macro_chart, x="Thời gian", y="Giá trị", title=f"Lịch sử chu kỳ chỉ số: {selected_macro}", color="Giá trị", color_continuous_scale="Blues")
-        fig_macro.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#cbd5e1'), margin=dict(l=10, r=10, t=40, b=10), height=340)
-        st.plotly_chart(fig_macro, use_container_width=True)
-        # 3️⃣ PHÁT BIỂU TỪ FED & TIN TỨC CHUẨN 100% (CẬP NHẬT TỰ ĐỘNG TỪ GOOGLE NEWS CHÍNH CHỦ)
-        st.markdown("---")
-        st.subheader("🎙️ Phát Biểu Từ FED & Tin Tức Cập Nhật Tự Động")
-        
-        @st.cache_data(ttl=300)
-        def fetch_pure_live_fed_news():
-            try:
-                url_fed = "https://google.com"
-                res_xml = requests.get(url_fed, headers={"User-Agent": "Mozilla/5.0"}, timeout=5.0)
-                if res_xml.status_code == 200:
-                    x_root = ET.fromstring(res_xml.content)
-                    articles = [it.find('title').text for it in x_root.findall(".//item")[:3] if it.find('title') is not None]
-                    
-                    api_key = st.secrets.get("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY", ""))
-                    if api_key and articles:
-                        client = genai.Client(api_key=api_key)
-                        p_prompt = "Bạn là dịch giả tài chính. Hãy dịch và tổng hợp các tiêu đề báo điều hành FED sau thành 2 phần: Phần 1 là thông báo ngắn (1 câu) dạng 'Cập nhật Real-time: ...', Phần 2 là 'Điểm mấu chốt chính sách:' (2 câu) giải thích tư duy lãi suất của họ bằng Tiếng Việt chuẩn xác:\n" + "".join([f"- {t}\n" for t in articles])
-                        ai_res = client.models.generate_content(model='gemini-2.5-flash', contents=p_prompt)
-                        if ai_res and ai_res.text:
-                            l_lines = [line.strip().lstrip("- ") for line in ai_res.text.strip().split("\n") if line.strip()]
-                            h_line = l_lines if len(l_lines) > 0 else "Cập nhật định hướng chính sách từ Cục Dự trữ Liên bang Mỹ (FED)."
-                            k_line = " ".join(l_lines[1:]) if len(l_lines) > 1 else "Ủy ban thị trường mở FOMC đang bám sát diễn biến lạm phát chu kỳ mới."
-                            return h_line, k_line
-            except Exception:
-                pass
-            return (
-                "Cập nhật Real-time: Ủy ban FOMC giữ vững quan điểm thắt chặt chính sách để kiểm soát kỳ vọng lạm phát chu kỳ dài hạn.",
-                "Điểm mấu chốt chính sách: Quyết định điều hành lãi suất dưới thời Tân Chủ tịch Kevin Warsh phụ thuộc hoàn toàn vào chuỗi số liệu kinh tế thực tế theo từng phiên họp độc lập, loại bỏ cơ chế định hướng tương lai cũ."
-            )
-
-        fed_warn_text, fed_info_text = fetch_pure_live_fed_news()
-        st.warning(fed_warn_text)
-        st.info(f"💡 {fed_info_text}")
-        
-        # 4️⃣ AI TỔNG HỢP & ĐÁNH GIÁ TÁC ĐỘNG VĨ MÔ TOÀN DIỆN (AI THẬT GOOGLE GEMINI)
-        st.subheader("🤖 AI Tổng Hợp & Đánh Giá Tác Động Vĩ Mô Toàn Diện")
-        
-        def process_pure_real_gemini_analysis(macro_choice, dxy_val, yield_val, gold_val):
-            try:
-                api_key = st.secrets.get("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY", ""))
-                if not api_key:
-                    return f"Ma trận phân tích chỉ số <b>{macro_choice}</b> xác nhận sức khỏe nền kinh tế Mỹ đang chuyển dịch rõ rệt. Vùng giá trị Đô la ở mức <b>{dxy_val}</b> phối hợp cùng Lợi suất 10 năm neo cao tại <b>{yield_val}%</b> đang tạo áp lực chi phí cơ hội ngắn hạn, nhưng kích hoạt dòng tiền trú ẩn phòng thủ gia tăng vị thế bền vững vào giá Vàng quốc tế tại mốc <b>${gold_val}</b>."
-                
-                client = genai.Client(api_key=api_key)
-                prompt_ai = f"""Bạn là Giám đốc phân tích vĩ mô của một quỹ đầu tư tài chính toàn cầu.
-Hãy viết một bài luận nhận định thật sắc sảo từ 3-4 câu dựa trên các thông số thị trường chính xác 100% sau đây:
-- Chỉ số người dùng đang chọn cấu hình: {macro_choice}
-- Sức mạnh đồng Đô la (DXY) real-time: {dxy_val}
-- Lợi suất Trái phiếu Mỹ 10 năm (US10Y) real-time: {yield_val}%
-- Giá Vàng quốc tế (XAU/USD) hiện tại: ${gold_val}
-Nhiệm vụ: Giải thích mối quan hệ đa biến liên thông và ép hướng đi dòng tiền bứt phá hay sụt giảm của giá Vàng thế giới như thế nào. Viết trực diện bằng Tiếng Việt dạng HTML."""
-                
-                response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt_ai)
-                return response.text if response and response.text else "Hệ thống AI đang kiểm toán luồng dữ liệu liên thông..."
-            except Exception:
-                return "Hệ thống AI đang phân tích dữ liệu dòng tiền vĩ mô..."
-
-        ai_live_cache_key = f"ai_live_indicators_{selected_macro}"
-        if ai_live_cache_key not in st.session_state:
-            st.session_state[ai_live_cache_key] = process_pure_real_gemini_analysis(selected_macro, dxy_tick, us10y_tick, xau_live)
+                dates = pd.date_range(end=datetime.today(), periods=months, freq='ME').strftime('%Y-%m').tolist()
+                return dates, [104.0] * months
+    
+            c_dates, c_values = fetch_pure_chart_history(selected_macro, months_range)
             
-        ai_real_text = st.session_state.get(ai_live_cache_key)
-
-        st.markdown(f"""
-        <div class="ai-box" style="background-color: #f0fdf4; border-left-color: #22c55e; color: #1e293b; padding: 18px; border-radius: 12px; line-height: 1.6;">
-            <b>Phân tích ma trận dữ liệu Mỹ từ AI:</b><br><br>
-            {ai_real_text}
-        </div>
-        """, unsafe_allow_html=True)
-
-    # KÍCH HOẠT HÀM THỰC THI NHẢY GIÂY TOÀN KHỐI CHUYÊN MỤC 2
-    render_macro_section_pure_realtime()
+            if len(c_values) > 0:
+                if "DXY" in selected_macro: c_values[-1] = dxy_tick
+                elif "US10Y" in selected_macro: c_values[-1] = us10y_tick
+    
+            df_macro_chart = pd.DataFrame({"Thời gian": c_dates, "Giá trị": c_values})
+            fig_macro = px.bar(df_macro_chart, x="Thời gian", y="Giá trị", title=f"Lịch sử chu kỳ chỉ số: {selected_macro}", color="Giá trị", color_continuous_scale="Blues")
+            fig_macro.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#cbd5e1'), margin=dict(l=10, r=10, t=40, b=10), height=340)
+            st.plotly_chart(fig_macro, use_container_width=True)
+            # 3️⃣ PHÁT BIỂU TỪ FED & TIN TỨC CHUẨN 100% (CẬP NHẬT TỰ ĐỘNG TỪ GOOGLE NEWS CHÍNH CHỦ)
+            st.markdown("---")
+            st.subheader("🎙️ Phát Biểu Từ FED & Tin Tức Cập Nhật Tự Động")
+            
+            @st.cache_data(ttl=300)
+            def fetch_pure_live_fed_news():
+                try:
+                    url_fed = "https://google.com"
+                    res_xml = requests.get(url_fed, headers={"User-Agent": "Mozilla/5.0"}, timeout=5.0)
+                    if res_xml.status_code == 200:
+                        x_root = ET.fromstring(res_xml.content)
+                        articles = [it.find('title').text for it in x_root.findall(".//item")[:3] if it.find('title') is not None]
+                        
+                        api_key = st.secrets.get("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY", ""))
+                        if api_key and articles:
+                            client = genai.Client(api_key=api_key)
+                            p_prompt = "Bạn là dịch giả tài chính. Hãy dịch và tổng hợp các tiêu đề báo điều hành FED sau thành 2 phần: Phần 1 là thông báo ngắn (1 câu) dạng 'Cập nhật Real-time: ...', Phần 2 là 'Điểm mấu chốt chính sách:' (2 câu) giải thích tư duy lãi suất của họ bằng Tiếng Việt chuẩn xác:\n" + "".join([f"- {t}\n" for t in articles])
+                            ai_res = client.models.generate_content(model='gemini-2.5-flash', contents=p_prompt)
+                            if ai_res and ai_res.text:
+                                l_lines = [line.strip().lstrip("- ") for line in ai_res.text.strip().split("\n") if line.strip()]
+                                h_line = l_lines if len(l_lines) > 0 else "Cập nhật định hướng chính sách từ Cục Dự trữ Liên bang Mỹ (FED)."
+                                k_line = " ".join(l_lines[1:]) if len(l_lines) > 1 else "Ủy ban thị trường mở FOMC đang bám sát diễn biến lạm phát chu kỳ mới."
+                                return h_line, k_line
+                except Exception:
+                    pass
+                return (
+                    "Cập nhật Real-time: Ủy ban FOMC giữ vững quan điểm thắt chặt chính sách để kiểm soát kỳ vọng lạm phát chu kỳ dài hạn.",
+                    "Điểm mấu chốt chính sách: Quyết định điều hành lãi suất dưới thời Tân Chủ tịch Kevin Warsh phụ thuộc hoàn toàn vào chuỗi số liệu kinh tế thực tế theo từng phiên họp độc lập, loại bỏ cơ chế định hướng tương lai cũ."
+                )
+    
+            fed_warn_text, fed_info_text = fetch_pure_live_fed_news()
+            st.warning(fed_warn_text)
+            st.info(f"💡 {fed_info_text}")
+            
+            # 4️⃣ AI TỔNG HỢP & ĐÁNH GIÁ TÁC ĐỘNG VĨ MÔ TOÀN DIỆN (AI THẬT GOOGLE GEMINI)
+            st.subheader("🤖 AI Tổng Hợp & Đánh Giá Tác Động Vĩ Mô Toàn Diện")
+            
+            def process_pure_real_gemini_analysis(macro_choice, dxy_val, yield_val, gold_val):
+                try:
+                    api_key = st.secrets.get("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY", ""))
+                    if not api_key:
+                        return f"Ma trận phân tích chỉ số <b>{macro_choice}</b> xác nhận sức khỏe nền kinh tế Mỹ đang chuyển dịch rõ rệt. Vùng giá trị Đô la ở mức <b>{dxy_val}</b> phối hợp cùng Lợi suất 10 năm neo cao tại <b>{yield_val}%</b> đang tạo áp lực chi phí cơ hội ngắn hạn, nhưng kích hoạt dòng tiền trú ẩn phòng thủ gia tăng vị thế bền vững vào giá Vàng quốc tế tại mốc <b>${gold_val}</b>."
+                    
+                    client = genai.Client(api_key=api_key)
+                    prompt_ai = f"""Bạn là Giám đốc phân tích vĩ mô của một quỹ đầu tư tài chính toàn cầu.
+    Hãy viết một bài luận nhận định thật sắc sảo từ 3-4 câu dựa trên các thông số thị trường chính xác 100% sau đây:
+    - Chỉ số người dùng đang chọn cấu hình: {macro_choice}
+    - Sức mạnh đồng Đô la (DXY) real-time: {dxy_val}
+    - Lợi suất Trái phiếu Mỹ 10 năm (US10Y) real-time: {yield_val}%
+    - Giá Vàng quốc tế (XAU/USD) hiện tại: ${gold_val}
+    Nhiệm vụ: Giải thích mối quan hệ đa biến liên thông và ép hướng đi dòng tiền bứt phá hay sụt giảm của giá Vàng thế giới như thế nào. Viết trực diện bằng Tiếng Việt dạng HTML."""
+                    
+                    response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt_ai)
+                    return response.text if response and response.text else "Hệ thống AI đang kiểm toán luồng dữ liệu liên thông..."
+                except Exception:
+                    return "Hệ thống AI đang phân tích dữ liệu dòng tiền vĩ mô..."
+    
+            ai_live_cache_key = f"ai_live_indicators_{selected_macro}"
+            if ai_live_cache_key not in st.session_state:
+                st.session_state[ai_live_cache_key] = process_pure_real_gemini_analysis(selected_macro, dxy_tick, us10y_tick, xau_live)
+                
+            ai_real_text = st.session_state.get(ai_live_cache_key)
+    
+            st.markdown(f"""
+            <div class="ai-box" style="background-color: #f0fdf4; border-left-color: #22c55e; color: #1e293b; padding: 18px; border-radius: 12px; line-height: 1.6;">
+                <b>Phân tích ma trận dữ liệu Mỹ từ AI:</b><br><br>
+                {ai_real_text}
+            </div>
+            """, unsafe_allow_html=True)
+    
+        # KÍCH HOẠT HÀM THỰC THI NHẢY GIÂY TOÀN KHỐI CHUYÊN MỤC 2
+        render_macro_section_pure_realtime()
