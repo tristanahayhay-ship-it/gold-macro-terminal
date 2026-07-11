@@ -836,6 +836,9 @@ elif menu == "Dữ Liệu Kinh Tế Mỹ":
     # Kích hoạt gọi hàm chạy ngầm nhảy giây (Lùi về đúng mốc móng 4 dấu cách)
     render_macro_section_pure_realtime()
 
+# ===================================================================================================
+# 3. DÒNG TIỀN (FLOW OF FUNDS)
+# ===================================================================================================
 elif menu == "Dòng Tiền (Flow of Funds)":
     st.title("💸 Giám Sát Dòng Tiền Lớn (Smart Money Flow)")
     
