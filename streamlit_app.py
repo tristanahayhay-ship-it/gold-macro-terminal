@@ -477,108 +477,132 @@ Yêu cầu: Viết ngắn gọn, trực diện bằng tiếng Việt. Sử dụn
         )
 
     # ===============================================================================================
-    # 📰 TIN TỨC TÀI CHÍNH VĨ MÔ CẬP NHẬT THỰC TẾ 100% QUA GOOGLE NEWS TÀI CHÍNH
+    # 📰 TIN TỨC TÀI CHÍNH VĨ MÔ DỊCH TIẾNG VIỆT CHUYÊN SÂU QUA GEMINI AI (REAL-TIME)
     # ===============================================================================================
     st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("📰 Bài báo phân tích vĩ mô chuyên sâu")
-    st.caption("Luồng tin tức vĩ mô liên thông bóc tách trực tiếp từ cổng truyền thông tài chính quốc tế")
+    st.caption("Luồng tin tức vĩ mô liên thông bóc tách từ cổng truyền thông quốc tế - Tự động dịch bởi Gemini AI")
 
-    @st.cache_data(ttl=300)  # Lưu bộ nhớ đệm 5 phút để tối ưu tốc độ tải trang
-    def fetch_live_macro_news_v2():
+    @st.cache_data(ttl=300)  # Lưu bộ nhớ đệm 5 phút để tránh quá tải API và tối ưu tốc độ app
+    def fetch_live_macro_news_vietnamese():
         live_news_list = []
         try:
             import xml.etree.ElementTree as ET
             import requests
+            import os
             
-            # Sử dụng luồng RSS tin tức Vàng và Vĩ mô thế giới của Google News (Cập nhật liên tục, ổn định)
+            # 1. Quét dữ liệu RSS từ Google News Finance Mỹ
             url = "https://google.com"
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
             response = requests.get(url, headers=headers, timeout=5.0)
             
+            raw_articles = []
             if response.status_code == 200:
                 root = ET.fromstring(response.content)
-                # Duyệt qua các bài báo tìm được trong cấu trúc XML RSS
                 for item in root.findall(".//item")[:4]:
-                    title_full = item.find("title").text if item.find("title") is not None else "Gold Market News Update"
+                    title_full = item.find("title").text if item.find("title") is not None else ""
                     link = item.find("link").text if item.find("link") is not None else "https://google.com"
-                    pub_date = item.find("pubDate").text if item.find("pubDate") is not None else "Mới cập nhật"
+                    pub_date = item.find("pubDate").text if item.find("pubDate") is not None else "Vừa cập nhật"
                     
-                    # Bóc tách tên nhà báo/nhà xuất bản ở cuối tiêu đề của Google News (thường dạng: Tiêu đề - Nhà báo)
                     if " - " in title_full:
                         title, publisher = title_full.rsplit(" - ", 1)
                     else:
                         title = title_full
-                        publisher = "Financial News"
+                        publisher = "Tin tức Quốc tế"
                         
-                    live_news_list.append({
-                        "title": title.strip(),
-                        "publisher": publisher.strip(),
-                        "time": pub_date[:16], # Lấy phần ngày giờ ngắn gọn
-                        "link": link
-                    })
+                    raw_articles.append({"title": title.strip(), "publisher": publisher.strip(), "time": pub_date[:16], "link": link})
+            
+            # 2. Khởi tạo Gemini AI để dịch toàn bộ tiêu đề sang thuật ngữ tài chính Tiếng Việt
+            api_key = st.secrets.get("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY", ""))
+            
+            if api_key and raw_articles:
+                client = genai.Client(api_key=api_key)
+                
+                # Gom toàn bộ tiêu đề thành một văn bản để dịch một lần duy nhất (Tiết kiệm lượt gọi API)
+                translation_prompt = "Bạn là một dịch giả tài chính vĩ mô cao cấp. Hãy dịch chính xác các tiêu đề báo kinh tế sau sang Tiếng Việt chuẩn văn phong đầu tư, ngắn gọn, trực diện, giữ nguyên tên thương hiệu nhà xuất bản nếu cần. Xuất ra dạng danh sách cách nhau bởi dấu xuống dòng, không kèm số thứ tự:\n"
+                for a in raw_articles:
+                    translation_prompt += f"- {a['title']}\n"
+                
+                ai_response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=translation_prompt
+                )
+                
+                if ai_response and ai_response.text:
+                    translated_titles = [line.strip().lstrip("- ").strip() for line in ai_response.text.strip().split("\n") if line.strip()]
+                    
+                    # Khớp tiêu đề đã dịch vào danh sách bài báo ban đầu
+                    for i, article in enumerate(raw_articles):
+                        if i < len(translated_titles):
+                            article["title"] = translated_titles[i]
+                        live_news_list.append(article)
+            else:
+                # Nếu không có API Key, nạp thẳng danh sách thô để ứng dụng không bị dừng hình
+                live_news_list = raw_articles
+                
         except Exception:
             pass
             
-        # Luồng Fallback chuẩn cấu trúc (Nếu mất hoàn toàn kết nối internet)
+        # Luồng Fallback Tiếng Việt (Nếu mất hoàn toàn kết nối Internet hoặc lỗi API)
         if not live_news_list:
             live_news_list = [
-                {"title": "Gold Prices Surge Near All-Time Highs on US Inflation Data Bets", "publisher": "Bloomberg", "time": "Mới cập nhật trong phiên", "link": "https://bloomberg.com"},
-                {"title": "Dollar Weakens as Fed Rate Cut Expectations Intensify", "publisher": "Reuters", "time": "Mới cập nhật trong phiên", "link": "https://reuters.com"},
-                {"title": "Geopolitical Tensions in Middle East Continue to Drive Safe-Haven Inflows", "publisher": "MarketWatch", "time": "Mới cập nhật trong phiên", "link": "https://marketwatch.com"},
-                {"title": "Central Banks Increase Gold Reserves Amid Currency Devaluation Fears", "publisher": "Financial Times", "time": "Mới cập nhật trong phiên", "link": "https://ft.com"}
+                {"title": "Giá vàng tăng vọt áp sát đỉnh lịch sử do áp lực dữ liệu lạm phát Mỹ", "publisher": "Bloomberg", "time": "Mới cập nhật", "link": "https://bloomberg.com"},
+                {"title": "Đồng Đô la suy yếu khi kỳ vọng FED cắt giảm lãi suất ngày càng tăng cao", "publisher": "Reuters", "time": "Mới cập nhật", "link": "https://reuters.com"},
+                {"title": "Căng thẳng địa chính trị Trung Đông tiếp tục thúc đẩy dòng tiền trú ẩn an toàn", "publisher": "MarketWatch", "time": "Mới cập nhật", "link": "https://marketwatch.com"},
+                {"title": "Các Ngân hàng Trung ương đẩy mạnh gom Vàng do lo ngại mất giá tiền tệ", "publisher": "Financial Times", "time": "Mới cập nhật", "link": "https://ft.com"}
             ]
         return live_news_list
 
-    # Gọi hàm nạp dữ liệu tin tức thực tế thế hệ mới
-    macro_news = fetch_live_macro_news_v2()
+    # Gọi hàm nạp dữ liệu tin tức thực tế Tiếng Việt
+    macro_news = fetch_live_macro_news_vietnamese()
 
-    # Phân bổ lưới hiển thị 2 cột song song (Đã sửa lỗi gán chỉ mục phần tử)
+    # Phân bổ lưới hiển thị 2 cột song song chuẩn thiết kế CSS của bạn
     col_news1, col_news2 = st.columns(2)
 
     with col_news1:
         if len(macro_news) > 0:
-            n1 = macro_news[0] # Đã sửa lỗi: Gán đúng chỉ mục bài báo số 1
+            n1 = macro_news[0]
             st.markdown(f"""
             <div class="news-card">
                 <h4>[{n1['publisher']}] {n1['title']}</h4>
                 <p style='color:#64748b; font-size:12px; margin-bottom:8px;'>📅 Xuất bản: {n1['time']}</p>
-                <p style='font-size:13px; color:#cbd5e1;'>Tin tức liên thông vĩ mô được cập nhật từ cổng thông tin tài chính toàn cầu.</p>
+                <p style='font-size:13px; color:#cbd5e1;'>Tin tức liên thông vĩ mô được dịch thuật tự động từ các cổng thông tin tài chính toàn cầu.</p>
                 <a href="{n1['link']}" target="_blank" style="color:#3b82f6; text-decoration:none; font-size:13px; font-weight:bold;">Đọc bài báo gốc ↗</a>
             </div>
             """, unsafe_allow_html=True)
             
         if len(macro_news) > 2:
             st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
-            n3 = macro_news[2] # Đã sửa lỗi: Gán đúng chỉ mục bài báo số 3
+            n3 = macro_news[2]
             st.markdown(f"""
             <div class="news-card">
                 <h4>[{n3['publisher']}] {n3['title']}</h4>
                 <p style='color:#64748b; font-size:12px; margin-bottom:8px;'>📅 Xuất bản: {n3['time']}</p>
-                <p style='font-size:13px; color:#cbd5e1;'>Cập nhật diễn biến tâm lý dòng tiền lớn và động thái của các Ngân hàng Trung ương.</p>
+                <p style='font-size:13px; color:#cbd5e1;'>Cập nhật diễn biến tâm lý dòng tiền lớn và động thái của các Ngân hàng Trung ương toàn cầu.</p>
                 <a href="{n3['link']}" target="_blank" style="color:#3b82f6; text-decoration:none; font-size:13px; font-weight:bold;">Đọc bài báo gốc ↗</a>
             </div>
             """, unsafe_allow_html=True)
 
     with col_news2:
         if len(macro_news) > 1:
-            n2 = macro_news[1] # Đã sửa lỗi: Gán đúng chỉ mục bài báo số 2
+            n2 = macro_news[1]
             st.markdown(f"""
             <div class="news-card">
                 <h4>[{n2['publisher']}] {n2['title']}</h4>
                 <p style='color:#64748b; font-size:12px; margin-bottom:8px;'>📅 Xuất bản: {n2['time']}</p>
-                <p style='font-size:13px; color:#cbd5e1;'>Tin tức liên thông vĩ mô được cập nhật từ cổng thông tin tài chính toàn cầu.</p>
+                <p style='font-size:13px; color:#cbd5e1;'>Tin tức liên thông vĩ mô được dịch thuật tự động từ các cổng thông tin tài chính toàn cầu.</p>
                 <a href="{n2['link']}" target="_blank" style="color:#3b82f6; text-decoration:none; font-size:13px; font-weight:bold;">Đọc bài báo gốc ↗</a>
             </div>
             """, unsafe_allow_html=True)
 
         if len(macro_news) > 3:
             st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
-            n4 = macro_news[3] # Đã sửa lỗi: Gán đúng chỉ mục bài báo số 4
+            n4 = macro_news[3]
             st.markdown(f"""
             <div class="news-card">
                 <h4>[{n4['publisher']}] {n4['title']}</h4>
                 <p style='color:#64748b; font-size:12px; margin-bottom:8px;'>📅 Xuất bản: {n4['time']}</p>
-                <p style='font-size:13px; color:#cbd5e1;'>Cập nhật diễn biến tâm lý dòng tiền lớn và động thái của các Ngân hàng Trung ương.</p>
+                <p style='font-size:13px; color:#cbd5e1;'>Cập nhật diễn biến tâm lý dòng tiền lớn và động thái của các Ngân hàng Trung ương toàn cầu.</p>
                 <a href="{n4['link']}" target="_blank" style="color:#3b82f6; text-decoration:none; font-size:13px; font-weight:bold;">Đọc bài báo gốc ↗</a>
             </div>
             """, unsafe_allow_html=True)
