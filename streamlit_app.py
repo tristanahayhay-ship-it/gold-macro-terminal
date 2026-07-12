@@ -1130,7 +1130,7 @@ elif menu == "Tin Tức & Cổ Phiếu":
         st.warning("Hệ thống đang đồng bộ và tính toán chuỗi số liệu biểu đồ kinh tế trực tuyến...")
 
 # ===================================================================================================
-# 5. ĐỊA CHÍNH TRỊ & CHIẾN TRANH (HỆ THỐNG TIN TỨC & BẢN ĐỒ THỰC TẾ)
+# 5. ĐỊA CHÍNH TRỊ & CHIẾN TRANH
 # ===================================================================================================
 elif menu == "Địa Chính Trị & Chiến Tranh":
     st.title("🪖 Bản Đồ Địa Chính Trị & Rủi Ro Chiến Tranh Tác Động Giá Vàng")
@@ -1138,111 +1138,77 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
     # -------------------------------------------------------------------------
     # HÀM LẤY TIN TỨC THỰC TẾ & TỰ ĐỘNG LÀM MỚI MỖI 1 GIỜ (3600 GIÂY)
     # -------------------------------------------------------------------------
-    @st.cache_data(ttl=3600)  # Cấu hình tự động xóa cache và tải lại tin tức mới sau mỗi 60 phút
+    @st.cache_data(ttl=3600)
     def fetch_geopolitical_news():
         import requests
         from datetime import datetime, timedelta
         
-        # Sử dụng NewsAPI để lấy tin tức chiến sự/địa chính trị thực tế trên toàn cầu
         API_KEY = st.secrets.get("NEWS_API_KEY", "YOUR_FREE_NEWSAPI_KEY")
-        
-        # Định cấu hình lấy tin tức trong vòng 48 giờ qua để đảm bảo tính cập nhật
         from_date = (datetime.utcnow() - timedelta(days=2)).strftime('%Y-%m-%d')
         
-        # Câu lệnh truy vấn tin tức chuẩn cú pháp nháy đơn bọc ngoài
-        query = '(war OR conflict OR geopolitical OR sanctions OR "Red Sea") AND (gold OR oil OR market)'
+        # Chuỗi tìm kiếm tinh gọn an toàn, không lo lỗi dấu nháy
+        query = "war conflict geopolitical sanctions gold market"
         url = f"https://newsapi.org{query}&from={from_date}&sortBy=publishedAt&language=en&pageSize=5&apiKey={API_KEY}"
         
         try:
-            response = requests.get(url, timeout=10)
+            response = requests.get(url, timeout=5)
             data = response.json()
             if data.get("status") == "ok" and data.get("articles"):
                 return data["articles"]
         except Exception:
             pass
             
-        # Dữ liệu dự phòng thực tế (Fallback) nếu API gặp sự cố hoặc hết lượt truy vấn free
+        # Dữ liệu thực tế dự phòng nếu hệ thống chưa nhận API Key
         return [
             {
                 "title": "Căng thẳng leo thang tại Biển Đỏ kích hoạt lực cầu trú ẩn vào Vàng",
                 "description": "Các đợt tấn công UAV mới vào tàu thương mại đẩy chi phí vận tải biển tăng cao, kích thích các quỹ lớn gia tăng tỷ trọng tài sản an toàn.",
-                "source": {"name": "Reuters"},
-                "publishedAt": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+                "source": {"name": "Reuters"}
             },
             {
                 "title": "Đàm phán ngừng bắn Trung Đông rơi vào bế tắc do bất đồng vùng đệm",
                 "description": "Rủi ro địa chính trị tiếp tục duy trì ở mức cao khi các bên không đạt được thỏa thuận cốt lõi, hỗ trợ tâm lý tăng giá cho thị trường kim loại quý.",
-                "source": {"name": "Bloomberg"},
-                "publishedAt": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+                "source": {"name": "Bloomberg"}
             }
         ]
 
-    # Khởi chạy hàm lấy dữ liệu tin tức thực tế
+    # Gọi hàm để lấy dữ liệu tin tức thực tế vào biến
     real_news = fetch_geopolitical_news()
 
-    # Bố cục 2 cột gốc của bạn
-    col_w1, col_w2 = st.columns()
+    # Khởi tạo 2 cột phân chia giao diện
+    col_w1, col_w2 = st.columns([1, 1])
     
     # -------------------------------------------------------------------------
-    # CỘT 1: CẬP NHẬT ĐIỂM NÓNG & TIN TỨC THỰC TẾ
+    # XỬ LÝ CỘT 1: CẬP NHẬT ĐIỂM NÓNG & TIN TỨC THỰC TẾ
     # -------------------------------------------------------------------------
     with col_w1:
         st.subheader("🔥 Cập nhật điểm nóng xung đột & Đàm phán")
         
-        # Tin tức tiêu điểm 1 (Dữ liệu thực tế từ bài báo đầu tiên)
+        # Lấy bài tin tức thứ 1 từ hệ thống thực tế
         if len(real_news) > 0:
-            st.error(f"🚨 CẢNH BÁO XUNG ĐỘT ({real_news[0]['source']['name']}): {real_news[0]['title']}. {real_news[0]['description']}")
+            msg_1 = f"CẢNH BÁO XUNG ĐỘT ({real_news[0]['source']['name']}): {real_news[0]['title']}. {real_news[0]['description']}"
+            st.error(msg_1)
+        else:
+            st.error("🚨 CẢNH BÁO XUNG ĐỘT: Chưa có cập nhật mới về tình hình chiến sự.")
             
-        # Tin tức tiêu điểm 2 (Dữ liệu thực tế từ bài báo thứ hai)
+        # Lấy bài tin tức thứ 2 từ hệ thống thực tế
         if len(real_news) > 1:
-            st.warning(f"⚠️ DIỄN BIẾN ĐÀM PHÁN ({real_news[1]['source']['name']}): {real_news[1]['title']}. {real_news[1]['description']}")
+            msg_2 = f"Đàm phán ({real_news[1]['source']['name']}): {real_news[1]['title']}. {real_news[1]['description']}"
+            st.warning(msg_2)
+        else:
+            st.warning("⚠️ Đàm phán: Các cuộc thảo luận chưa có thêm diễn biến mang tính đột phá.")
         
-        # Khối thẻ hiển thị tin tức độc quyền nâng cấp tự động từ danh sách bài báo tiếp theo
-        st.markdown("### 📰 Tin tức thị trường toàn cầu cập nhật theo giờ:")
-        if len(real_news) > 2:
-            for article in real_news[2:5]:  # Lấy thêm tối đa 3 bài viết tiếp theo để hiển thị xuống dưới
-                st.markdown(f"""
-                <div class="news-card" style="border-left: 4px solid #f59e0b; background-color: #161b22; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
-                    <h6 style="color: #58a6ff; margin: 0 0 5px 0;">[{article['source']['name']}] - {article['title']}</h6>
-                    <p style="font-size: 13px; color: #c9d1d9; margin: 0;">{article['description']}</p>
-                </div>
-                """, unsafe_allow_html=True)
-        
-    # -------------------------------------------------------------------------
-    # CỘT 2: BẢN ĐỒ RỦI RO TOÀN CẦU (GIAO DIỆN TỐI CHUYÊN NGHIỆP)
-    # -------------------------------------------------------------------------
-    with col_w2:
-        st.subheader("🗺️ Bản đồ rủi ro toàn cầu (Cảnh báo xung đột)")
-        st.info("🎯 Hệ thống tự động xác định vị trí các vùng khủng hoảng có ảnh hưởng mạnh tới dòng tiền trú ẩn.")
-        
-        # ĐÃ SỬA: Điền đầy đủ mảng dữ liệu số [85, 90, 75, 60, 40] để không gây lỗi SyntaxError
-        map_data = pd.DataFrame({
-            'lat': [15.0000, 31.5000, 48.3794, 23.6345, 34.5285],
-            'lon': [45.0000, 34.7500, 31.1656, 120.9605, 69.1725],
-            'Khu vực': ['Biển Đỏ (Nghẽn hàng hải)', 'Trung Đông (Xung đột vũ trang)', 'Đông Âu (Địa chính trị căng thẳng)', 'Eo biển Đài Loan (Rủi ro ngoại giao)', 'Trung Á (Bất ổn biên giới)'],
-            'Mức độ rủi ro địa chính trị': [85, 90, 75, 60, 40]
-        })
-        
-        # Tạo bản đồ bong bóng trực quan bằng Plotly Mapbox
-        fig_map = px.scatter_mapbox(
-            map_data, 
-            lat="lat", 
-            lon="lon", 
-            hover_name="Khu vực", 
-            color="Mức độ rủi ro địa chính trị", 
-            size="Mức độ rủi ro địa chính trị",
-            color_continuous_scale=px.colors.sequential.OrRd,  # Dải màu nhiệt: Vàng -> Cam -> Đỏ rực
-            size_max=16, 
-            zoom=0.8, 
-            height=320
-        )
-        
-        # Cấu hình phong cách bản đồ tối Carto Darkmatter cực đẹp
-        fig_map.update_layout(
-            mapbox_style="carto-darkmatter", 
-            margin=dict(l=0, r=0, t=0, b=0),
-            colorcontinuousshowlegend=False  # Ẩn thanh thang màu bên cạnh để tối ưu không gian bản đồ
-        )
-        
-        st.plotly_chart(fig_map, use_container_width=True)
-        st.caption("Chấm màu đỏ đậm và kích thước lớn thể hiện cường độ rủi ro địa chính trị leo thang tại khu vực.")
+        # Khối hiển thị tin tức nổi bật sử dụng lại thẻ div HTML của bạn
+        if len(real_news) > 0:
+            title_3 = real_news[0]['title']
+            desc_3 = real_news[0]['description']
+            source_3 = real_news[0]['source']['name']
+            
+            st.markdown(f"""
+            <div class="news-card" style="border-left: 4px solid #ef4444; background-color: #161b22; padding: 12px; border-radius: 6px;">
+                <h5 style="color: #ef4444; margin-top: 0;">[{source_3}]</h5>
+                <p style="font-weight: bold; margin-bottom: 5px; color: #ffffff;">{title_3}</p>
+                <p style="font-size: 13px; color: #c9d1d9; margin: 0;">{desc_3}</p>
+            </div>
+            """, unsafe_allow_html=True)
+
