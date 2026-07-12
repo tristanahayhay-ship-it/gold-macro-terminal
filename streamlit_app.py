@@ -1089,50 +1089,48 @@ elif menu == "Tin Tức & Cổ Phiếu":
     # Kích hoạt thực thi khối làm mới tự động
     render_live_metrics_only()
 
-    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME - ĐÃ SỬA LỖI ĐƯỜNG DẪN RSS YAHOO FINANCE] ---
+    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME - KHÔNG DÙNG REGEX - TIN THẬT 100% - 30 PHÚT CẬP NHẬT] ---
     st.subheader("📰 Bảng Tin Doanh Nghiệp Real-time")
 
-    # Hàm lấy dữ liệu tin tức thật 100% với bộ nhớ đệm lưu trữ đúng 30 phút (1800 giây)
+    # Hàm lấy dữ liệu tin tức thật từ Yahoo Finance với bộ nhớ đệm lưu trữ đúng 30 phút (1800 giây)
     @st.cache_data(ttl=1800)
     def get_realtime_enterprise_news_30min():
         import pandas as pd
         import requests
+        import xml.etree.ElementTree as ET
         from datetime import datetime, timedelta
-        import re
         try:
-            # ĐÃ SỬA LỖI: Gọi chính xác luồng tin tức kinh tế RSS của Yahoo Finance
-            url = "https://yahoo.com"
+            # Đường dẫn cổng RSS gốc chính thức của Yahoo Finance toàn cầu
+            url = "https://finance.yahoo.com/news/rssindex"
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             
             response = requests.get(url, headers=headers, timeout=6.0)
             news_data = []
             
             if response.status_code == 200:
-                html_text = response.text
+                # Sử dụng bộ thư viện XML lõi để phân tích cú pháp dữ liệu cấu trúc gốc
+                root = ET.fromstring(response.content)
                 
-                # Trích xuất tiêu đề bài báo nằm trong thẻ CDATA
-                titles = re.findall(r'<title><!\[CDATA\[(.*?)\]\]></title>', html_text)
-                # Trích xuất mốc thời gian xuất bản bài viết
-                pub_dates = re.findall(r'<pubDate>(.*?)</pubDate>', html_text)
-                
-                # Loại bỏ tiêu đề chung của toàn bộ kênh RSS nếu có
-                if len(titles) > 0 and "Yahoo Finance" in titles[0]:
-                    titles.pop(0)
-                
-                # Duyệt qua và lấy ra đúng 5 bài báo tài chính vĩ mô mới nhất
-                for i in range(min(5, len(titles))):
-                    clean_title = titles[i].strip()
+                # Quét chuẩn xác cấu trúc để lấy ra 5 bài báo tài chính mới nhất vừa xuất bản
+                for item in root.findall(".//item")[:5]:
+                    title_node = item.find("title")
+                    date_node = item.find("pubDate")
                     
-                    # Phân tích cú pháp chuỗi thời gian quốc tế (Ví dụ: Sun, 12 Jul 2026 01:45:00 GMT)
+                    title = title_node.text.strip() if title_node is not None and title_node.text else ""
+                    raw_date = date_node.text.strip() if date_node is not None and date_node.text else ""
+                    
+                    if not title:
+                        continue
+                        
+                    # Phân tích cú pháp chuỗi thời gian quốc tế (Ví dụ: Sun, 12 Jul 2026 01:45:00 GMT hoặc +0000)
                     pub_time = "00:00"
-                    if i < len(pub_dates):
-                        raw_date = pub_dates[i]
+                    if raw_date:
                         try:
-                            # Tách bỏ phần chữ GMT hoặc múi giờ thừa ở cuối chuỗi
+                            # Cắt bỏ phần múi giờ thừa phía cuối chuỗi bài viết
                             clean_date = raw_date.rsplit(' ', 1)[0].strip()
                             dt = datetime.strptime(clean_date, "%a, %d %b %Y %H:%M:%S")
                             
-                            # Tự động cộng thêm 7 tiếng để chuyển đổi từ giờ quốc tế sang giờ Việt Nam (GMT+7)
+                            # Tự động cộng thêm 7 tiếng để quy đổi đồng bộ sang giờ Việt Nam (GMT+7)
                             dt_vn = dt + timedelta(hours=7)
                             pub_time = dt_vn.strftime('%H:%M')
                         except:
@@ -1141,7 +1139,7 @@ elif menu == "Tin Tức & Cổ Phiếu":
                     news_data.append({
                         "Thời gian": pub_time,
                         "Mã cổ phiếu / Nhóm ngành": "Yahoo Finance",
-                        "Nội dung sự kiện": clean_title
+                        "Nội dung sự kiện": title
                     })
             
             if len(news_data) > 0:
@@ -1149,7 +1147,7 @@ elif menu == "Tin Tức & Cổ Phiếu":
         except Exception:
             pass
             
-        # TUYỆT ĐỐI KHÔNG DÙNG TIN GIẢ VIẾT SẴN: Trả về bảng rỗng nếu hệ thống API nghẽn mạng
+        # HOÀN TOÀN KHÔNG DÙNG TIN GIẢ VIẾT SẴN: Trả về bảng rỗng nếu hệ thống kết nối mạng quốc tế gặp lỗi
         return pd.DataFrame(columns=["Thời gian", "Mã cổ phiếu / Nhóm ngành", "Nội dung sự kiện"])
 
     # Thực thi gọi hàm lấy dữ liệu và hiển thị lên bảng DataFrame nguyên bản của bạn
@@ -1158,4 +1156,4 @@ elif menu == "Tin Tức & Cổ Phiếu":
     if not df_news.empty:
         st.dataframe(df_news, use_container_width=True, hide_index=True)
     else:
-        st.info("Hệ thống đang kết nối luồng dữ liệu mạng và đồng bộ dòng tin tức trực tuyến...")
+        st.info("Hệ thống đang kết nối luồng dữ liệu mạng vĩ mô và đồng bộ dòng tin tức trực tuyến...")
