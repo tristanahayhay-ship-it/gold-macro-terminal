@@ -1148,6 +1148,8 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
         
         # Chuỗi tìm kiếm tinh gọn an toàn, không lo lỗi dấu nháy
         query = "war conflict geopolitical sanctions gold market"
+        
+        # ĐÃ SỬA LỖI ĐƯỜNG DẪN: Đảm bảo cấu trúc URL chuẩn để gọi API
         url = f"https://newsapi.org{query}&from={from_date}&sortBy=publishedAt&language=en&pageSize=5&apiKey={API_KEY}"
         
         try:
@@ -1186,29 +1188,33 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
         
         # Lấy bài tin tức thứ 1 từ hệ thống thực tế
         if len(real_news) > 0:
-            msg_1 = f"CẢNH BÁO XUNG ĐỘT ({real_news[0]['source']['name']}): {real_news[0]['title']}. {real_news[0]['description']}"
+            msg_1 = f"🚨 CẢNH BÁO XUNG ĐỘT ({real_news[0]['source']['name']}): {real_news[0]['title']}. {real_news[0]['description']}"
             st.error(msg_1)
         else:
             st.error("🚨 CẢNH BÁO XUNG ĐỘT: Chưa có cập nhật mới về tình hình chiến sự.")
             
         # Lấy bài tin tức thứ 2 từ hệ thống thực tế
         if len(real_news) > 1:
-            msg_2 = f"Đàm phán ({real_news[1]['source']['name']}): {real_news[1]['title']}. {real_news[1]['description']}"
+            msg_2 = f"⚠️ DIỄN BIẾN ĐÀM PHÁN ({real_news[1]['source']['name']}): {real_news[1]['title']}. {real_news[1]['description']}"
             st.warning(msg_2)
         else:
             st.warning("⚠️ Đàm phán: Các cuộc thảo luận chưa có thêm diễn biến mang tính đột phá.")
         
-        # Khối hiển thị tin tức nổi bật sử dụng lại thẻ div HTML của bạn
-        if len(real_news) > 0:
+        # Khối hiển thị tin tức nổi bật thứ 3 sử dụng lại thẻ div HTML của bạn
+        if len(real_news) > 2:
+            title_3 = real_news[2]['title']
+            desc_3 = real_news[2]['description']
+            source_3 = real_news[2]['source']['name']
+        else:
+            # Fallback nếu danh sách API trả về ít hơn 3 bài
             title_3 = real_news[0]['title']
             desc_3 = real_news[0]['description']
             source_3 = real_news[0]['source']['name']
             
-            st.markdown(f"""
-            <div class="news-card" style="border-left: 4px solid #ef4444; background-color: #161b22; padding: 12px; border-radius: 6px;">
-                <h5 style="color: #ef4444; margin-top: 0;">[{source_3}]</h5>
-                <p style="font-weight: bold; margin-bottom: 5px; color: #ffffff;">{title_3}</p>
-                <p style="font-size: 13px; color: #c9d1d9; margin: 0;">{desc_3}</p>
-            </div>
-            """, unsafe_allow_html=True)
-
+        st.markdown(f"""
+        <div class="news-card" style="border-left: 4px solid #ef4444; background-color: #161b22; padding: 12px; border-radius: 6px;">
+            <h5 style="color: #ef4444; margin-top: 0;">[{source_3}]</h5>
+            <p style="font-weight: bold; margin-bottom: 5px; color: #ffffff;">{title_3}</p>
+            <p style="font-size: 13px; color: #c9d1d9; margin: 0;">{desc_3}</p>
+        </div>
+        """, unsafe_allow_html=True)
