@@ -1027,3 +1027,54 @@ Yêu cầu bắt buộc: Viết bằng tiếng Việt. Chỉ trả về văn b�
     </div>
     """, unsafe_allow_html=True)
     # ===============================================================================================
+    
+    # --- [HÀM LẤY DỮ LIỆU CHỈ SỐ CHỨNG KHOÁN THẬT] ---
+    @st.cache_data(ttl=15)
+    def get_realtime_stock_indices():
+        import pandas as pd
+        import yfinance as yf
+        
+        tickers = {
+            "S&P 500": "^GSPC",
+            "Nasdaq 100": "^NDX",
+            "Dow Jones": "^DJI"
+        }
+        
+        metrics_results = {}
+        for name, sym in tickers.items():
+            try:
+                t = yf.Ticker(sym)
+                hist = t.history(period="2d")
+                if len(hist) >= 2:
+                    close_today = hist['Close'].iloc[-1]
+                    close_yesterday = hist['Close'].iloc[-2]
+                    change = close_today - close_yesterday
+                    pct = (change / close_yesterday) * 100
+                    metrics_results[name] = (close_today, change, pct)
+                else:
+                    metrics_results[name] = (0.0, 0.0, 0.0)
+            except Exception:
+                metrics_results[name] = (0.0, 0.0, 0.0)
+        return metrics_results
+
+    # --- [GIAO DIỆN HIỂN THỊ 3 Ô CHỈ SỐ] ---
+    # Ép kiểu CSS cục bộ để chữ tiêu đề màu xám rõ ràng và số màu trắng sáng
+    st.markdown("""
+    <style>
+        div[data-testid="stMetric"] div[data-testid="stMetricValue"] { color: #ffffff !important; }
+        div[data-testid="stMetric"] label[data-testid="stMetricLabel"] { color: #9ca3af !important; font-weight: 500 !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Gọi dữ liệu trực tuyến
+    stock_metrics = get_realtime_stock_indices()
+    
+    sp_val, sp_chg, sp_pct = stock_metrics.get("S&P 500", (0.0, 0.0, 0.0))
+    ndx_val, ndx_chg, ndx_pct = stock_metrics.get("Nasdaq 100", (0.0, 0.0, 0.0))
+    dji_val, dji_chg, dji_pct = stock_metrics.get("Dow Jones", (0.0, 0.0, 0.0))
+
+    # Hiển thị cấu trúc 3 cột nguyên bản của bạn
+    col_s1, col_s2, col_s3 = st.columns(3)
+    col_s1.metric("S&P 500", f"{sp_val:,.2f}" if sp_val > 0 else "Đang tải...", f"{sp_chg:+.2f} ({sp_pct:+.2f}%)")
+    col_s2.metric("Nasdaq 100", f"{ndx_val:,.2f}" if ndx_val > 0 else "Đang tải...", f"{ndx_chg:+.2f} ({ndx_pct:+.2f}%)")
+    col_s3.metric("Dow Jones", f"{dji_val:,.2f}" if dji_val > 0 else "Đang tải...", f"{dji_chg:+.2f} ({dji_pct:+.2f}%)")
