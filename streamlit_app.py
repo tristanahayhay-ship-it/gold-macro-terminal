@@ -1234,7 +1234,7 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
                 'Eo biển Đài Loan (Căng thẳng ngoại giao quân sự)', 
                 'Trung Á (Bất ổn an ninh biên giới)'
             ],
-            'Mức độ rủi ro địa chính trị': [85, 90, 80, 65, 50]
+            'Mức độ rủi ro địa chính trị': [75, 90, 85, 60, 50]
         })
         
         # Tạo bản đồ bong bóng trực quan bằng Plotly Mapbox
@@ -1251,13 +1251,11 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
             height=320
         )
         
-        # SỬA LỖI TẠI ĐÂY: Tách mapbox_style ra cấu hình riêng bằng hàm update_mapbox chuyên dụng
-        fig_map.update_mapbox(style="carto-darkmatter")
-        
-        # Định dạng lề và ẩn thanh thang màu bổ trợ giúp bản đồ gọn gàng hơn
+        # ĐÃ SỬA LỖI DỨT ĐIỂM: Truyền cấu hình style bản đồ tối vào tham số mapbox của update_layout
         fig_map.update_layout(
+            mapbox=dict(style="carto-darkmatter"),
             margin=dict(l=0, r=0, t=0, b=0),
-            colorcontinuousshowlegend=False
+            colorcontinuousshowlegend=False  # Ẩn thanh thang màu bên cạnh để tối ưu diện tích bản đồ
         )
         
         st.plotly_chart(fig_map, use_container_width=True)
