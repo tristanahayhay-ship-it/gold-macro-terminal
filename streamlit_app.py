@@ -1219,12 +1219,11 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
         </div>
         """, unsafe_allow_html=True)
 
-
     with col_w2:
         st.subheader("🗺️ Bản đồ rủi ro toàn cầu (Cảnh báo xung đột)")
         st.info("🎯 Hệ thống tự động xác định vị trí các vùng khủng hoảng có ảnh hưởng mạnh tới dòng tiền trú ẩn.")
         
-        # ĐÃ SỬA LOGIC: Thay tên quốc gia trữ vàng bằng tọa độ các điểm nóng địa chính trị thực tế toàn cầu
+        # Bảng dữ liệu tọa độ các điểm nóng địa chính trị thực tế
         map_data = pd.DataFrame({
             'lat': [15.0000, 31.5000, 48.3794, 23.6345, 34.5285],
             'lon': [45.0000, 34.7500, 31.1656, 120.9605, 69.1725],
@@ -1235,7 +1234,7 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
                 'Eo biển Đài Loan (Căng thẳng ngoại giao quân sự)', 
                 'Trung Á (Bất ổn an ninh biên giới)'
             ],
-            'Mức độ rủi ro địa chính trị': [85, 90, 80, 65, 50]  # Thang điểm rủi ro định lượng thực tế
+            'Mức độ rủi ro địa chính trị': [85, 90, 80, 65, 50]
         })
         
         # Tạo bản đồ bong bóng trực quan bằng Plotly Mapbox
@@ -1246,17 +1245,19 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
             hover_name="Khu vực", 
             color="Mức độ rủi ro địa chính trị", 
             size="Mức độ rủi ro địa chính trị",
-            color_continuous_scale=px.colors.sequential.OrRd,  # Thang màu nhiệt chuyển dần từ Vàng -> Cam -> Đỏ rực
+            color_continuous_scale=px.colors.sequential.OrRd,  # Thang màu nhiệt chuyển dần từ Vàng -> Đỏ rực
             size_max=16, 
             zoom=0.8, 
             height=320
         )
         
-        # NÂNG CẤP GIAO DIỆN TỐI: Đổi style open-street-map chói mắt thành carto-darkmatter đồng bộ giao diện
+        # SỬA LỖI TẠI ĐÂY: Tách mapbox_style ra cấu hình riêng bằng hàm update_mapbox chuyên dụng
+        fig_map.update_mapbox(style="carto-darkmatter")
+        
+        # Định dạng lề và ẩn thanh thang màu bổ trợ giúp bản đồ gọn gàng hơn
         fig_map.update_layout(
-            mapbox_style="carto-darkmatter", 
             margin=dict(l=0, r=0, t=0, b=0),
-            colorcontinuousshowlegend=False  # Ẩn thanh thang màu bên cạnh để tối ưu diện tích bản đồ
+            colorcontinuousshowlegend=False
         )
         
         st.plotly_chart(fig_map, use_container_width=True)
