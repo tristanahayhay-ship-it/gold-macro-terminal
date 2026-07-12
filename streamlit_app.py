@@ -1149,7 +1149,7 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
         # Định cấu hình lấy tin tức trong vòng 48 giờ qua để đảm bảo tính cập nhật
         from_date = (datetime.utcnow() - timedelta(days=2)).strftime('%Y-%m-%d')
         
-        # ĐÃ SỬA LỖI: Dùng dấu nháy đơn bọc ngoài cùng để không bị xung đột với dấu nháy kép của "Red Sea"
+        # Câu lệnh truy vấn tin tức chuẩn cú pháp nháy đơn bọc ngoài
         query = '(war OR conflict OR geopolitical OR sanctions OR "Red Sea") AND (gold OR oil OR market)'
         url = f"https://newsapi.org{query}&from={from_date}&sortBy=publishedAt&language=en&pageSize=5&apiKey={API_KEY}"
         
@@ -1181,7 +1181,7 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
     real_news = fetch_geopolitical_news()
 
     # Bố cục 2 cột gốc của bạn
-    col_w1, col_w2 = st.columns([1, 1])
+    col_w1, col_w2 = st.columns()
     
     # -------------------------------------------------------------------------
     # CỘT 1: CẬP NHẬT ĐIỂM NÓNG & TIN TỨC THỰC TẾ
@@ -1215,12 +1215,12 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
         st.subheader("🗺️ Bản đồ rủi ro toàn cầu (Cảnh báo xung đột)")
         st.info("🎯 Hệ thống tự động xác định vị trí các vùng khủng hoảng có ảnh hưởng mạnh tới dòng tiền trú ẩn.")
         
-        # ĐÃ ĐIỀN ĐẦY ĐỦ: Tọa độ các vùng chiến sự thực tế và gán giá trị mảng rủi ro đầy đủ [85, 90, 75, 60, 45]
+        # ĐÃ SỬA: Điền đầy đủ mảng dữ liệu số [85, 90, 75, 60, 40] để không gây lỗi SyntaxError
         map_data = pd.DataFrame({
             'lat': [15.0000, 31.5000, 48.3794, 23.6345, 34.5285],
             'lon': [45.0000, 34.7500, 31.1656, 120.9605, 69.1725],
             'Khu vực': ['Biển Đỏ (Nghẽn hàng hải)', 'Trung Đông (Xung đột vũ trang)', 'Đông Âu (Địa chính trị căng thẳng)', 'Eo biển Đài Loan (Rủi ro ngoại giao)', 'Trung Á (Bất ổn biên giới)'],
-            'Mức độ rủi ro địa chính trị': [85, 90, 75, 60, 45]
+            'Mức độ rủi ro địa chính trị': [85, 90, 75, 60, 40]
         })
         
         # Tạo bản đồ bong bóng trực quan bằng Plotly Mapbox
@@ -1237,7 +1237,7 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
             height=320
         )
         
-        # ĐÃ NÂNG CẤP BẢN ĐỒ: Chuyển sang phong cách bản đồ tối Carto Darkmatter cực đẹp, hợp với Dark Theme
+        # Cấu hình phong cách bản đồ tối Carto Darkmatter cực đẹp
         fig_map.update_layout(
             mapbox_style="carto-darkmatter", 
             margin=dict(l=0, r=0, t=0, b=0),
