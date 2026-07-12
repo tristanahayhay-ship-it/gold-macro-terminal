@@ -1089,29 +1089,26 @@ elif menu == "Tin Tức & Cổ Phiếu":
     # Kích hoạt thực thi khối làm mới tự động
     render_live_metrics_only()
 
-    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME - KHÔNG DÙNG REGEX - TIN THẬT 100% - 30 PHÚT CẬP NHẬT] ---
+    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME - ĐÃ SỬA LỖI MỐC THỜI GIAN GIỜ VIỆT NAM] ---
     st.subheader("📰 Bảng Tin Doanh Nghiệp Real-time")
 
-    # Hàm lấy dữ liệu tin tức thật từ Yahoo Finance với bộ nhớ đệm lưu trữ đúng 30 phút (1800 giây)
     @st.cache_data(ttl=1800)
     def get_realtime_enterprise_news_30min():
         import pandas as pd
         import requests
         import xml.etree.ElementTree as ET
-        from datetime import datetime, timedelta
+        from email.utils import parsedate_to_datetime
+        from datetime import timedelta
         try:
-            # Đường dẫn cổng RSS gốc chính thức của Yahoo Finance toàn cầu
-            url = "https://finance.yahoo.com/news/rssindex"
+            url = "https://yahoo.com"
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             
             response = requests.get(url, headers=headers, timeout=6.0)
             news_data = []
             
             if response.status_code == 200:
-                # Sử dụng bộ thư viện XML lõi để phân tích cú pháp dữ liệu cấu trúc gốc
                 root = ET.fromstring(response.content)
                 
-                # Quét chuẩn xác cấu trúc để lấy ra 5 bài báo tài chính mới nhất vừa xuất bản
                 for item in root.findall(".//item")[:5]:
                     title_node = item.find("title")
                     date_node = item.find("pubDate")
@@ -1122,18 +1119,17 @@ elif menu == "Tin Tức & Cổ Phiếu":
                     if not title:
                         continue
                         
-                    # Phân tích cú pháp chuỗi thời gian quốc tế (Ví dụ: Sun, 12 Jul 2026 01:45:00 GMT hoặc +0000)
+                    # SỬA LỖI MỐC THỜI GIAN: Tự động nhận diện định dạng RSS quốc tế và ép sang múi giờ Việt Nam (GMT+7)
                     pub_time = "00:00"
                     if raw_date:
                         try:
-                            # Cắt bỏ phần múi giờ thừa phía cuối chuỗi bài viết
-                            clean_date = raw_date.rsplit(' ', 1)[0].strip()
-                            dt = datetime.strptime(clean_date, "%a, %d %b %Y %H:%M:%S")
-                            
-                            # Tự động cộng thêm 7 tiếng để quy đổi đồng bộ sang giờ Việt Nam (GMT+7)
-                            dt_vn = dt + timedelta(hours=7)
+                            # Chuyển chuỗi thời gian quốc tế thành đối tượng datetime có múi giờ
+                            dt_object = parsedate_to_datetime(raw_date)
+                            # Quy đổi chính xác sang múi giờ Việt Nam (UTC + 7)
+                            dt_vn = dt_object.astimezone(timedelta(hours=7))
                             pub_time = dt_vn.strftime('%H:%M')
                         except:
+                            from datetime import datetime
                             pub_time = datetime.now().strftime('%H:%M')
                     
                     news_data.append({
@@ -1147,13 +1143,8 @@ elif menu == "Tin Tức & Cổ Phiếu":
         except Exception:
             pass
             
-        # HOÀN TOÀN KHÔNG DÙNG TIN GIẢ VIẾT SẴN: Trả về bảng rỗng nếu hệ thống kết nối mạng quốc tế gặp lỗi
         return pd.DataFrame(columns=["Thời gian", "Mã cổ phiếu / Nhóm ngành", "Nội dung sự kiện"])
 
     # Thực thi gọi hàm lấy dữ liệu và hiển thị lên bảng DataFrame nguyên bản của bạn
     df_news = get_realtime_enterprise_news_30min()
-    
-    if not df_news.empty:
-        st.dataframe(df_news, use_container_width=True, hide_index=True)
-    else:
-        st.info("Hệ thống đang kết nối luồng dữ liệu mạng vĩ mô và đồng bộ dòng tin tức trực tuyến...")
+    st.dataframe(df_news, use_container_width=True, hide_index=True)
