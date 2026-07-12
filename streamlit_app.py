@@ -1089,57 +1089,45 @@ elif menu == "Tin Tức & Cổ Phiếu":
     # Kích hoạt thực thi khối làm mới tự động
     render_live_metrics_only()
 
-    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME - BẢN SỬA LỖI KẾT NỐI BẰNG GOOGLE NEWS] ---
+    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME - BẢN SỬA LỖI VỚI DUCKDUCKGO NEWS API] ---
     st.subheader("📰 Bảng Tin Doanh Nghiệp Real-time")
 
-    # Hàm cào tin tức trực tiếp từ Google News RSS với bộ đệm siêu ngắn (2 giây)
-    @st.cache_data(ttl=2) 
+    # Hàm lấy tin tức tài chính trực tiếp qua cổng DuckDuckGo News
+    @st.cache_data(ttl=5) 
     def get_realtime_enterprise_news():
         import pandas as pd
         import requests
-        import xml.etree.ElementTree as ET
         from datetime import datetime
+        import re
         try:
-            # Luồng RSS chính thức của Google News về thị trường tài chính doanh nghiệp Mỹ (Business/Finance)
-            url = "https://google.com"
+            # Truy vấn tin tức tài chính Mỹ mới nhất từ DuckDuckGo News
+            url = "https://duckduckgo.com"
+            params = {"q": "US stock market news"}
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             
-            response = requests.get(url, headers=headers, timeout=4.0)
+            response = requests.get(url, params=params, headers=headers, timeout=5.0)
             news_data = []
             
             if response.status_code == 200:
-                # Phân tích cú pháp chuỗi XML từ Google News
-                root = ET.fromstring(response.content)
+                html_content = response.text
                 
-                # Quét qua cấu trúc XML để lấy ra chính xác 5 bài báo tài chính mới nhất vừa xuất bản
-                for item in root.findall(".//item")[:5]:
-                    raw_title = item.find("title").text if item.find("title") is not None else "Đang cập nhật..."
-                    source_name = item.find("source").text if item.find("source") is not None else "Thị trường Mỹ"
-                    pub_date_str = item.find("pubDate").text if item.find("pubDate") is not None else ""
+                # Sử dụng biểu thức chính quy (Regex) cơ bản để trích xuất tiêu đề và liên kết tin tức nhanh gọn
+                titles = re.findall(r'class="result__url"[^>]*>([^<]+)</a>', html_content)
+                snippets = re.findall(r'class="result__snippet"[^>]*>([^<]+)</div>', html_content)
+                
+                # Lấy đúng 5 bài tin tài chính nóng nhất vừa cập nhật
+                for i in range(min(5, len(titles))):
+                    clean_title = titles[i].strip()
+                    # Loại bỏ các ký tự rác nếu có
+                    clean_title = clean_title.replace("&quot;", '"').replace("&amp;", '&')
                     
-                    # Tách bỏ tên nguồn báo bị dính ở cuối tiêu đề Google News (ví dụ: "Title - Reuters" -> "Title")
-                    title = raw_title.rsplit(" - ", 1)[0] if " - " in raw_title else raw_title
-                    
-                    # Quy đổi định dạng thời gian chuẩn quốc tế của Google News sang giờ Việt Nam (GMT+7)
-                    pub_time = "00:00"
-                    if pub_date_str:
-                        try:
-                            # Cú pháp ngày của Google RSS có dạng: Sun, 12 Jul 2026 01:41:00 GMT
-                            # Ta cắt bỏ chữ " GMT" ở cuối để đồng bộ hàm strptime
-                            clean_date = pub_date_str.replace(" GMT", "").strip()
-                            dt = datetime.strptime(clean_date, "%a, %d %b %Y %H:%M:%S")
-                            
-                            # Thư viện xử lý lệch múi giờ từ giờ quốc tế sang giờ Việt Nam
-                            import datetime as dt_mod
-                            dt_vn = dt + dt_mod.timedelta(hours=7)
-                            pub_time = dt_vn.strftime('%H:%M')
-                        except Exception:
-                            pub_time = datetime.now().strftime('%H:%M')
+                    # Gán mốc thời gian cập nhật của luồng tin real-time
+                    pub_time = datetime.now().strftime('%H:%M')
                     
                     news_data.append({
                         "Thời gian": pub_time,
-                        "Mã cổ phiếu / Nhóm ngành": source_name,
-                        "Nội dung sự kiện": title
+                        "Mã cổ phiếu / Nhóm ngành": "Thị trường Mỹ",
+                        "Nội dung sự kiện": clean_title
                     })
             
             if len(news_data) > 0:
@@ -1147,10 +1135,10 @@ elif menu == "Tin Tức & Cổ Phiếu":
         except Exception:
             pass
             
-        # Không dùng dữ liệu viết tay: Trả về bảng rỗng nếu có lỗi đường truyền bất khả kháng
+        # Không dùng dữ liệu viết tay: Trả về bảng rỗng nếu mạng quốc tế gặp sự cố
         return pd.DataFrame(columns=["Thời gian", "Mã cổ phiếu / Nhóm ngành", "Nội dung sự kiện"])
 
-    # KHỐI FRAGMENT: TỰ ĐỘNG CHẠY LẠI BẢNG TIN MỖI 2 GIÂY ĐỂ CẬP NHẬT NGAY LẬP TỨC
+    # KHỐI FRAGMENT: TỰ ĐỘNG LÀM MỚI BẢNG TIN SAU MỖI 2 GIÂY ĐỂ ĐỒNG BỘ TIN MỚI
     @st.fragment(run_every=2)
     def render_live_news_only():
         df_news = get_realtime_enterprise_news()
@@ -1158,7 +1146,7 @@ elif menu == "Tin Tức & Cổ Phiếu":
         if not df_news.empty:
             st.dataframe(df_news, use_container_width=True, hide_index=True)
         else:
-            st.info("Hệ thống đang kết nối và đồng bộ dòng tin tức trực tuyến vĩ mô quốc tế...")
+            st.warning("Đang kết nối luồng dữ liệu tin tức chứng khoán Hoa Kỳ trực tuyến...")
 
     # Kích hoạt thực thi khối quét tin tự động
     render_live_news_only()
