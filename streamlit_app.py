@@ -1154,11 +1154,10 @@ elif menu == "Tin Tức & Cổ Phiếu":
     df_news = get_realtime_enterprise_news_30min()
     st.dataframe(df_news, use_container_width=True, hide_index=True)
 
-    # --- [PHẦN 3: BIỂU ĐỒ TƯƠNG QUAN THỰC TẾ PLOTLY - CẬP NHẬT CHUẨN MỖI TIẾNG] ---
+    # --- [PHẦN 3: BIỂU ĐỒ TƯƠNG QUAN - HIỆN GIÁ THẬT - LÀM SẠCH TRỤC NGANG - 1 GIỜ CẬP NHẬT] ---
     st.subheader("🔄 Biểu đồ tương quan giữa Chứng khoán và Tài sản an toàn (Vàng)")
     st.caption("Khi thị trường chứng khoán biến động mạnh hoặc suy thoái, dòng tiền thường rút ra để tìm kiếm sự an toàn từ Vàng.")
 
-    # Hàm tải và chuẩn hóa chuỗi dữ liệu lịch sử vĩ mô thực tế, lưu bộ đệm trong 1 giờ (3600 giây)
     @st.cache_data(ttl=3600)
     def get_market_correlation_chart_data():
         import pandas as pd
@@ -1170,23 +1169,24 @@ elif menu == "Tin Tức & Cổ Phiếu":
             end_date = datetime.today()
             start_date = end_date - timedelta(days=90)
             
-            # Tải dữ liệu đóng cửa thực tế của S&P 500 và Giá Vàng thế giới từ Yahoo Finance
             sp_hist = yf.Ticker("^GSPC").history(start=start_date, end=end_date)['Close']
             gold_hist = yf.Ticker("GC=F").history(start=start_date, end=end_date)['Close']
             
-            # Gộp bảng theo ngày giao dịch chung để loại bỏ ngày lệch cuối tuần
-            combined = pd.DataFrame({'S&P 500 Index': sp_hist, 'Gold Price': gold_hist}).dropna()
+            # GỢI Ý: Giữ lại giá gốc để hiển thị khi rê chuột
+            combined = pd.DataFrame({
+                'S&P 500 Price': sp_hist, 
+                'Gold Price Real': gold_hist
+            }).dropna()
             
             if not combined.empty:
-                # Chuẩn hóa chuỗi số liệu về tỷ lệ tăng trưởng phần trăm (%) tính từ điểm mốc đầu kỳ (Base 100)
-                combined['S&P 500 Index'] = (combined['S&P 500 Index'] / combined['S&P 500 Index'].iloc[0]) * 100
-                combined['Gold Price'] = (combined['Gold Price'] / combined['Gold Price'].iloc[0]) * 100
+                # Tính toán tỷ lệ phần trăm (%)
+                combined['S&P 500 Index'] = (combined['S&P 500 Price'] / combined['S&P 500 Price'].iloc[0]) * 100
+                combined['Gold Price'] = (combined['Gold Price Real'] / combined['Gold Price Real'].iloc[0]) * 100
                 chart_df = combined
         except Exception:
             pass
         return chart_df
 
-    # Thực thi gọi dữ liệu biểu đồ vĩ mô thực tế
     df_chart_data = get_market_correlation_chart_data()
 
     if not df_chart_data.empty:
@@ -1194,40 +1194,49 @@ elif menu == "Tin Tức & Cổ Phiếu":
         
         fig = go.Figure()
         
-        # 1. Đường nét S&P 500 Index (Giữ nguyên màu xanh dương mặc định, thiết lập nhãn Tooltip chi tiết)
+        # 1. Đường nét S&P 500 (Hiển thị cả % hiệu suất và Giá đô la thật)
         fig.add_trace(go.Scatter(
-            x=df_chart_data.index.strftime('%d/%m/%Y'), # Định dạng ngày tháng hiển thị dạng Việt Nam
+            x=df_chart_data.index, 
             y=df_chart_data['S&P 500 Index'], 
             mode='lines', 
             name='S&P 500 Index (Chứng khoán Mỹ)',
             line=dict(color='#1f77b4', width=2.5),
-            hovertemplate="<b>Hiệu suất S&P 500:</b> %{y:.2f}%<extra></extra>"
+            customdata=df_chart_data['S&P 500 Price'], # Truyền dữ liệu giá thật vào biểu đồ
+            hovertemplate="<b>S&P 500 Index:</b> %{y:.2f}%<br><b>Giá thực tế:</b> $%{customdata:,.2f}<extra></extra>"
         ))
         
-        # 2. Đường nét Gold Price (Định cấu hình chuẩn màu Vàng rực Bloomberg, thiết lập nhãn Tooltip chi tiết)
+        # 2. Đường nét Gold Price (Màu vàng rực Bloomberg, hiển thị cả % hiệu suất và Giá đô la thật)
         fig.add_trace(go.Scatter(
-            x=df_chart_data.index.strftime('%d/%m/%Y'), 
+            x=df_chart_data.index, 
             y=df_chart_data['Gold Price'], 
             mode='lines', 
             name='Gold Price (Giá Vàng thế giới)',
-            line=dict(color='#eab308', width=2.5), # Mã màu vàng Hex Neon chuẩn đồ thị Bloomberg
-            hovertemplate="<b>Hiệu suất Giá Vàng:</b> %{y:.2f}%<extra></extra>"
+            line=dict(color='#eab308', width=2.5),
+            customdata=df_chart_data['Gold Price Real'], # Truyền dữ liệu giá thật vào biểu đồ
+            hovertemplate="<b>Hiệu suất Vàng:</b> %{y:.2f}%<br><b>Giá thực tế:</b> $%{customdata:,.2f}/oz<extra></extra>"
         ))
         
-        # 3. Thiết lập cấu hình giao diện Bloomberg Dark Mode đồng bộ cho biểu đồ Plotly
         fig.update_layout(
             template="plotly_dark",
-            paper_bgcolor="rgba(0,0,0,0)", # Màu nền ngoài trong suốt ăn khớp CSS nền của bạn
-            plot_bgcolor="rgba(0,0,0,0)",  # Màu nền đồ thị trong suốt
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
             margin=dict(l=10, r=10, t=25, b=10),
             height=450,
-            hovermode="x unified", # ĐẶC BIỆT: Di chuột vào bất kỳ vị trí nào trên trục đứng sẽ đồng thời hiện nhãn thông số cả 2 tài sản tại ngày đó
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1), # Đẩy thanh chú thích lên phía trên
-            xaxis=dict(showgrid=True, gridcolor="#1e293b", title="Ngày giao dịch"),
+            hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            
+            # ĐÃ SỬA: Cấu hình trục ngang tự động giãn cách nhãn ngày tháng theo tuần/tháng để chống dày đặc chữ
+            xaxis=dict(
+                showgrid=True, 
+                gridcolor="#1e293b", 
+                title="Ngày giao dịch",
+                type='date',
+                tickformat='%d/%m/%Y', # Định dạng ngày/tháng/năm
+                nticks=10 # Khóa cứng tối đa chỉ hiện 10 nhãn ngày đại diện, chữ sẽ không bị khít nhau
+            ),
             yaxis=dict(showgrid=True, gridcolor="#1e293b", title="Hiệu suất biến động dòng tiền (%)")
         )
         
-        # Đổ đồ thị lên giao diện ứng dụng Streamlit của bạn
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
     else:
         st.warning("Hệ thống đang đồng bộ và tính toán chuỗi số liệu biểu đồ kinh tế trực tuyến...")
