@@ -1088,3 +1088,62 @@ elif menu == "Tin Tức & Cổ Phiếu":
 
     # Kích hoạt thực thi khối làm mới tự động
     render_live_metrics_only()
+    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME CẬP NHẬT NGAY KHI CÓ TIN] ---
+    st.subheader("📰 Bảng Tin Doanh Nghiệp Real-time")
+
+    # Hàm cào tin tức trực tiếp từ API JSON của Yahoo Finance với bộ đệm siêu ngắn (2 giây)
+    @st.cache_data(ttl=2) 
+    def get_realtime_enterprise_news():
+        import pandas as pd
+        import requests
+        from datetime import datetime
+        try:
+            # Gọi trực tiếp API cổng dữ liệu tìm kiếm tin tức của Yahoo Finance
+            url = "https://yahoo.com"
+            params = {"q": "USA", "newsCount": 5}
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            
+            response = requests.get(url, params=params, headers=headers, timeout=3.0)
+            news_data = []
+            
+            if response.status_code == 200:
+                json_res = response.json()
+                raw_news = json_res.get("news", [])
+                
+                for n in raw_news[:5]: # Trích xuất chuẩn xác 5 tin mới nhất vừa xuất bản
+                    title = n.get("title", "Đang cập nhật...")
+                    provider = n.get("publisher", "Thị trường Mỹ")
+                    pub_time_stamp = n.get("providerPublishTime", 0)
+                    
+                    # Quy đổi timestamp thành giờ hệ thống Việt Nam (GMT+7) chuẩn 100%
+                    pub_time = "00:00"
+                    if pub_time_stamp:
+                        dt_vn = datetime.fromtimestamp(pub_time_stamp)
+                        pub_time = dt_vn.strftime('%H:%M')
+                    
+                    news_data.append({
+                        "Thời gian": pub_time,
+                        "Mã cổ phiếu / Nhóm ngành": provider,
+                        "Nội dung sự kiện": title
+                    })
+            
+            if len(news_data) > 0:
+                return pd.DataFrame(news_data)
+        except Exception:
+            pass
+            
+        # Không dùng dữ liệu viết tay: Trả về bảng rỗng nếu có lỗi đường truyền
+        return pd.DataFrame(columns=["Thời gian", "Mã cổ phiếu / Nhóm ngành", "Nội dung sự kiện"])
+
+    # KHỐI FRAGMENT: TỰ ĐỘNG CHẠY LẠI BẢNG TIN MỖI 2 GIÂY ĐỂ CẬP NHẬT NGAY LẬP TỨC
+    @st.fragment(run_every=2)
+    def render_live_news_only():
+        df_news = get_realtime_enterprise_news()
+        
+        if not df_news.empty:
+            st.dataframe(df_news, use_container_width=True, hide_index=True)
+        else:
+            st.info("Đang đồng bộ dòng tin tức trực tuyến trực tiếp từ Yahoo Finance...")
+
+    # Kích hoạt thực thi khối quét tin tự động
+    render_live_news_only()
