@@ -6,4 +6,4 @@ yfinance
 requests
 google-genai
 ccxt
-
+beautifulsoup4
