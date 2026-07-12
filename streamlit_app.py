@@ -1153,3 +1153,81 @@ elif menu == "Tin Tức & Cổ Phiếu":
     # Gọi hàm thực thi và đổ dữ liệu trực tiếp lên cấu trúc st.dataframe nguyên bản của bạn
     df_news = get_realtime_enterprise_news_30min()
     st.dataframe(df_news, use_container_width=True, hide_index=True)
+
+    # --- [PHẦN 3: BIỂU ĐỒ TƯƠNG QUAN THỰC TẾ PLOTLY - CẬP NHẬT CHUẨN MỖI TIẾNG] ---
+    st.subheader("🔄 Biểu đồ tương quan giữa Chứng khoán và Tài sản an toàn (Vàng)")
+    st.caption("Khi thị trường chứng khoán biến động mạnh hoặc suy thoái, dòng tiền thường rút ra để tìm kiếm sự an toàn từ Vàng.")
+
+    # Hàm tải và chuẩn hóa chuỗi dữ liệu lịch sử vĩ mô thực tế, lưu bộ đệm trong 1 giờ (3600 giây)
+    @st.cache_data(ttl=3600)
+    def get_market_correlation_chart_data():
+        import pandas as pd
+        import yfinance as yf
+        from datetime import datetime, timedelta
+        
+        chart_df = pd.DataFrame()
+        try:
+            end_date = datetime.today()
+            start_date = end_date - timedelta(days=90)
+            
+            # Tải dữ liệu đóng cửa thực tế của S&P 500 và Giá Vàng thế giới từ Yahoo Finance
+            sp_hist = yf.Ticker("^GSPC").history(start=start_date, end=end_date)['Close']
+            gold_hist = yf.Ticker("GC=F").history(start=start_date, end=end_date)['Close']
+            
+            # Gộp bảng theo ngày giao dịch chung để loại bỏ ngày lệch cuối tuần
+            combined = pd.DataFrame({'S&P 500 Index': sp_hist, 'Gold Price': gold_hist}).dropna()
+            
+            if not combined.empty:
+                # Chuẩn hóa chuỗi số liệu về tỷ lệ tăng trưởng phần trăm (%) tính từ điểm mốc đầu kỳ (Base 100)
+                combined['S&P 500 Index'] = (combined['S&P 500 Index'] / combined['S&P 500 Index'].iloc[0]) * 100
+                combined['Gold Price'] = (combined['Gold Price'] / combined['Gold Price'].iloc[0]) * 100
+                chart_df = combined
+        except Exception:
+            pass
+        return chart_df
+
+    # Thực thi gọi dữ liệu biểu đồ vĩ mô thực tế
+    df_chart_data = get_market_correlation_chart_data()
+
+    if not df_chart_data.empty:
+        import plotly.graph_objects as go
+        
+        fig = go.Figure()
+        
+        # 1. Đường nét S&P 500 Index (Giữ nguyên màu xanh dương mặc định, thiết lập nhãn Tooltip chi tiết)
+        fig.add_trace(go.Scatter(
+            x=df_chart_data.index.strftime('%d/%m/%Y'), # Định dạng ngày tháng hiển thị dạng Việt Nam
+            y=df_chart_data['S&P 500 Index'], 
+            mode='lines', 
+            name='S&P 500 Index (Chứng khoán Mỹ)',
+            line=dict(color='#1f77b4', width=2.5),
+            hovertemplate="<b>Hiệu suất S&P 500:</b> %{y:.2f}%<extra></extra>"
+        ))
+        
+        # 2. Đường nét Gold Price (Định cấu hình chuẩn màu Vàng rực Bloomberg, thiết lập nhãn Tooltip chi tiết)
+        fig.add_trace(go.Scatter(
+            x=df_chart_data.index.strftime('%d/%m/%Y'), 
+            y=df_chart_data['Gold Price'], 
+            mode='lines', 
+            name='Gold Price (Giá Vàng thế giới)',
+            line=dict(color='#eab308', width=2.5), # Mã màu vàng Hex Neon chuẩn đồ thị Bloomberg
+            hovertemplate="<b>Hiệu suất Giá Vàng:</b> %{y:.2f}%<extra></extra>"
+        ))
+        
+        # 3. Thiết lập cấu hình giao diện Bloomberg Dark Mode đồng bộ cho biểu đồ Plotly
+        fig.update_layout(
+            template="plotly_dark",
+            paper_bgcolor="rgba(0,0,0,0)", # Màu nền ngoài trong suốt ăn khớp CSS nền của bạn
+            plot_bgcolor="rgba(0,0,0,0)",  # Màu nền đồ thị trong suốt
+            margin=dict(l=10, r=10, t=25, b=10),
+            height=450,
+            hovermode="x unified", # ĐẶC BIỆT: Di chuột vào bất kỳ vị trí nào trên trục đứng sẽ đồng thời hiện nhãn thông số cả 2 tài sản tại ngày đó
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1), # Đẩy thanh chú thích lên phía trên
+            xaxis=dict(showgrid=True, gridcolor="#1e293b", title="Ngày giao dịch"),
+            yaxis=dict(showgrid=True, gridcolor="#1e293b", title="Hiệu suất biến động dòng tiền (%)")
+        )
+        
+        # Đổ đồ thị lên giao diện ứng dụng Streamlit của bạn
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+    else:
+        st.warning("Hệ thống đang đồng bộ và tính toán chuỗi số liệu biểu đồ kinh tế trực tuyến...")
