@@ -1089,56 +1089,51 @@ elif menu == "Tin Tức & Cổ Phiếu":
     # Kích hoạt thực thi khối làm mới tự động
     render_live_metrics_only()
 
-    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME - BẢN SỬA LỖI VỚI DUCKDUCKGO NEWS API] ---
+    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME - SỬA LỖI TRẮNG BẢNG BẰNG BEAUTIFULSOUP] ---
     st.subheader("📰 Bảng Tin Doanh Nghiệp Real-time")
 
-    # Hàm lấy tin tức tài chính trực tiếp qua cổng DuckDuckGo News
     @st.cache_data(ttl=5) 
     def get_realtime_enterprise_news():
         import pandas as pd
         import requests
+        from bs4 import BeautifulSoup
         from datetime import datetime
-        import re
         try:
-            # Truy vấn tin tức tài chính Mỹ mới nhất từ DuckDuckGo News
+            # Sử dụng cổng đọc kết quả tin tức trực tiếp
             url = "https://duckduckgo.com"
-            params = {"q": "US stock market news"}
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            params = {"q": "US stock market business news"}
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
             
-            response = requests.get(url, params=params, headers=headers, timeout=5.0)
+            response = requests.get(url, params=params, headers=headers, timeout=6.0)
             news_data = []
             
             if response.status_code == 200:
-                html_content = response.text
+                soup = BeautifulSoup(response.text, "html.parser")
+                # Tìm chính xác các khối thẻ chứa kết quả tin tức tìm kiếm trên trang
+                links = soup.find_all("a", class_="result__url")
                 
-                # Sử dụng biểu thức chính quy (Regex) cơ bản để trích xuất tiêu đề và liên kết tin tức nhanh gọn
-                titles = re.findall(r'class="result__url"[^>]*>([^<]+)</a>', html_content)
-                snippets = re.findall(r'class="result__snippet"[^>]*>([^<]+)</div>', html_content)
-                
-                # Lấy đúng 5 bài tin tài chính nóng nhất vừa cập nhật
-                for i in range(min(5, len(titles))):
-                    clean_title = titles[i].strip()
-                    # Loại bỏ các ký tự rác nếu có
-                    clean_title = clean_title.replace("&quot;", '"').replace("&amp;", '&')
+                for link in links[:5]:  # Trích xuất chuẩn 5 tin vĩ mô mới nhất
+                    title_text = link.get_text().strip()
                     
-                    # Gán mốc thời gian cập nhật của luồng tin real-time
-                    pub_time = datetime.now().strftime('%H:%M')
-                    
-                    news_data.append({
-                        "Thời gian": pub_time,
-                        "Mã cổ phiếu / Nhóm ngành": "Thị trường Mỹ",
-                        "Nội dung sự kiện": clean_title
-                    })
+                    if title_text:
+                        # Gán mốc thời gian hệ thống thực tế từng phút
+                        pub_time = datetime.now().strftime('%H:%M')
+                        
+                        news_data.append({
+                            "Thời gian": pub_time,
+                            "Mã cổ phiếu / Nhóm ngành": "Thị trường Mỹ",
+                            "Nội dung sự kiện": title_text
+                        })
             
             if len(news_data) > 0:
                 return pd.DataFrame(news_data)
         except Exception:
             pass
             
-        # Không dùng dữ liệu viết tay: Trả về bảng rỗng nếu mạng quốc tế gặp sự cố
+        # Không dùng dữ liệu mẫu: Trả về bảng rỗng nếu gặp sự cố nghẽn mạng mạng quốc tế
         return pd.DataFrame(columns=["Thời gian", "Mã cổ phiếu / Nhóm ngành", "Nội dung sự kiện"])
 
-    # KHỐI FRAGMENT: TỰ ĐỘNG LÀM MỚI BẢNG TIN SAU MỖI 2 GIÂY ĐỂ ĐỒNG BỘ TIN MỚI
+    # KHỐI FRAGMENT: TỰ ĐỘNG CHẠY LẠI BẢNG TIN MỖI 2 GIÂY
     @st.fragment(run_every=2)
     def render_live_news_only():
         df_news = get_realtime_enterprise_news()
@@ -1146,7 +1141,7 @@ elif menu == "Tin Tức & Cổ Phiếu":
         if not df_news.empty:
             st.dataframe(df_news, use_container_width=True, hide_index=True)
         else:
-            st.warning("Đang kết nối luồng dữ liệu tin tức chứng khoán Hoa Kỳ trực tuyến...")
+            st.warning("Hệ thống đang thiết lập cổng đồng bộ dòng tin tức chứng khoán quốc tế trực tuyến...")
 
-    # Kích hoạt thực thi khối quét tin tự động
+    # Kích hoạt thực thi khối quét tin
     render_live_news_only()
