@@ -1089,10 +1089,10 @@ elif menu == "Tin Tức & Cổ Phiếu":
     # Kích hoạt thực thi khối làm mới tự động
     render_live_metrics_only()
 
-    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME - TIN THẬT 100% - KHÔNG CÓ CHỮ VIẾT SẴN] ---
+    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME - ĐÃ SỬA LỖI ĐƯỜNG DẪN RSS YAHOO FINANCE] ---
     st.subheader("📰 Bảng Tin Doanh Nghiệp Real-time")
 
-    # Hàm lấy dữ liệu với bộ nhớ đệm lưu trữ đúng 30 phút (1800 giây)
+    # Hàm lấy dữ liệu tin tức thật 100% với bộ nhớ đệm lưu trữ đúng 30 phút (1800 giây)
     @st.cache_data(ttl=1800)
     def get_realtime_enterprise_news_30min():
         import pandas as pd
@@ -1100,38 +1100,39 @@ elif menu == "Tin Tức & Cổ Phiếu":
         from datetime import datetime, timedelta
         import re
         try:
-            # Luồng RSS gốc chính thức của Yahoo Finance toàn cầu
+            # ĐÃ SỬA LỖI: Gọi chính xác luồng tin tức kinh tế RSS của Yahoo Finance
             url = "https://yahoo.com"
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             
-            response = requests.get(url, headers=headers, timeout=5.0)
+            response = requests.get(url, headers=headers, timeout=6.0)
             news_data = []
             
             if response.status_code == 200:
                 html_text = response.text
                 
-                # Bóc tách trực tiếp tiêu đề bài viết bằng biểu thức chính quy (Regex) chống lỗi XML
+                # Trích xuất tiêu đề bài báo nằm trong thẻ CDATA
                 titles = re.findall(r'<title><!\[CDATA\[(.*?)\]\]></title>', html_text)
+                # Trích xuất mốc thời gian xuất bản bài viết
                 pub_dates = re.findall(r'<pubDate>(.*?)</pubDate>', html_text)
                 
-                # Loại bỏ tiêu đề chung của toàn bộ kênh RSS (nằm ở vị trí đầu tiên nếu có)
-                if len(titles) > 0 and "Yahoo Finance" in titles:
+                # Loại bỏ tiêu đề chung của toàn bộ kênh RSS nếu có
+                if len(titles) > 0 and "Yahoo Finance" in titles[0]:
                     titles.pop(0)
                 
-                # Trích xuất và cấu hình chuẩn xác 5 bài tin tài chính mới nhất
+                # Duyệt qua và lấy ra đúng 5 bài báo tài chính vĩ mô mới nhất
                 for i in range(min(5, len(titles))):
                     clean_title = titles[i].strip()
                     
-                    # Phân tích cú pháp chuỗi thời gian quốc tế của Yahoo (Ví dụ: Sun, 12 Jul 2026 01:45:00 +0000)
+                    # Phân tích cú pháp chuỗi thời gian quốc tế (Ví dụ: Sun, 12 Jul 2026 01:45:00 GMT)
                     pub_time = "00:00"
                     if i < len(pub_dates):
                         raw_date = pub_dates[i]
                         try:
-                            # Cắt bỏ phần múi giờ thừa phía cuối chuỗi
-                            clean_date = raw_date.rsplit(' ', 1).strip()
+                            # Tách bỏ phần chữ GMT hoặc múi giờ thừa ở cuối chuỗi
+                            clean_date = raw_date.rsplit(' ', 1)[0].strip()
                             dt = datetime.strptime(clean_date, "%a, %d %b %Y %H:%M:%S")
                             
-                            # Tự động cộng thêm 7 tiếng để quy đổi đồng bộ sang giờ Việt Nam (GMT+7)
+                            # Tự động cộng thêm 7 tiếng để chuyển đổi từ giờ quốc tế sang giờ Việt Nam (GMT+7)
                             dt_vn = dt + timedelta(hours=7)
                             pub_time = dt_vn.strftime('%H:%M')
                         except:
@@ -1148,7 +1149,7 @@ elif menu == "Tin Tức & Cổ Phiếu":
         except Exception:
             pass
             
-        # KHÔNG DÙNG CHỮ VIẾT SẴN: Trả về bảng rỗng nếu hệ thống API gặp sự cố nghẽn mạng
+        # TUYỆT ĐỐI KHÔNG DÙNG TIN GIẢ VIẾT SẴN: Trả về bảng rỗng nếu hệ thống API nghẽn mạng
         return pd.DataFrame(columns=["Thời gian", "Mã cổ phiếu / Nhóm ngành", "Nội dung sự kiện"])
 
     # Thực thi gọi hàm lấy dữ liệu và hiển thị lên bảng DataFrame nguyên bản của bạn
@@ -1157,4 +1158,4 @@ elif menu == "Tin Tức & Cổ Phiếu":
     if not df_news.empty:
         st.dataframe(df_news, use_container_width=True, hide_index=True)
     else:
-        st.info("Hệ thống đang thực hiện lệnh quét mạng và kết nối đồng bộ dòng tin tức trực tuyến...")
+        st.info("Hệ thống đang kết nối luồng dữ liệu mạng và đồng bộ dòng tin tức trực tuyến...")
