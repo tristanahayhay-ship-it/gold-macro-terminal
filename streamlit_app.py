@@ -1089,7 +1089,7 @@ elif menu == "Tin Tức & Cổ Phiếu":
     # Kích hoạt thực thi khối làm mới tự động
     render_live_metrics_only()
 
-    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME - NGUỒN YAHOO FINANCE CHUẨN 100% - CẬP NHẬT 30 PHÚT] ---
+    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME - TIN THẬT 100% - KHÔNG CÓ CHỮ VIẾT SẴN] ---
     st.subheader("📰 Bảng Tin Doanh Nghiệp Real-time")
 
     # Hàm lấy dữ liệu với bộ nhớ đệm lưu trữ đúng 30 phút (1800 giây)
@@ -1114,8 +1114,8 @@ elif menu == "Tin Tức & Cổ Phiếu":
                 titles = re.findall(r'<title><!\[CDATA\[(.*?)\]\]></title>', html_text)
                 pub_dates = re.findall(r'<pubDate>(.*?)</pubDate>', html_text)
                 
-                # Loại bỏ tiêu đề chung của toàn bộ kênh RSS (nằm ở vị trí đầu tiên)
-                if len(titles) > 0 and "Yahoo Finance" in titles[0]:
+                # Loại bỏ tiêu đề chung của toàn bộ kênh RSS (nằm ở vị trí đầu tiên nếu có)
+                if len(titles) > 0 and "Yahoo Finance" in titles:
                     titles.pop(0)
                 
                 # Trích xuất và cấu hình chuẩn xác 5 bài tin tài chính mới nhất
@@ -1128,7 +1128,7 @@ elif menu == "Tin Tức & Cổ Phiếu":
                         raw_date = pub_dates[i]
                         try:
                             # Cắt bỏ phần múi giờ thừa phía cuối chuỗi
-                            clean_date = raw_date.rsplit(' ', 1)[0].strip()
+                            clean_date = raw_date.rsplit(' ', 1).strip()
                             dt = datetime.strptime(clean_date, "%a, %d %b %Y %H:%M:%S")
                             
                             # Tự động cộng thêm 7 tiếng để quy đổi đồng bộ sang giờ Việt Nam (GMT+7)
@@ -1148,18 +1148,13 @@ elif menu == "Tin Tức & Cổ Phiếu":
         except Exception:
             pass
             
-        # Dữ liệu dự phòng tiêu điểm thị trường vĩ mô thực tế ngày Chủ Nhật
-        current_hour = datetime.now().strftime('%H:%M')
-        return pd.DataFrame({
-            "Thời gian": [current_hour, "05:12", "04:30"],
-            "Mã cổ phiếu / Nhóm ngành": ["Thị trường Mỹ", "Fed Watch", "Global Macro"],
-            "Nội dung sự kiện": [
-                "Thị trường chứng khoán Mỹ đóng cửa cuối tuần; nhà đầu tư dồn sự chú ý vào kỳ vọng lãi suất phiên giao dịch thứ Hai.",
-                "Các chuyên gia vĩ mô dự báo biên độ dao động của S&P 500 gia tăng trước thềm công bố chỉ số CPI.",
-                "Dòng vốn quỹ phòng hộ quốc tế có xu hướng dịch chuyển nhẹ sang các vị thế hợp đồng bảo vệ rủi ro giá Vàng."
-            ]
-        })
+        # KHÔNG DÙNG CHỮ VIẾT SẴN: Trả về bảng rỗng nếu hệ thống API gặp sự cố nghẽn mạng
+        return pd.DataFrame(columns=["Thời gian", "Mã cổ phiếu / Nhóm ngành", "Nội dung sự kiện"])
 
     # Thực thi gọi hàm lấy dữ liệu và hiển thị lên bảng DataFrame nguyên bản của bạn
     df_news = get_realtime_enterprise_news_30min()
-    st.dataframe(df_news, use_container_width=True, hide_index=True)
+    
+    if not df_news.empty:
+        st.dataframe(df_news, use_container_width=True, hide_index=True)
+    else:
+        st.info("Hệ thống đang thực hiện lệnh quét mạng và kết nối đồng bộ dòng tin tức trực tuyến...")
