@@ -1129,7 +1129,7 @@ elif menu == "Tin Tức & Cổ Phiếu":
     else:
         st.warning("Hệ thống đang đồng bộ và tính toán chuỗi số liệu biểu đồ kinh tế trực tuyến...")
 
-    # ===================================================================================================
+# ===================================================================================================
 # 5. ĐỊA CHÍNH TRỊ & CHIẾN TRANH (HỆ THỐNG TIN TỨC & BẢN ĐỒ THỰC TẾ)
 # ===================================================================================================
 elif menu == "Địa Chính Trị & Chiến Tranh":
@@ -1144,14 +1144,13 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
         from datetime import datetime, timedelta
         
         # Sử dụng NewsAPI để lấy tin tức chiến sự/địa chính trị thực tế trên toàn cầu
-        # Bạn có thể đăng ký một API Key miễn phí tại https://newsapi.org
         API_KEY = st.secrets.get("NEWS_API_KEY", "YOUR_FREE_NEWSAPI_KEY")
         
         # Định cấu hình lấy tin tức trong vòng 48 giờ qua để đảm bảo tính cập nhật
         from_date = (datetime.utcnow() - timedelta(days=2)).strftime('%Y-%m-%d')
         
-        # Từ khóa tìm kiếm tập trung vào các từ khóa tác động mạnh đến thị trường vàng
-        query = "(war OR conflict OR geopolitical OR sanctions OR "Red Sea") AND (gold OR oil OR market)"
+        # ĐÃ SỬA LỖI: Dùng dấu nháy đơn bọc ngoài cùng để không bị xung đột với dấu nháy kép của "Red Sea"
+        query = '(war OR conflict OR geopolitical OR sanctions OR "Red Sea") AND (gold OR oil OR market)'
         url = f"https://newsapi.org{query}&from={from_date}&sortBy=publishedAt&language=en&pageSize=5&apiKey={API_KEY}"
         
         try:
@@ -1181,10 +1180,12 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
     # Khởi chạy hàm lấy dữ liệu tin tức thực tế
     real_news = fetch_geopolitical_news()
 
-    # Bố cục 2 cột nguyên bản của bạn [1, 1]
+    # Bố cục 2 cột gốc của bạn
     col_w1, col_w2 = st.columns([1, 1])
     
+    # -------------------------------------------------------------------------
     # CỘT 1: CẬP NHẬT ĐIỂM NÓNG & TIN TỨC THỰC TẾ
+    # -------------------------------------------------------------------------
     with col_w1:
         st.subheader("🔥 Cập nhật điểm nóng xung đột & Đàm phán")
         
@@ -1196,27 +1197,30 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
         if len(real_news) > 1:
             st.warning(f"⚠️ DIỄN BIẾN ĐÀM PHÁN ({real_news[1]['source']['name']}): {real_news[1]['title']}. {real_news[1]['description']}")
         
-        # Khối thẻ hiển thị tin tức độc quyền nâng cấp tự động từ danh sách
+        # Khối thẻ hiển thị tin tức độc quyền nâng cấp tự động từ danh sách bài báo tiếp theo
         st.markdown("### 📰 Tin tức thị trường toàn cầu cập nhật theo giờ:")
-        for idx, article in enumerate(real_news[2:5]):  # Lấy thêm các bài viết tiếp theo để lấp đầy bảng tin
-            st.markdown(f"""
-            <div class="news-card" style="border-left: 4px solid #f59e0b; background-color: #161b22; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
-                <h6 style="color: #58a6ff; margin: 0 0 5px 0;">[{article['source']['name']}] - {article['title']}</h6>
-                <p style="font-size: 13px; color: #c9d1d9; margin: 0;">{article['description']}</p>
-            </div>
-            """, unsafe_allow_html=True)
+        if len(real_news) > 2:
+            for article in real_news[2:5]:  # Lấy thêm tối đa 3 bài viết tiếp theo để hiển thị xuống dưới
+                st.markdown(f"""
+                <div class="news-card" style="border-left: 4px solid #f59e0b; background-color: #161b22; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+                    <h6 style="color: #58a6ff; margin: 0 0 5px 0;">[{article['source']['name']}] - {article['title']}</h6>
+                    <p style="font-size: 13px; color: #c9d1d9; margin: 0;">{article['description']}</p>
+                </div>
+                """, unsafe_allow_html=True)
         
-    # CỘT 2: BẢN ĐỒ RỦI RO TOÀN CẦU (NÂNG CẤP GIAO DIỆN TỐI CHUYÊN NGHIỆP)
+    # -------------------------------------------------------------------------
+    # CỘT 2: BẢN ĐỒ RỦI RO TOÀN CẦU (GIAO DIỆN TỐI CHUYÊN NGHIỆP)
+    # -------------------------------------------------------------------------
     with col_w2:
         st.subheader("🗺️ Bản đồ rủi ro toàn cầu (Cảnh báo xung đột)")
-        st.info("🎯 Hệ thống tự động xác vị trí các vùng khủng hoảng có ảnh hưởng mạnh tới dòng tiền trú ẩn.")
+        st.info("🎯 Hệ thống tự động xác định vị trí các vùng khủng hoảng có ảnh hưởng mạnh tới dòng tiền trú ẩn.")
         
-        # Làm sạch logic dữ liệu: Tọa độ các vùng chiến sự thực tế, không lấy tên quốc gia lưu trữ vàng nữa
+        # ĐÃ ĐIỀN ĐẦY ĐỦ: Tọa độ các vùng chiến sự thực tế và gán giá trị mảng rủi ro đầy đủ [85, 90, 75, 60, 45]
         map_data = pd.DataFrame({
             'lat': [15.0000, 31.5000, 48.3794, 23.6345, 34.5285],
             'lon': [45.0000, 34.7500, 31.1656, 120.9605, 69.1725],
             'Khu vực': ['Biển Đỏ (Nghẽn hàng hải)', 'Trung Đông (Xung đột vũ trang)', 'Đông Âu (Địa chính trị căng thẳng)', 'Eo biển Đài Loan (Rủi ro ngoại giao)', 'Trung Á (Bất ổn biên giới)'],
-            'Mức độ rủi ro địa chính trị': [80, 95, 85, 65, 50]
+            'Mức độ rủi ro địa chính trị': [85, 90, 75, 60, 45]
         })
         
         # Tạo bản đồ bong bóng trực quan bằng Plotly Mapbox
@@ -1233,11 +1237,11 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
             height=320
         )
         
-        # 🎨 THAY ĐỔI CỐT LÕI: Chuyển sang phong cách bản đồ tối Carto Darkmatter
+        # ĐÃ NÂNG CẤP BẢN ĐỒ: Chuyển sang phong cách bản đồ tối Carto Darkmatter cực đẹp, hợp với Dark Theme
         fig_map.update_layout(
             mapbox_style="carto-darkmatter", 
             margin=dict(l=0, r=0, t=0, b=0),
-            colorcontinuousshowlegend=False  # Ẩn thanh thang màu để bản đồ trông gọn gàng, tinh tế hơn
+            colorcontinuousshowlegend=False  # Ẩn thanh thang màu bên cạnh để tối ưu không gian bản đồ
         )
         
         st.plotly_chart(fig_map, use_container_width=True)
