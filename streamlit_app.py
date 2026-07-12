@@ -1089,20 +1089,19 @@ elif menu == "Tin Tức & Cổ Phiếu":
     # Kích hoạt thực thi khối làm mới tự động
     render_live_metrics_only()
 
-    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME - BẢN THUẦN REQUESTS CHỐNG SẬP APP] ---
+    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME - DỮ LIỆU THẬT - CẬP NHẬT MỖI 30 PHÚT] ---
     st.subheader("📰 Bảng Tin Doanh Nghiệp Real-time")
 
-    # Hàm lấy tin tức sử dụng thư viện requests cốt lõi của Python (Không cài thêm thư viện ngoài)
-    @st.cache_data(ttl=10) 
-    def get_realtime_enterprise_news():
+    # Hàm cào dữ liệu tin tức từ cổng API mở quốc tế với bộ đệm lưu trữ đúng 30 phút (1800 giây)
+    @st.cache_data(ttl=1800)
+    def get_realtime_enterprise_news_30min():
         import pandas as pd
         import requests
-        from datetime import datetime
-        import re
+        from datetime import datetime, timedelta
         try:
-            # Cổng API JSON mở của hệ thống tin tức vĩ mô quốc tế (Không chặn IP Streamlit)
+            # Cổng kết nối JSON dữ liệu tin tức tài chính vĩ mô toàn cầu
             url = "https://eodhd.com"
-            params = {"s": "US", "limit": 5, "api_token": "demo"} # Sử dụng luồng dữ liệu demo công cộng công khai
+            params = {"s": "US", "limit": 5, "api_token": "demo"}
             headers = {"User-Agent": "Mozilla/5.0"}
             
             response = requests.get(url, params=params, headers=headers, timeout=5.0)
@@ -1110,25 +1109,30 @@ elif menu == "Tin Tức & Cổ Phiếu":
             
             if response.status_code == 200:
                 raw_json = response.json()
-                for item in raw_json[:5]: # Trích xuất chuẩn xác 5 tin mới nhất vừa xuất bản
+                for item in raw_json[:5]: # Trích xuất chuẩn xác 5 tin mới nhất
                     title = item.get("title", "Đang cập nhật...")
-                    # Trích xuất nguồn báo phát hành bài viết
-                    source = item.get("symbols", ["Thị trường Mỹ"])[0] if item.get("symbols") else "Thị trường Mỹ"
                     
-                    # Trích xuất và định dạng lại mốc thời gian hiển thị chuẩn giờ Việt Nam
-                    pub_time = datetime.now().strftime('%H:%M')
+                    # Trích xuất nguồn báo/nhóm ngành phát hành bài viết
+                    source = item.get("symbols", ["Thị trường Mỹ"])
+                    source_text = source[0] if isinstance(source, list) and len(source) > 0 else "Thị trường Mỹ"
+                    
+                    # Trích xuất mốc thời gian ISO và quy đổi đồng bộ sang giờ Việt Nam (GMT+7)
+                    pub_time = "00:00"
                     date_str = item.get("date", "")
                     if date_str and "T" in date_str:
                         try:
-                            # Phân tích chuỗi thời gian định dạng ISO từ API (ví dụ: 2026-07-12T01:45:00Z)
+                            # Cắt chuỗi lấy phần giờ giấc gốc (UTC)
                             time_part = date_str.split("T")[1].split("Z")[0]
-                            pub_time = ":".join(time_part.split(":")[:2])
+                            dt_utc = datetime.strptime(time_part, "%H:%M:%S")
+                            # Cộng thêm 7 tiếng để đồng bộ chuẩn múi giờ Việt Nam
+                            dt_vn = dt_utc + timedelta(hours=7)
+                            pub_time = dt_vn.strftime('%H:%M')
                         except Exception:
-                            pass
+                            pub_time = datetime.now().strftime('%H:%M')
                     
                     news_data.append({
                         "Thời gian": pub_time,
-                        "Mã cổ phiếu / Nhóm ngành": source,
+                        "Mã cổ phiếu / Nhóm ngành": source_text,
                         "Nội dung sự kiện": title
                     })
             
@@ -1137,18 +1141,9 @@ elif menu == "Tin Tức & Cổ Phiếu":
         except Exception:
             pass
             
-        # Không dùng dữ liệu viết tay: Trả về bảng trống nếu có lỗi mạng bất khả kháng
+        # Trả về bảng rỗng đúng cấu trúc cột nếu mạng quốc tế gặp sự cố đột xuất
         return pd.DataFrame(columns=["Thời gian", "Mã cổ phiếu / Nhóm ngành", "Nội dung sự kiện"])
 
-    # KHỐI FRAGMENT: TỰ ĐỘNG CHẠY LẠI BẢNG TIN MỖI 2 GIÂY
-    @st.fragment(run_every=2)
-    def render_live_news_only():
-        df_news = get_realtime_enterprise_news()
-        
-        if not df_news.empty:
-            st.dataframe(df_news, use_container_width=True, hide_index=True)
-        else:
-            st.info("Hệ thống đang đồng bộ luồng tin tức chứng khoán quốc tế trực tuyến...")
-
-    # Kích hoạt thực thi khối quét tin tự động
-    render_live_news_only()
+    # Thực thi gọi hàm lấy dữ liệu và hiển thị lên bảng DataFrame nguyên bản của bạn
+    df_news = get_realtime_enterprise_news_30min()
+    st.dataframe(df_news, use_container_width=True, hide_index=True)
