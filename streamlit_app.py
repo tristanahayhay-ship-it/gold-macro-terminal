@@ -348,6 +348,7 @@ if menu == "Dashboard Tổng Quan":
         for idx in:
             n = macro_news[idx]
             st.markdown(f'<div class="news-card"><h4>[{n["publisher"]}] {n["title"]}</h4><p style="color:#64748b; font-size:12px;">📅 Xuất bản: {n["time"]}</p><a href="{n["link"]}" target="_blank" style="color:#3b82f6; font-weight:bold; text-decoration:none;">Đọc bài gốc ↗</a></div>', unsafe_allow_html=True)
+
 elif menu == "Dữ Liệu Kinh Tế Mỹ":
     st.title("🇺🇸 Chỉ Số Kinh Tế Vĩ Mô Mỹ (Real-time & Historical)")
     st.subheader("📋 Bảng cập nhật trạng thái thực tế")
