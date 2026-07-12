@@ -1088,42 +1088,57 @@ elif menu == "Tin Tức & Cổ Phiếu":
 
     # Kích hoạt thực thi khối làm mới tự động
     render_live_metrics_only()
-    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME CẬP NHẬT NGAY KHI CÓ TIN] ---
+
+    # --- [PHẦN 2: BẢNG TIN DOANH NGHIỆP REAL-TIME - BẢN SỬA LỖI KẾT NỐI BẰNG GOOGLE NEWS] ---
     st.subheader("📰 Bảng Tin Doanh Nghiệp Real-time")
 
-    # Hàm cào tin tức trực tiếp từ API JSON của Yahoo Finance với bộ đệm siêu ngắn (2 giây)
+    # Hàm cào tin tức trực tiếp từ Google News RSS với bộ đệm siêu ngắn (2 giây)
     @st.cache_data(ttl=2) 
     def get_realtime_enterprise_news():
         import pandas as pd
         import requests
+        import xml.etree.ElementTree as ET
         from datetime import datetime
         try:
-            # Gọi trực tiếp API cổng dữ liệu tìm kiếm tin tức của Yahoo Finance
-            url = "https://yahoo.com"
-            params = {"q": "USA", "newsCount": 5}
+            # Luồng RSS chính thức của Google News về thị trường tài chính doanh nghiệp Mỹ (Business/Finance)
+            url = "https://google.com"
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             
-            response = requests.get(url, params=params, headers=headers, timeout=3.0)
+            response = requests.get(url, headers=headers, timeout=4.0)
             news_data = []
             
             if response.status_code == 200:
-                json_res = response.json()
-                raw_news = json_res.get("news", [])
+                # Phân tích cú pháp chuỗi XML từ Google News
+                root = ET.fromstring(response.content)
                 
-                for n in raw_news[:5]: # Trích xuất chuẩn xác 5 tin mới nhất vừa xuất bản
-                    title = n.get("title", "Đang cập nhật...")
-                    provider = n.get("publisher", "Thị trường Mỹ")
-                    pub_time_stamp = n.get("providerPublishTime", 0)
+                # Quét qua cấu trúc XML để lấy ra chính xác 5 bài báo tài chính mới nhất vừa xuất bản
+                for item in root.findall(".//item")[:5]:
+                    raw_title = item.find("title").text if item.find("title") is not None else "Đang cập nhật..."
+                    source_name = item.find("source").text if item.find("source") is not None else "Thị trường Mỹ"
+                    pub_date_str = item.find("pubDate").text if item.find("pubDate") is not None else ""
                     
-                    # Quy đổi timestamp thành giờ hệ thống Việt Nam (GMT+7) chuẩn 100%
+                    # Tách bỏ tên nguồn báo bị dính ở cuối tiêu đề Google News (ví dụ: "Title - Reuters" -> "Title")
+                    title = raw_title.rsplit(" - ", 1)[0] if " - " in raw_title else raw_title
+                    
+                    # Quy đổi định dạng thời gian chuẩn quốc tế của Google News sang giờ Việt Nam (GMT+7)
                     pub_time = "00:00"
-                    if pub_time_stamp:
-                        dt_vn = datetime.fromtimestamp(pub_time_stamp)
-                        pub_time = dt_vn.strftime('%H:%M')
+                    if pub_date_str:
+                        try:
+                            # Cú pháp ngày của Google RSS có dạng: Sun, 12 Jul 2026 01:41:00 GMT
+                            # Ta cắt bỏ chữ " GMT" ở cuối để đồng bộ hàm strptime
+                            clean_date = pub_date_str.replace(" GMT", "").strip()
+                            dt = datetime.strptime(clean_date, "%a, %d %b %Y %H:%M:%S")
+                            
+                            # Thư viện xử lý lệch múi giờ từ giờ quốc tế sang giờ Việt Nam
+                            import datetime as dt_mod
+                            dt_vn = dt + dt_mod.timedelta(hours=7)
+                            pub_time = dt_vn.strftime('%H:%M')
+                        except Exception:
+                            pub_time = datetime.now().strftime('%H:%M')
                     
                     news_data.append({
                         "Thời gian": pub_time,
-                        "Mã cổ phiếu / Nhóm ngành": provider,
+                        "Mã cổ phiếu / Nhóm ngành": source_name,
                         "Nội dung sự kiện": title
                     })
             
@@ -1132,7 +1147,7 @@ elif menu == "Tin Tức & Cổ Phiếu":
         except Exception:
             pass
             
-        # Không dùng dữ liệu viết tay: Trả về bảng rỗng nếu có lỗi đường truyền
+        # Không dùng dữ liệu viết tay: Trả về bảng rỗng nếu có lỗi đường truyền bất khả kháng
         return pd.DataFrame(columns=["Thời gian", "Mã cổ phiếu / Nhóm ngành", "Nội dung sự kiện"])
 
     # KHỐI FRAGMENT: TỰ ĐỘNG CHẠY LẠI BẢNG TIN MỖI 2 GIÂY ĐỂ CẬP NHẬT NGAY LẬP TỨC
@@ -1143,7 +1158,7 @@ elif menu == "Tin Tức & Cổ Phiếu":
         if not df_news.empty:
             st.dataframe(df_news, use_container_width=True, hide_index=True)
         else:
-            st.info("Đang đồng bộ dòng tin tức trực tuyến trực tiếp từ Yahoo Finance...")
+            st.info("Hệ thống đang kết nối và đồng bộ dòng tin tức trực tuyến vĩ mô quốc tế...")
 
     # Kích hoạt thực thi khối quét tin tự động
     render_live_news_only()
