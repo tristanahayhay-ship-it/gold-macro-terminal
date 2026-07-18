@@ -1311,7 +1311,7 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
             # Thuật toán tự động nhận diện ngày trong tuần để đồng bộ với biểu đồ
             current_day = datetime.now().weekday()
             
-            if current_day in: # Thứ 7 hoặc Chủ Nhật (Thị trường truyền thống đóng cửa)
+            if current_day in[5, 6]: # Thứ 7 hoặc Chủ Nhật (Thị trường truyền thống đóng cửa)
                 # Quét luồng nến 1 phút thực tế của Vàng mã hóa PAXG để có giá nhảy liên tục 24/7
                 ticker_symbol = "PAXG-USD"
             else: # Từ Thứ 2 đến Thứ 6 (Thị trường mở cửa)
