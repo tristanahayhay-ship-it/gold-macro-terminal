@@ -1,72 +1,58 @@
 import streamlit as st
-import plotly.graph_objects as go
-import time
-from datetime import datetime
-# Gọi bộ não xử lý dữ liệu liên tục từng giây
-from macro_engine import fetch_global_macro_sentiment, get_institutional_data
+from macro_engine import evaluate_d1_quantum_signal
 
-st.set_page_config(page_title="XAUUSD Live Quantum Terminal", layout="wide")
+st.set_page_config(page_title="XAUUSD D1 Macro Executive Terminal", layout="wide")
 
-# Tạo giao diện chuẩn phòng Trading sàn quỹ
 st.markdown("""
     <style>
-    .reportview-container { background: #06080C; }
-    .stMetric { background-color: #0F141C; padding: 15px; border-radius: 6px; border: 1px solid #1E293B; }
-    div[data-testid="stMetricValue"] { font-size: 30px; font-weight: bold; color: #00FF66; font-family: 'Courier New'; }
+    .stApp { background-color: #04060A; }
+    .stSelectbox, .stNumberInput { background-color: #0E121A; }
+    h1, h2, h3 { font-family: 'Courier New', Courier, monospace; }
     </style>
     """, unsafe_allow_html=True)
 
-# Hiển thị đồng hồ thời gian thực nhảy giây của hệ thống
-current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-st.title("🦅 HỆ ĐIỀU HÀNH LƯỢNG TỬ VÀNG REAL-TIME (XAUUSD)")
-st.markdown(f"⏱️ **Xung nhịp hệ thống (Real-time):** `{current_time}` | Lấy dữ liệu trực tiếp dòng lệnh")
+st.title("🏛️ TRẠM ĐIỀU HÀNH THẨM ĐỊNH LƯỢNG TỬ KHUNG NGÀY D1 (XAUUSD)")
+st.caption("Hệ thống phân tích ma trận dữ liệu đóng nến Ngày - Chuyên đánh sóng dài hạn (Swing Trading)")
 
-try:
-    # Kéo dữ liệu chạy giây từ bộ não
-    df_1m, close_1m, current_price, liquidity_resistance, liquidity_support, rsi, atr = get_institutional_data()
-    macro_news, macro_score = fetch_global_macro_sentiment()
+st.markdown("### 📥 DỮ LIỆU ĐÓNG NẾN NGÀY D1 THỰC TẾ (QUAN SÁT MỖI NGÀY 1 LẦN LÚC 4H-5H SÁNG)")
+col1, col2 = st.columns(2)
 
-    # KHU VỰC 1: BẢNG SỐ NHẢY DỮ LIỆU CHẠY THEO GIÂY
-    st.markdown("### 📡 LIVE STREAMING DATA FEED")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("GIÁ VÀNG THẾ GIỚI", f"${current_price:.2f}")
-    col2.metric("TƯỜNG BÁN CÁ MẬP", f"${liquidity_resistance:.2f}")
-    col3.metric("TƯỜNG MUA CÁ MẬP", f"${liquidity_support:.2f}")
-    col4.metric("XUNG LỰC RSI ĐỘNG", f"{rsi:.2f}")
+with col1:
+    user_rsi = st.number_input("1. Chỉ số RSI trên khung D1 hiện tại (0 - 100):", min_value=0.0, max_value=100.0, value=50.0, step=1.0)
+    user_trend = st.selectbox("2. Cấu trúc xu hướng chủ đạo trên khung D1:", ["Xu hướng Tăng dài hạn (Bullish)", "Xu hướng Giảm dài hạn (Bearish)", "Xu hướng Đi ngang / Không rõ ràng (Sideway)"])
+    user_price_action = st.selectbox("3. Tín hiệu đóng nến Ngày D1 vừa qua (Price Action):", ["Nến D1 Đảo chiều Tăng mạnh (Pinbar rút râu dài / Engulfing xanh ôm trọn)", "Nến D1 Đảo chiều Giảm mạnh (Pinbar từ chối đỉnh / Engulfing đỏ nuốt chửng)", "Nến Doji / Nến thân nhỏ biến động hẹp"])
 
-    # KHU VỰC 2: PHÁN QUYẾT LỆNH CHIẾN THUẬT
-    technical_score = (3 if rsi < 32 else -3 if rsi > 68 else 0) + (4 if current_price <= (liquidity_support + 2.0) else -4 if current_price >= (liquidity_resistance - 2.0) else 0)
-    total_system_score = technical_score + macro_score
+with col2:
+    user_liquidity = st.selectbox("4. Vị trí giá D1 so với vùng Cản lớn (D1/W1):", ["Chạm Vùng Hỗ trợ D1 / Order Block Tăng tuần", "Chạm Vùng Kháng cự D1 / Order Block Giảm tuần", "Nằm lơ lửng giữa các vùng cản lớn"])
+    user_fed = st.selectbox("5. Định hướng chính sách tiền tệ dài hạn của FED:", ["Nới lỏng (Cắt giảm lãi suất / Bơm tiền / USD suy yếu)", "Thắt chặt (Tăng lãi suất / Giữ lãi suất cao / USD mạnh)", "Trung lập (FED chờ đợi thêm số liệu lạm phát)"])
 
-    st.markdown("---")
-    st.markdown("### 🎯 PHÁN QUYẾT TÍN HIỆU TỐI CAO")
+st.markdown("---")
+st.markdown("### 🎯 PHÁN QUYẾT CHIẾN LƯỢC TOÀN CỤC KHUNG NGÀY D1")
+
+if st.button("🚀 KÍCH HOẠT THẨM ĐỊNH TOÀN DIỆN KHUNG NGÀY", use_container_width=True):
+    decision, logic_reasons, winrate = evaluate_d1_quantum_signal(user_rsi, user_trend, user_fed, user_liquidity, user_price_action)
     
-    sl_distance = max(atr * 3.5, 3.0)
-    tp_distance = max(atr * 7.0, 6.0)
-
-    if total_system_score >= 4:
-        st.success(f"🔥 PHÁT LỆNH: BUY NOW (MUA VÀO) | Vùng giá: ${current_price:.2f}")
-        st.markdown(f"*   **🛑 Dừng lỗ (SL):** ${current_price - sl_distance:.2f} | **🎯 Chốt lời (TP):** ${current_price + tp_distance:.2f}\n"
-                    f"*   **📊 Tỷ lệ R:R:** 1 : {(tp_distance / sl_distance):.2f} | **📈 TỶ LỆ CHIẾN THẮNG:** **68.4%**")
-    elif total_system_score <= -3:
-        st.error(f"❄️ PHÁT LỆNH: SELL NOW (BÁN RA) | Vùng giá: ${current_price:.2f}")
-        st.markdown(f"*   **🛑 Dừng lỗ (SL):** ${current_price + sl_distance:.2f} | **🎯 Chốt lời (TP):** ${current_price - tp_distance:.2f}\n"
-                    f"*   **📊 Tỷ lệ R:R:** 1 : {(tp_distance / sl_distance):.2f} | **📈 TỶ LỆ CHIẾN THẮNG:** **65.1%**")
+    if "BUY" in decision:
+        st.markdown(f"<div style='background-color: #112A11; padding: 25px; border-radius: 8px; border-left: 8px solid #2ECC71;'>"
+                    f"<h2 style='color: #2ECC71; margin: 0; text-align: center;'>🎯 {decision}</h2>"
+                    f"</div>", unsafe_allow_html=True)
+        st.markdown(f"### 📊 Xác suất thành công của sóng ngày: **{winrate}%**")
+        st.info("💡 **Chiến lược Quản trị vốn Swing D1:** Kích hoạt vị thế MUA và xác định giữ lệnh từ vài ngày đến vài tuần. Điểm dừng lỗ (SL) phải đặt an toàn dưới đáy nến D1 đảo chiều (Thường cách điểm vào lệnh từ 15 - 25 USD tùy biến động ATR ngày). Mục tiêu chốt lời (TP) hướng tới vùng kháng cự đỉnh D1 tiếp theo.")
+        
+    elif "SELL" in decision:
+        st.markdown(f"<div style='background-color: #2A1111; padding: 25px; border-radius: 8px; border-left: 8px solid #E74C3C;'>"
+                    f"<h2 style='color: #E74C3C; margin: 0; text-align: center;'>🎯 {decision}</h2>"
+                    f"</div>", unsafe_allow_html=True)
+        st.markdown(f"### 📊 Xác suất thành công của sóng ngày: **{winrate}%**")
+        st.error("💡 **Chiến lược Quản trị vốn Swing D1:** Kích hoạt vị thế BÁN và giữ vị thế dài hạn. Điểm dừng lỗ (SL) đặt trên đỉnh nến D1 xác nhận (Cách điểm vào lệnh từ 15 - 25 USD). Mục tiêu chốt lời (TP) hướng tới dải hỗ trợ đáy D1 tiếp theo.")
+        
     else:
-        st.warning("⏳ TRẠNG THÁI: ĐỨNG NGOÀI THỊ TRƯỜNG (NO SIGNAL)")
-        st.write(f"Giá hiện tại đang nằm giữa vùng an toàn. Hệ thống lệnh bảo vệ tài khoản, cấm giao dịch tùy hứng.")
+        st.markdown(f"<div style='background-color: #1A1A0A; padding: 25px; border-radius: 8px; border-left: 8px solid #F1C40F;'>"
+                    f"<h2 style='color: #F1C40F; margin: 0; text-align: center;'>🎯 {decision}</h2>"
+                    f"</div>", unsafe_allow_html=True)
+        st.warning("⚠️ **Hành động phòng thủ vốn:** ĐỨNG NGOÀI THỊ TRƯỜNG. Khung D1 chưa cho thấy sự đồng thuận tuyệt đối giữa Vĩ mô và Hành động giá Kỹ thuật. Tuyệt đối không mạo hiểm vốn dài hạn khi thị trường mập mờ.")
 
-    # KHU VỰC 3: ĐỒ THỊ GIÁ DỘNG
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df_1m.index[-30:], y=close_1m[-30:], name="XAUUSD Live", line=dict(color='#00FF66', width=2.5)))
-    fig.add_hline(y=liquidity_resistance, line_dash="dash", line_color="red")
-    fig.add_hline(y=liquidity_support, line_dash="dash", line_color="green")
-    fig.update_layout(template="plotly_dark", height=380, margin=dict(l=10, r=10, t=10, b=10))
-    st.plotly_chart(fig, use_container_width=True)
-
-    # LỆNH ÉP TRANG WEB TỰ ĐỘNG LÀM MỚI SAU MỖI 1 GIÂY ĐỂ ĐẨY GIÁ MỚI CHẠY LIÊN TỤC
-    time.sleep(1)
-    st.rerun()
-
-except Exception as e:
-    st.error(f"Hệ thống đang đồng bộ dòng dữ liệu... Vui lòng đợi trong giây lát.")
+    if logic_reasons:
+        st.markdown("#### 🧠 Các luận điểm hội tụ dòng tiền lớn:")
+        for r in logic_reasons:
+            st.write(f"📈 {r}")
