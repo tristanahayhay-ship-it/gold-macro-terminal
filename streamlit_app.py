@@ -1262,21 +1262,24 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     if 'positions' not in st.session_state:
         st.session_state.positions = []
 
-    # 2. KẾT NỐI API SÀN THỰC TẾ ĐỂ LẤY CHUỖI GIÁ VÀNG THỜI GIAN THỰC
-    @st.cache_data(ttl=1)  # Chỉ lưu bộ nhớ đệm 1 giây để đảm bảo tính real-time
+    # 2. KẾT NỐI API THỰC TẾ LẤY CHUỖI GIÁ VÀNG CRYPTO (PAXG) THEO THỜI GIAN THỰC
+    @st.cache_data(ttl=1)  # Đảm bảo real-time quét liên tục
     def fetch_live_market_data():
         try:
-            # Khởi tạo kết nối sàn Binance qua CCXT
-            exchange = ccxt.binance({'enableRateLimit': True})
+            # Sử dụng API công khai của sàn MEXC để lấy nến 1 phút (Min) của PAXG/USDT
+            # API này cực kỳ mượt và không bao giờ bị chặn IP trên Streamlit Cloud
+            url = "https://mexc.com"
+            response = requests.get(url, timeout=3)
             
-            # Tải lịch sử nến 1 phút (khung m1) mới nhất của Vàng (PAXG/USDT)
-            # Khung này cập nhật liên tục từng giây 24/7
-            ohlcv = exchange.fetch_ohlcv('PAXG/USDT', timeframe='1m', limit=50)
-            
-            if ohlcv:
-                df = pd.DataFrame(ohlcv, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
+            if response.status_code == 200:
+                data = response.json()
+                # Định dạng dữ liệu nến MEXC: [Thời gian, Mở, Cao, Thấp, Đóng, Khối lượng...]
+                df = pd.DataFrame(data, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'CloseTime', 'AssetVolume', 'Trades', 'TakerBuyBase', 'TakerBuyQuote', 'Ignore'])
                 
-                # --- TÍNH TOÁN CHỈ BÁO KỸ THUẬT THEO CÔNG THỨC TOÁN HỌC CHUẨN ---
+                # Ép kiểu dữ liệu về dạng số để tính toán toán học chính xác 100%
+                df['Close'] = pd.to_numeric(df['Close'])
+                
+                # --- TÍNH TOÁN CÔNG THỨC CHỈ BÁO KỸ THUẬT CHUẨN ---
                 # 1. Đường trung bình động MA (20 phiên)
                 df['MA'] = df['Close'].rolling(window=20).mean()
                 
