@@ -1291,107 +1291,52 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     st.markdown("---")
 
     # =========================================================================
-    # PHẦN 2: THUẬT TOÁN TỰ ĐỘNG ĐỌC CHỈ SỐ & PHÁT TÍN HIỆU THỰC CHIẾN (ĐỒNG BỘ 100%)
+    # PHẦN 2: THUẬT TOÁN TỰ ĐỘNG PHÁT TÍN HIỆU THEO THÔNG SỐ NHẬP THỦ CÔNG
     # =========================================================================
-    from streamlit_autorefresh import st_autorefresh
-    import yfinance as yf
-    import pandas as pd
-    from datetime import datetime
-
-    # 1. BỘ KÍCH REAL-TIME: Ép thuật toán chạy lại và nhảy số liên tục mỗi giây 100%
-    st_autorefresh(interval=1000, limit=None, key="final_absolute_algo_scanner")
-
     st.markdown("---")
-    st.subheader("🤖 2. Bot Thuật Toán Phân Tích & Phát Tín Hiệu Tự Động")
-    st.caption("Thuật toán bóc tách chuỗi nến thực tế, tự tính toán công thức gốc và ra kết luận đồng bộ với biểu đồ")
+    st.subheader("🤖 Bot Thuật Toán Phân Tích & Gợi Ý Tín Hiệu")
+    st.caption("Hãy điền các thông số thực tế bạn nhìn thấy trên biểu đồ vào các ô dưới đây. Thuật toán sẽ tự động ra kết luận.")
 
-    # 2. HÀM THUẬT TOÁN TỰ ĐỘNG QUÉT VÀ XỬ LÝ TOÁN HỌC CHỈ BÁO KỸ THUẬT GỐC
-    def run_synchronized_trading_algorithm():
-        try:
-            # Thuật toán tự động nhận diện ngày trong tuần để đồng bộ với biểu đồ
-            current_day = datetime.now().weekday()
-            
-            if current_day in[5, 6]: # Thứ 7 hoặc Chủ Nhật (Thị trường truyền thống đóng cửa)
-                # Quét luồng nến 1 phút thực tế của Vàng mã hóa PAXG để có giá nhảy liên tục 24/7
-                ticker_symbol = "PAXG-USD"
-            else: # Từ Thứ 2 đến Thứ 6 (Thị trường mở cửa)
-                # Đồng bộ tuyệt đối với biểu đồ Vàng thế giới giao ngay
-                ticker_symbol = "GC=F"
-                
-            ticker = yf.Ticker(ticker_symbol)
-            df = ticker.history(period="1d", interval="1m")
-            
-            if not df.empty:
-                df['Close'] = pd.to_numeric(df['Close'])
-                df['High'] = pd.to_numeric(df['High'])
-                df['Low'] = pd.to_numeric(df['Low'])
-                
-                closes = df['Close'].tolist()
-                highs = df['High'].tolist()
-                lows = df['Low'].tolist()
-                current_price = round(closes[-1], 2)
-                
-                # --- THUẬT TOÁN TÍNH TOÁN CÔNG THỨC CHỈ BÁO GỐC CHUẨN XÁC 100% ---
-                # Tính đường trung bình xu hướng MA20 dựa trên giá đóng cửa thực tế
-                ma20 = round(sum(closes[-20:]) / 20, 2)
-                
-                # Tính chỉ số RSI (14) chuẩn công thức toán học biên độ xung lực
-                delta = df['Close'].diff()
-                gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-                loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-                rs = gain / (loss + 1e-9)
-                rsi_val = round((100 - (100 / (1 + rs))).iloc[-1], 2)
-                
-                # Tính chỉ số MACD chuẩn (EMA12 - EMA26)
-                df['EMA12'] = df['Close'].ewm(span=12, adjust=False).mean()
-                df['EMA26'] = df['Close'].ewm(span=26, adjust=False).mean()
-                macd_val = round((df['EMA12'].iloc[-1] - df['EMA26'].iloc[-1]), 2)
-
-                # --- THUẬT TOÁN BIỆN LUẬN LOGIC TỰ ĐỘNG ĐƯA RA TÍN HIỆU ---
-                if rsi_val < 35 and current_price > ma20:
-                    signal = "MUA (BUY)"
-                    color = "green"
-                    reason = f"Chỉ số RSI thực tế lọt vào vùng quá bán thấp ({rsi_val}). Đồng thời đường giá giữ vững trên trục xu hướng MA20 (${ma20}). Thuật toán xác nhận lực mua chủ động bứt phá."
-                elif rsi_val > 65 and current_price < ma20:
-                    signal = "BÁN (SELL)"
-                    color = "red"
-                    reason = f"Chỉ số RSI rơi vào vùng quá mua nguy hiểm ({rsi_val}). Đồng thời cấu trúc giá đánh thủng trục xu hướng MA20 (${ma20}). Thuật toán xác nhận áp lực tháo chạy của dòng tiền."
-                else:
-                    signal = "ĐỨNG NGOÀI (WAIT)"
-                    color = "orange"
-                    reason = f"Đường giá và các chỉ báo đang tích lũy ổn định trong biên độ an toàn (RSI: {rsi_val} | MACD: {macd_val} | MA20: ${ma20}). Chưa xuất hiện dòng tiền đột biến đột phá."
-                    
-                return {
-                    "success": True, "price": current_price, "rsi": rsi_val, 
-                    "macd": macd_val, "ma20": ma20, "signal": signal, "color": color, "reason": reason
-                }
-        except Exception:
-            pass
-        return {"success": False, "price": 2354.50, "rsi": 50.0, "macd": 0.0, "ma20": 2354.0, "signal": "ĐANG TẢI DỮ LIỆU...", "color": "orange", "reason": "Hệ thống đang đồng bộ tuyến cáp"}
-
-    # Khởi chạy bộ quét thuật toán
-    algo = run_synchronized_trading_algorithm()
-
-    # 3. HIỂN THỊ CÁC Ô SỐ THỰC TẾ (Sử dụng khối st.metric gốc của Streamlit, 100% không bao giờ lỗi trang)
-    st.write(f"💵 Giá khớp lệnh thực tế trên thị trường giây này: **${algo['price']}**")
+    # 1. TẠO CÁC Ô NHỎ ĐỂ ĐIỀN THÔNG SỐ THỦ CÔNG (Chia làm 3 cột gọn gàng)
+    input_col1, input_col2, input_col3 = st.columns(3)
     
-    ind_col1, ind_col2, ind_col3 = st.columns(3)
-    with ind_col1:
-        st.metric(label="📊 Chỉ số RSI (14) Thực tế", value=str(algo['rsi']))
-    with ind_col2:
-        st.metric(label="降低 Chỉ số MACD Thực tế", value=str(algo['macd']))
-    with ind_col3:
-        st.metric(label="📈 Đường Xu hướng MA(20)", value=f"${algo['ma20']}")
-        
-    # 4. HỘP KẾT LUẬN TÍN HIỆU TỰ ĐỘNG ĐỔI MÀU THEO PHÁN QUYẾT CỦA THUẬT TOÁN
-    if algo["success"]:
-        if algo["color"] == "green":
-            st.success(f"🎯 **TÍN HIỆU TỰ ĐỘNG TỪ THUẬT TOÁN: {algo['signal']}**")
-        elif algo["color"] == "red":
-            st.error(f"🎯 **TÍN HIỆU TỰ ĐỘNG TỪ THUẬT TOÁN: {algo['signal']}**")
-        else:
-            st.warning(f"🎯 **TÍN HIỆU TỰ ĐỘNG TỪ THUẬT TOÁN: {algo['signal']}**")
-            
-        st.info(f"📝 **Lý giải logic thuật toán:** {algo['reason']}")
+    with input_col1:
+        user_rsi = st.number_input("📊 Chỉ số RSI (14) hiện tại", min_value=0.0, max_value=100.0, value=50.0, step=0.1)
+    with input_col2:
+        user_macd = st.number_input("📉 Chỉ số MACD hiện tại", value=0.00, step=0.01)
+    with input_col3:
+        user_ma20 = st.number_input("📈 Giá đường xu hướng MA(20) ($)", min_value=0.0, value=2350.00, step=0.1)
+
+    # Ô nhập giá Vàng hiện tại để so sánh với đường MA(20)
+    current_gold_price = st.number_input("💵 Giá Vàng (XAU/USD) hiện tại trên biểu đồ ($)", min_value=0.0, value=2354.50, step=0.1)
+
+    # 2. BIỆN LUẬN THUẬT TOÁN ĐỂ ĐƯA RA KẾT LUẬN TÍN HIỆU CHÍNH XÁC
+    # Thuật toán MUA (BUY): RSI quá bán (< 30 hoặc < 35) VÀ Giá nằm TRÊN đường MA20
+    if user_rsi <= 35.0 and current_gold_price > user_ma20:
+        signal = "MUA (BUY)"
+        color = "green"
+        reason = f"Chỉ số RSI nhập vào đang ở vùng quá bán thấp ({user_rsi}). Đồng thời giá thị trường (${current_gold_price}) đang giữ vững trên trục MA20 (${user_ma20}). Thuật toán kết luận phe Mua đang chiếm ưu thế hoàn toàn."
+    
+    # Thuật toán BÁN (SELL): RSI quá mua (> 70 hoặc > 65) VÀ Giá nằm DƯỚI đường MA20
+    elif user_rsi >= 65.0 and current_gold_price < user_ma20:
+        signal = "BÁN (SELL)"
+        color = "red"
+        reason = f"Chỉ số RSI nhập vào đang ở vùng quá mua rất cao ({user_rsi}). Đồng thời giá thị trường (${current_gold_price}) đã đánh thủng trục MA20 (${user_ma20}). Thuật toán kết luận áp lực xả hàng đang chiếm ưu thế."
+    
+    # Các trường hợp còn lại: ĐỨNG NGOÀI QUAN SÁT (WAIT)
     else:
-        st.info("🔄 Hệ thống đang nạp luồng nến dữ liệu sống từ máy chủ toàn cầu...")
+        signal = "ĐỨNG NGOÀI (WAIT)"
+        color = "orange"
+        reason = f"Thông số chưa đủ điều kiện hội tụ (RSI: {user_rsi} đang ở vùng trung tính hoặc giá chưa bứt phá khỏi đường MA20). Khuyến nghị giữ kỷ luật, đứng ngoài thị trường để bảo toàn vốn."
+
+    st.markdown("#### 📢 Kết luận từ Hệ thống Thuật toán")
+    
+    # 3. HIỂN THỊ HỘP TÍN HIỆU ĐỔI MÀU TRỰC QUAN THEO SỐ LIỆU ĐÃ ĐIỀN
+    if color == "green":
+        st.success(f"🎯 **TÍN HIỆU THUẬT TOÁN: {signal}**")
+    elif color == "red":
+        st.error(f"🎯 **TÍN HIỆU THUẬT TOÁN: {signal}**")
+    else:
+        st.warning(f"🎯 **TÍN HIỆU THUẬT TOÁN: {signal}**")
+        
+    st.info(f"📝 **Lý giải logic thuật toán:** {reason}")
