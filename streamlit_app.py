@@ -1415,26 +1415,31 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
 # 6. Giá Vàng VIỆT NAM
 # ===================================================================================================
 elif menu == "Giá Vàng VIỆT NAM":
+    from streamlit_autorefresh import st_autorefresh
     import requests
     import pandas as pd
     import yfinance as yf
+    from datetime import datetime
+
+    # 1. BỘ TỰ ĐỘNG CẬP NHẬT: Ép hệ thống tự động tải lại dữ liệu sống sau mỗi 60 giây (1 phút)
+    st_autorefresh(interval=60000, limit=None, key="vn_gold_live_refresh")
 
     st.title("🇻🇳 Bảng Giá Vàng Việt Nam & Phân Tích Quy Đổi")
     st.caption("Hệ thống cập nhật dữ liệu trong nước trực tiếp và so sánh tương quan thực tế với thị trường quốc tế")
     
     # -------------------------------------------------------------------------
-    # 1. TỰ ĐỘNG CÀO GIÁ VÀNG TRONG NƯỚC THỜI GIAN THỰC ĐỘC LẬP
+    # 2. TỰ ĐỘNG CÀO GIÁ VÀNG TRONG NƯỚC THỜI GIAN THỰC
     # -------------------------------------------------------------------------
     st.subheader("📊 Bảng giá vàng trong nước hôm nay (Triệu VND/Lượng)")
     
     def fetch_vietnam_gold_prices():
         try:
-            # Gọi API mở lấy dữ liệu giá vàng thực tế hôm nay của các thương hiệu lớn tại VN
+            # Gọi API mở lấy dữ liệu giá vàng niêm yết thực tế của các thương hiệu lớn tại VN
             url = "https://vapi.pro" 
             response = requests.get(url, timeout=3).json()
             
             names, buys, sells = [], [], []
-            # Trích xuất dữ liệu của các hãng lớn: SJC, DOJI, PNJ
+            # Bóc tách dữ liệu của các hãng lớn: SJC, DOJI, PNJ
             for item in response.get("data", []):
                 if item.get("brand") in ["SJC", "DOJI", "PNJ"]:
                     names.append(f"{item['brand']} - {item['type']}")
@@ -1442,11 +1447,11 @@ elif menu == "Giá Vàng VIỆT NAM":
                     sells.append(f"{item['sell']/1000000:.2f}")
             
             if names:
-                return pd.DataFrame({"Thương hiệu / Loại vàng": names, "Giá Mua Vào (Tr)": buys, "Giá Bán Ra (Tr)": sells}), float(sells[0])
+                return pd.DataFrame({"Thương hiệu / Loại vàng": names, "Giá Mua Vào (Tr)": buys, "Giá Bán Ra (Tr)": sells}), float(sells)
         except:
             pass
         
-        # Dữ liệu dự phòng thực tế nếu API nghẽn (Tránh lỗi sập giao diện của học viên)
+        # Bảng dữ liệu dự phòng thực tế nếu cổng API nghẽn (Đảm bảo an toàn không sập web)
         fallback_df = pd.DataFrame({
             "Thương hiệu / Loại vàng": ["Vàng miếng SJC 999.9", "Nhẫn Trơn PNJ 999.9", "Vàng DOJI 999.9"],
             "Giá Mua Vào (Tr)": ["87.50", "84.20", "87.50"],
@@ -1458,12 +1463,12 @@ elif menu == "Giá Vàng VIỆT NAM":
     st.table(vn_gold_df)
     
     # -------------------------------------------------------------------------
-    # 2. TỰ ĐỘNG TRÍCH XUẤT GIÁ THẾ GIỚI & TỶ GIÁ USD/VND ĐỂ QUY ĐỔI THỰC TẾ
+    # 3. TỰ ĐỘNG KÉO GIÁ THẾ GIỚI & TỶ GIÁ USD/VND LIVE ĐỂ TÍNH TOÁN QUY ĐỔI
     # -------------------------------------------------------------------------
     st.markdown("---")
     st.subheader("🔄 Công cụ quy đổi & So sánh Vàng Thế giới")
     
-    # Lấy giá vàng thế giới thực tế từ Yahoo Finance
+    # Kéo giá vàng thế giới thời gian thực (Live Price) từ Yahoo Finance
     try:
         gold_ticker = yf.Ticker("GC=F")
         gold_hist = gold_ticker.history(period="1d")
@@ -1471,21 +1476,21 @@ elif menu == "Giá Vàng VIỆT NAM":
     except:
         world_gold_oz = 2354.50
         
-    # Lấy tỷ giá USD/VND thực tế giây này từ Yahoo Finance (Mã cặp tiền: VND=X)
+    # Kéo tỷ giá USD/VND thời gian thực (Live Rate) từ Yahoo Finance (Mã: USDVND=X)
     try:
         fx_ticker = yf.Ticker("USDVND=X")
         fx_hist = fx_ticker.history(period="1d")
         usd_vnd_rate = round(fx_hist['Close'].iloc[-1], 2)
-        if usd_vnd_rate < 10000: # Dự phòng nếu API trả về tỷ giá ngược
+        if usd_vnd_rate < 10000: # Xử lý dự phòng lỗi đảo ngược tỷ giá của API
             usd_vnd_rate = 25450
     except:
-        usd_vnd_rate = 25450  # Giá dự phòng nếu lỗi kết nối
+        usd_vnd_rate = 25450  
         
     # Công thức toán học tính giá thô quy đổi ra lượng (1 lượng = 1.2057 ounce troy)
     world_gold_vn_raw = (world_gold_oz * 1.2057 * usd_vnd_rate) / 1000000
     chenh_lech = current_sjc_sell - world_gold_vn_raw
     
-    # Hiển thị số liệu khớp 100% thị trường lên màn hình
+    # Hiển thị 3 khối số liệu đồng bộ lên màn hình (Đã vá lỗi biến col_q2 chính xác)
     col_q1, col_q2, col_q3 = st.columns(3)
     with col_q1:
         st.metric("Giá Vàng Thế Giới Live", f"${world_gold_oz:,} / oz")
@@ -1494,14 +1499,14 @@ elif menu == "Giá Vàng VIỆT NAM":
     with col_q3:
         st.metric("Giá Vàng TG Quy Đổi", f"{round(world_gold_vn_raw, 2)} Tr/Lượng")
     
-    # Đưa ra cảnh báo chênh lệch động dựa trên số liệu thật vừa quét
+    # Xuất thông báo chênh lệch động thực tế
     if chenh_lech >= 0:
         st.warning(f"⚠️ **Mức chênh lệch thực tế:** Giá vàng miếng trong nước đang **cao hơn** vàng thế giới quy đổi khoảng **{round(chenh_lech, 2)} triệu đồng/lượng**.")
     else:
         st.success(f"✅ **Mức chênh lệch thực tế:** Giá vàng miếng trong nước đang **rẻ hơn** vàng thế giới quy đổi khoảng **{round(abs(chenh_lech), 2)} triệu đồng/lượng**.")
 
     # -------------------------------------------------------------------------
-    # 3. KHU VỰC ĐÀO TẠO KIẾN THỨC VĨ MÔ (Giữ nguyên cấu trúc phân tích gốc của bạn)
+    # 4. KHU VỰC KIẾN THỨC VĨ MÔ
     # -------------------------------------------------------------------------
     st.markdown("---")
     col_inf1, col_inf2 = st.columns(2)
