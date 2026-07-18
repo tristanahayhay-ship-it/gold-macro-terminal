@@ -1305,41 +1305,97 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     components.html(tradingview_realtime_html, height=600, scrolling=False)
 
     st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # HỆ THỐNG ĐẶT LỆNH GIẢ LẬP ĐỂ NGƯỜI HỌC THỰC HÀNH (GIỮ NGUYÊN CẤU TRÚC GỐC)
-    # -------------------------------------------------------------------------
-    st.subheader("🎮 Công cụ Mua / Bán Giả Lập Thực Hành (XAU/USD)")
-    
-    if 'balance' not in st.session_state:
-        st.session_state.balance = 10000.0
-    if 'positions' not in st.session_state:
-        st.session_state.positions = []
 
-    st.write(f"💰 **Số dư tài khoản Demo:** `${st.session_state.balance:,.2f}`")
+    # -------------------------------------------------------------------------
+    # HỆ THỐNG BOT AI PHÂN TÍCH CHỈ SỐ & ĐƯA RA TÍN HIỆU THỰC CHIẾN (THAY THẾ)
+    # -------------------------------------------------------------------------
+    st.markdown("---")
+    st.subheader("🤖 Bot AI Phân Tích Kỹ Thuật & Gợi Ý Tín Hiệu")
+    st.caption("Bot quét dữ liệu luồng lệnh thực tế từ sàn và xử lý bằng trí tuệ nhân tạo Gemini")
+
+    # 1. HÀM QUÉT DỮ LIỆU THỰC TẾ & TÍNH TOÁN CHỈ SỐ GỐC ĐỂ CẤP CHO BOT AI
+    def get_market_data_for_bot():
+        try:
+            # Lấy giá hiện tại và chuỗi nến 1 phút thực tế của PAXG/USDT (Vàng 24/7)
+            ticker_url = "https://binance.com"
+            current_price = float(requests.get(ticker_url, timeout=2).json()['price'])
+            
+            klines_url = "https://binance.com"
+            klines_res = requests.get(klines_url, timeout=2).json()
+            
+            closes = [float(candle[4]) for candle in klines_res]
+            highs = [float(candle[2]) for candle in klines_res]
+            lows = [float(candle[3]) for candle in klines_res]
+            
+            # Tính toán các chỉ số kỹ thuật thuần toán học chuẩn xác
+            ma5 = round(sum(closes[-5:]) / 5, 2)
+            ma20 = round(sum(closes[-20:]) / 20, 2)
+            
+            gains, losses = [], []
+            for i in range(1, len(closes)):
+                delta = closes[i] - closes[i-1]
+                gains.append(delta if delta > 0 else 0)
+                losses.append(-delta if delta < 0 else 0)
+            rsi_val = round(100 - (100 / (1 + (sum(gains[-14:]) / (sum(losses[-14:]) + 1e-9)))), 2)
+            stoch_k = round(((current_price - min(lows[-9:])) / (max(highs[-9:]) - min(lows[-9:]) + 1e-9)) * 100, 2)
+            
+            return {
+                "success": True, "price": current_price, "rsi": rsi_val, 
+                "stoch": stoch_k, "ma5": ma5, "ma20": ma20
+            }
+        except Exception:
+            return {"success": False, "price": 2354.50, "rsi": 50.0, "stoch": 50.0, "ma5": 2354.0, "ma20": 2352.0}
+
+    # Lấy dữ liệu thị trường thực tế ngay tại giây phút bấm nút
+    bot_data = get_market_data_for_bot()
     
-    trade_col1, trade_col2, trade_col3 = st.columns(3)
-    with trade_col1:
-        order_type = st.selectbox("Loại lệnh", ["BUY (MUA)", "SELL (BÁN)"])
-    with trade_col2:
-        volume = st.number_input("Khối lượng (Lots)", min_value=0.01, max_value=10.0, value=0.1, step=0.1)
-    with trade_col3:
-        st.write("Đọc giá trị nến và các đường chỉ báo chuẩn xác 100% đang chạy ở biểu đồ phía trên.")
-        execute_trade = st.button("VÀO LỆNH THỊ TRƯỜNG", use_container_width=True)
-        
-    if execute_trade:
-        st.session_state.positions.append({
-            "Thời gian": datetime.now().strftime("%H:%M:%S"),
-            "Loại lệnh": order_type,
-            "Khối lượng": volume,
-            "Ghi chú": "Khớp theo luồng Live TradingView"
-        })
-        st.success(f"Khớp lệnh thành công: {order_type} {volume} Lots!")
-        st.rerun()
-        
-    if st.session_state.positions:
-        st.subheader("📝 Vị thế giao dịch hiện tại")
-        st.dataframe(pd.DataFrame(st.session_state.positions), use_container_width=True, hide_index=True)
-        if st.button("Xóa toàn bộ lịch sử vị thế lệnh"):
-            st.session_state.positions = []
-            st.rerun()
+    # Nút bấm kích hoạt Bot AI quét chỉ số
+    if st.button("🚀 KÍCH HOẠT BOT AI - ĐỌC CHỈ SỐ & PHÁT TÍN HIỆU", use_container_width=True):
+        if bot_data["success"]:
+            with st.spinner("🤖 Bot đang phân tích áp lực mua bán và cấu trúc chỉ số kỹ thuật..."):
+                try:
+                    # Chuẩn bị dữ liệu thô gửi cho Gemini
+                    prompt_data = f"""
+                    Bạn là một Bot chuyên gia phân tích kỹ thuật lão luyện trong thị trường Vàng (XAU/USD).
+                    Dưới đây là các thông số chỉ báo kỹ thuật thực tế 100% được quét từ sàn giao dịch ngay tại giây này:
+                    - Giá hiện tại: ${bot_data['price']}
+                    - Chỉ số RSI (14): {bot_data['rsi']}
+                    - Chỉ số Stochastic (9,6): {bot_data['stoch']}
+                    - Đường trung bình nhanh MA5: ${bot_data['ma5']}
+                    - Đường trung bình chậm MA20: ${bot_data['ma20']}
+
+                    Nhiệm vụ của bạn:
+                    1. Đánh giá trạng thái của RSI và Stochastic (Có bị quá mua, quá bán hay phân kỳ không?).
+                    2. So sánh Giá với MA5 và MA20 để xác định xu hướng ngắn hạn.
+                    3. Đưa ra TÍN HIỆU hành động rõ ràng: MUA (BUY), BÁN (SELL) hoặc ĐỨNG NGOÀI (WAIT).
+                    4. Đưa ra mức giá Khuyến nghị dừng lỗ (Stop Loss) và Chốt lời (Take Profit) hợp lý dựa trên giá hiện tại.
+
+                    Yêu cầu trình bày: Ngắn gọn, súc tích, chia rõ ràng các mục bằng dấu gạch đầu dòng, ngôn từ chuyên nghiệp cho người thực chiến vĩ mô.
+                    """
+                    
+                    # Khởi tạo Client từ cấu hình google-genai của bạn (Lấy API Key từ Secrets của Streamlit)
+                    # Lưu ý: Cần cấu hình st.secrets["GEMINI_API_KEY"] trên Streamlit Cloud
+                    if "GEMINI_API_KEY" in st.secrets:
+                        client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+                    else:
+                        client = genai.Client() # Chạy local nếu đã set biến môi trường
+                        
+                    response = client.models.generate_content(
+                        model='gemini-2.5-flash',
+                        contents=prompt_data,
+                    )
+                    
+                    # 2. HIỂN THỊ KẾT QUẢ TÍN HIỆU TỪ BOT AI
+                    st.success("🎯 Đã phân tích xong! Dưới đây là nhận định của Bot AI:")
+                    
+                    # Tạo hộp hiển thị trực quan thông số đầu vào của Bot
+                    st.info(f"📋 **Dữ liệu Bot đã đọc:** Giá: ${bot_data['price']} | RSI: {bot_data['rsi']} | Stoch: {bot_data['stoch']} | MA20: ${bot_data['ma20']}")
+                    
+                    # Hiển thị văn bản phân tích từ AI
+                    st.markdown(response.text)
+                    
+                except Exception as e:
+                    st.error(f"❌ Không thể kết nối với bộ não AI. Lỗi: {str(e)}")
+                    st.warning("Mẹo: Hãy đảm bảo bạn đã thêm `GEMINI_API_KEY` vào phần Advanced Settings -> Secrets trên Streamlit Cloud.")
+        else:
+            st.error("❌ Không thể quét được luồng dữ liệu sống từ sàn để cấp cho Bot. Vui lòng thử lại sau vài giây.")
