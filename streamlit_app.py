@@ -1291,13 +1291,13 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     st.markdown("---")
 
     # =========================================================================
-    # PHẦN 2: THUẬT TOÁN TỰ ĐỘNG PHÁT TÍN HIỆU THEO THÔNG SỐ NHẬP THỦ CÔNG (CÓ VOLUME)
+    # PHẦN 2: THUẬT TOÁN TỰ ĐỘNG PHÁT TÍN HIỆU THEO THÔNG SỐ NHẬP THỦ CÔNG (VOLUME THỊ TRƯỜNG)
     # =========================================================================
     st.markdown("---")
     st.subheader("🤖 Bot Thuật Toán Phân Tích & Gợi Ý Tín Hiệu")
     st.caption("Hãy điền các thông số thực tế bạn nhìn thấy trên biểu đồ vào các ô dưới đây. Thuật toán sẽ tự động ra kết luận.")
 
-    # 1. TẠO CÁC Ô NHỎ ĐỂ ĐIỀN THÔNG SỐ THỦ CÔNG (Chia làm 4 cột gọn gàng bao gồm Volume)
+    # 1. TẠO CÁC Ô NHỎ ĐỂ ĐIỀN THÔNG SỐ THỦ CÔNG (Chia làm 4 cột gọn gàng bao gồm Volume thị trường)
     input_col1, input_col2, input_col3, input_col4 = st.columns(4)
     
     with input_col1:
@@ -1307,36 +1307,39 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     with input_col3:
         user_ma20 = st.number_input("📈 Đường MA(20) ($)", min_value=0.0, value=2350.00, step=0.1)
     with input_col4:
-        # Ô NHẬP KHỐI LƯỢNG VOLUME (Mặc định là 0.1 Lot, giới hạn từ 0.01 đến 10.0 Lots)
-        user_volume = st.number_input("📦 Khối lượng (Lots)", min_value=0.01, max_value=10.0, value=0.1, step=0.1)
+        # Ô NHẬP KHỐI LƯỢNG GIAO DỊCH THỊ TRƯỜNG (VOLUME)
+        # Thiết lập giá trị mặc định là 5000 (Có thể là số hợp đồng hoặc Ounces giao dịch trong phiên)
+        user_volume = st.number_input("📊 Khối lượng Volume thị trường", min_value=0, value=5000, step=100)
 
     # Ô nhập giá Vàng hiện tại để so sánh với đường MA(20)
     current_gold_price = st.number_input("💵 Giá Vàng (XAU/USD) hiện tại trên biểu đồ ($)", min_value=0.0, value=2354.50, step=0.1)
 
     # 2. BIỆN LUẬN THUẬT TOÁN ĐỂ ĐƯA RA KẾT LUẬN TÍN HIỆU CHÍNH XÁC
-    # Thuật toán MUA (BUY): RSI quá bán (<= 35) VÀ Giá nằm TRÊN đường MA20
-    if user_rsi <= 35.0 and current_gold_price > user_ma20:
-        signal = "MUA (BUY)"
-        color = "green"
-        reason = f"Chỉ số RSI nhập vào đang ở vùng quá bán thấp ({user_rsi}). Đồng thời giá thị trường (${current_gold_price}) đang giữ vững trên trục MA20 (${user_ma20}). Thuật toán kết luận phe Mua đang chiếm ưu thế hoàn toàn."
-    
-    # Thuật toán BÁN (SELL): RSI quá mua (>= 65) VÀ Giá nằm DƯỚI đường MA20
-    elif user_rsi >= 65.0 and current_gold_price < user_ma20:
-        signal = "BÁN (SELL)"
-        color = "red"
-        reason = f"Chỉ số RSI nhập vào đang ở vùng quá mua rất cao ({user_rsi}). Đồng thời giá thị trường (${current_gold_price}) đã đánh thủng trục MA20 (${user_ma20}). Thuật toán kết luận áp lực xả hàng đang chiếm ưu thế."
-    
-    # Các trường hợp còn lại: ĐỨNG NGOÀI QUAN SÁT (WAIT)
-    else:
+    # Ngưỡng thanh khoản an toàn tối thiểu (Ví dụ: Cần Volume > 2000 phiên thì tín hiệu mới có độ tin cậy cao)
+    if user_volume < 2000:
         signal = "ĐỨNG NGOÀI (WAIT)"
         color = "orange"
-        reason = f"Thông số chưa đủ điều kiện hội tụ (RSI: {user_rsi} đang ở vùng trung tính hoặc giá chưa bứt phá khỏi đường MA20). Khuyến nghị giữ kỷ luật, đứng ngoài thị trường để bảo toàn vốn."
-
-    # Tích hợp thêm cảnh báo Quản lý vốn dựa trên số Lots (Khối lượng Volume) người dùng điền vào
-    if user_volume >= 1.0:
-        volume_warning = f"⚠️ **Cảnh báo quản lý vốn:** Khối lượng giao dịch `{user_volume} Lots` là khá lớn đối với tài khoản phổ thông. Hãy đảm bảo quy tắc rủi ro không quá 2% tài khoản trước khi vào lệnh!"
+        reason = f"Khối lượng Volume thị trường quá thấp ({user_volume}). Thanh khoản yếu chứng tỏ dòng tiền lớn (Cá mập) chưa tham gia cuộc chơi. Mọi tín hiệu kỹ thuật lúc này đều rất dễ bị bẫy giá (Fakeout). Khuyến nghị đứng ngoài quan sát."
+    
     else:
-        volume_warning = f"✅ **Quản lý rủi ro:** Khối lượng giao dịch `{user_volume} Lots` phù hợp với biên độ an toàn của tài khoản thực hành."
+        # Khi Volume đủ lớn (> 2000), thuật toán mới bắt đầu xét điều kiện RSI và MA20
+        # Thuật toán MUA (BUY): RSI quá bán (<= 35) VÀ Giá nằm TRÊN đường MA20
+        if user_rsi <= 35.0 and current_gold_price > user_ma20:
+            signal = "MUA (BUY)"
+            color = "green"
+            reason = f"Chỉ số RSI ở vùng quá bán thấp ({user_rsi}) kết hợp giá (${current_gold_price}) nằm trên MA20. Đặc biệt, Khối lượng Volume đạt mức tốt ({user_volume}) xác nhận phe Mua đang đổ tiền vào đẩy giá lên rất uy tín."
+        
+        # Thuật toán BÁN (SELL): RSI quá mua (>= 65) VÀ Giá nằm DƯỚI đường MA20
+        elif user_rsi >= 65.0 and current_gold_price < user_ma20:
+            signal = "BÁN (SELL)"
+            color = "red"
+            reason = f"Chỉ số RSI rơi vào vùng quá mua cao ({user_rsi}) kết hợp giá thủng MA20. Đồng thời, Khối lượng Volume thị trường lớn ({user_volume}) xác nhận áp lực tháo chạy và xả hàng thực tế của các quỹ đầu tư."
+        
+        # Các trường hợp còn lại: TRUNG TÍNH
+        else:
+            signal = "ĐỨNG NGOÀI (WAIT)"
+            color = "orange"
+            reason = f"Thông số kỹ thuật chưa đồng thuận (RSI: {user_rsi} ở vùng trung tính hoặc giá đang đi ngang bám sát đường MA20). Dù Volume ổn định ({user_volume}) nhưng thị trường chưa chọn rõ xu hướng bứt phá."
 
     st.markdown("#### 📢 Kết luận từ Hệ thống Thuật toán")
     
@@ -1348,4 +1351,4 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     else:
         st.warning(f"🎯 **TÍN HIỆU THUẬT TOÁN: {signal}**")
         
-    st.info(f"📝 **Lý giải logic thuật toán:** {reason}\n\n{volume_warning}")
+    st.info(f"📝 **Lý giải logic thuật toán:** {reason}")
