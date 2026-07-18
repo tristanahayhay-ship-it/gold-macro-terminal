@@ -1489,7 +1489,7 @@ elif menu == "Giá Vàng VIỆT NAM":
     col_q1, col_q2, col_q3 = st.columns(3)
     with col_q1:
         st.metric("Giá Vàng Thế Giới Live", f"${world_gold_oz:,} / oz")
-    with col_col_q2:
+    with col_q2:
         st.metric("Tỷ giá USD/VND Live", f"{usd_vnd_rate:,.2f} VND")
     with col_q3:
         st.metric("Giá Vàng TG Quy Đổi", f"{round(world_gold_vn_raw, 2)} Tr/Lượng")
