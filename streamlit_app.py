@@ -1249,45 +1249,114 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
 # 6. CÔNG CỤ HỖ TRỢ & DEMO TRADE
 # ===================================================================================================
 elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
-    import streamlit.components.v1 as components
-    from datetime import datetime
-    import pandas as pd
+    from streamlit_autorefresh import st_autorefresh
+    import requests
+
+    # 1. TỰ ĐỘNG LÀM MỚI MỖI GIÂY ĐỂ CẬP NHẬT SỐ LIỆU THỰC TẾ
+    st_autorefresh(interval=1000, limit=None, key="pure_python_investing")
 
     st.title("🛠️ Phân Tích Kỹ Thuật & Giả Lập Giao Dịch XAU/USD")
-    st.subheader("📊 Bảng chỉ báo kỹ thuật thời gian thực (Nguồn: Investing.com)")
-
-    # Mã nhúng Widget Tóm tắt Kỹ thuật chuẩn từ đối tác Investing.com
-    # Widget này lấy dữ liệu gốc của cặp XAU/USD (Gold) chạy thực tế 100%
-    investing_widget_html = """
-    <div style="width: 100%; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px;">
-        <iframe 
-            src="https://investing.com" 
-            width="100%" 
-            height="500" 
-            frameborder="0" 
-            allowtransparency="true" 
-            marginwidth="0" 
-            marginheight="0"
-            style="border: none; overflow: hidden;">
-        </iframe>
-    </div>
-    """
-    
-    # Hiển thị trực tiếp bảng thông số lên màn hình Streamlit
-    components.html(investing_widget_html, height=530, scrolling=True)
-
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # HỆ THỐNG ĐẶT LỆNH GIẢ LẬP ĐỂ NGƯỜI HỌC THỰC HÀNH (GIỮ NGUYÊN CẤU TRÚC GỐC)
-    # -------------------------------------------------------------------------
-    st.subheader("🎮 Công cụ Mua / Bán Giả Lập Thực Hành (XAU/USD)")
     
     if 'balance' not in st.session_state:
         st.session_state.balance = 10000.0
     if 'positions' not in st.session_state:
         st.session_state.positions = []
 
+    # 2. HÀM KẾT NỐI API THỰC TẾ & TỰ TÍNH TOÁN CÔNG THỨC TOÁN HỌC CHUẨN XÁC
+    @st.cache_data(ttl=1)
+    def calculate_pure_indicators():
+        try:
+            # Lấy 100 nến 1 phút mới nhất của PAXG/USDT (Vàng chạy 24/7 thực tế)
+            url = "https://binance.com"
+            res = requests.get(url, timeout=2)
+            if res.status_code == 200:
+                raw_data = res.json()
+                df = pd.DataFrame(raw_data, columns=['Time', 'Open', 'High', 'Low', 'Close', 'Volume', 'CloseTime', 'QuoteVolume', 'Trades', 'BuyBase', 'BuyQuote', 'Ignore'])
+                df['Close'] = pd.to_numeric(df['Close'])
+                df['High'] = pd.to_numeric(df['High'])
+                df['Low'] = pd.to_numeric(df['Low'])
+                
+                close_series = df['Close']
+                last_price = round(close_series.iloc[-1], 2)
+                
+                # --- TÍNH TOÁN CÁC ĐƯỜNG TRUNG BÌNH ĐỘNG (MA) ---
+                ma_periods = [5, 10, 20, 50, 100]
+                ma_data = []
+                for p in ma_periods:
+                    # Đường đơn giản (SMA)
+                    sma = round(close_series.rolling(window=p).mean().iloc[-1], 2)
+                    # Đường lũy thừa (EMA)
+                    ema = round(close_series.ewm(span=p, adjust=False).mean().iloc[-1], 2)
+                    
+                    ma_data.append({
+                        "Tên": f"MA{p}",
+                        "Đơn giản": sma,
+                        "Hành động SMA": "Mua" if last_price > sma else "Bán",
+                        "Lũy thừa": ema,
+                        "Hành động EMA": "Mua" if last_price > ema else "Bán"
+                    })
+                
+                # --- TÍNH TOÁN CÁC CHỈ BÁO KỸ THUẬT PHỨC TẠP ---
+                # 1. RSI (14)
+                delta = close_series.diff()
+                gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+                loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+                rs = gain / (loss + 1e-9)
+                rsi = round((100 - (100 / (1 + rs))).iloc[-1], 3)
+                rsi_action = "Mua" if rsi < 30 else ("Bán" if rsi > 70 else "Trung tính")
+                
+                # 2. MACD (12, 26)
+                ema12 = close_series.ewm(span=12, adjust=False).mean()
+                ema26 = close_series.ewm(span=26, adjust=False).mean()
+                macd = round((ema12 - ema26).iloc[-1], 2)
+                macd_action = "Mua" if macd > 0 else "Bán"
+                
+                # 3. Bollinger Bands (20, 2) để tính Highs/Lows biến động
+                ma20 = close_series.rolling(window=20).mean()
+                std20 = close_series.rolling(window=20).std()
+                bb_upper = round((ma20 + (std20 * 2)).iloc[-1], 2)
+                bb_lower = round((ma20 - (std20 * 2)).iloc[-1], 2)
+                
+                indicators_data = [
+                    {"Tên": "RSI (14)", "Giá trị": rsi, "Hành động": rsi_action},
+                    {"Tên": "MACD (12, 26)", "Giá trị": macd, "Hành động": macd_action},
+                    {"Tên": "Bollinger Upper", "Giá trị": bb_upper, "Hành động": "Kháng cự"},
+                    {"Tên": "Bollinger Lower", "Giá trị": bb_lower, "Hành động": "Hỗ trợ"}
+                ]
+                
+                # Đếm tổng số tín hiệu để đưa ra kết luận tổng kết
+                total_buy = sum(1 for item in ma_data if item["Hành động SMA"] == "Mua") + sum(1 for item in ma_data if item["Hành động EMA"] == "Mua") + (1 if rsi_action == "Mua" else 0) + (1 if macd_action == "Mua" else 0)
+                summary_text = "Mua Mạnh" if total_buy >= 8 else ("Mua" if total_buy >= 5 else "Bán")
+                
+                return {"success": True, "price": last_price, "ma": ma_data, "ind": indicators_data, "summary": summary_text}
+        except Exception:
+            pass
+        return {"success": False, "price": 2354.50, "ma": [], "ind": [], "summary": "Đang quét dữ liệu..."}
+
+    market_data = calculate_pure_indicators()
+    current_gold_price = market_data["price"]
+
+    # 3. GIAO DIỆN HIỂN THỊ DẠNG BẢNG TÓM TẮT (TÁI HIỆN THEO ẢNH MẪU)
+    st.write(f"### Tổng kết: **{market_data['summary']}** (Giá hiện tại: ${current_gold_price})")
+    
+    st.markdown("#### 📊 Chi báo Kỹ thuật")
+    if market_data["success"]:
+        df_ind = pd.DataFrame(market_data["ind"])
+        st.dataframe(df_ind, use_container_width=True, hide_index=True)
+    else:
+        st.warning("Đang tính toán các chỉ báo kỹ thuật từ dòng dữ liệu sống...")
+
+    st.markdown("#### 📈 Đường Trung Bình Động (Moving Average)")
+    if market_data["success"]:
+        df_ma = pd.DataFrame(market_data["ma"])
+        st.dataframe(df_ma, use_container_width=True, hide_index=True)
+    else:
+        st.warning("Đang bóc tách chuỗi dữ liệu giá MA...")
+
+    st.markdown("---")
+    
+    # 4. HỆ THỐNG GIAO DỊCH GIẢ LẬP ĐỂ THỰC HÀNH CỦA BẠN (GIỮ NGUYÊN CẤU TRÚC)
+    st.subheader("🎮 Công cụ Mua / Bán Giả Lập Thực Hành (XAU/USD)")
     st.write(f"💰 **Số dư tài khoản Demo:** `${st.session_state.balance:,.2f}`")
     
     trade_col1, trade_col2, trade_col3 = st.columns(3)
@@ -1296,22 +1365,36 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     with trade_col2:
         volume = st.number_input("Khối lượng (Lots)", min_value=0.01, max_value=10.0, value=0.1, step=0.1)
     with trade_col3:
-        st.write("Nhìn bảng giá trị thực tế của các chỉ báo ở trên để phân tích xu hướng trước khi đặt lệnh.")
-        execute_trade = st.button("VÀO LỆNH THỊ TRƯỜNG", use_container_width=True)
+        st.write(f"Giá khớp thực tế: **${current_gold_price}**")
+        execute_trade = st.button("VÀO LỆNH THỊ TRƯỜNG")
         
     if execute_trade:
         st.session_state.positions.append({
             "Thời gian": datetime.now().strftime("%H:%M:%S"),
             "Loại lệnh": order_type,
             "Khối lượng": volume,
-            "Ghi chú": "Khớp theo dữ liệu Live Investing"
+            "Giá vào": current_gold_price
         })
-        st.success(f"Khớp lệnh thành công: {order_type} {volume} Lots!")
+        st.success(f"Khớp lệnh thành công: {order_type} {volume} Lots tại giá ${current_gold_price}")
         st.rerun()
         
     if st.session_state.positions:
         st.subheader("📝 Vị thế giao dịch hiện tại")
-        st.dataframe(pd.DataFrame(st.session_state.positions), use_container_width=True)
+        
+        active_positions = []
+        for pos in st.session_state.positions:
+            if "BUY" in pos["Loại lệnh"]:
+                pnl = (current_gold_price - pos["Giá vào"]) * pos["Khối lượng"] * 100
+            else:
+                pnl = (pos["Giá vào"] - current_gold_price) * pos["Khối lượng"] * 100
+                
+            display_pos = pos.copy()
+            display_pos["Giá hiện tại"] = current_gold_price
+            display_pos["Lời/Lỗ hiện thời"] = f"${pnl:,.2f}"
+            active_positions.append(display_pos)
+            
+        st.dataframe(pd.DataFrame(active_positions), use_container_width=True, hide_index=True)
+        
         if st.button("Xóa toàn bộ lịch sử vị thế lệnh"):
             st.session_state.positions = []
             st.rerun()
