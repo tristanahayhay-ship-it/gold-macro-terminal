@@ -1310,7 +1310,7 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
 
     # 3. HỆ THỐNG CHẤM ĐIỂM XU HƯỚNG
     st.subheader("💯 Hệ thống chấm điểm xu hướng thông minh")
-    score_col1, score_col2 = st.columns()
+    score_col1, score_col2 = st.columns(2)
     with score_col1:
         st.metric("Chấm điểm Xu hướng", "8.5 / 10", "BULLISH (TĂNG MẠNH)")
     with score_col2:
