@@ -1291,11 +1291,11 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     st.markdown("---")
 
     # =========================================================================
-    # PHẦN 2: THUẬT TOÁN TỰ ĐỘNG PHÁT TÍN HIỆU - NÂNG CẤP BẮT ĐÁY/ĐỈNH THỰC CHIẾN
+    # PHẦN 2: THUẬT TOÁN ĐIỂM SỐ TÍCH LŨY LINH HOẠT (WEIGHTED SCORING SYSTEM)
     # =========================================================================
     st.markdown("---")
-    st.subheader("🤖 Bot Thuật Toán Phân Tích & Gợi Ý Tín Hiệu")
-    st.caption("Hãy điền các thông số thực tế bạn nhìn thấy trên biểu đồ vào các ô dưới đây. Thuật toán sẽ tự động ra kết luận.")
+    st.subheader("🤖 Bot Thuật Toán Phân Tích & Gợi Ý Tín Hiệu Động")
+    st.caption("Thuật toán bóc tách chỉ số thành các đầu điểm trọng số, tự tích lũy điểm từ 1 đến 10 để ra kết luận linh hoạt.")
 
     # 1. TẠO CÁC Ô NHỎ ĐỂ ĐIỀN THÔNG SỐ THỦ CÔNG (4 cột thông số kỹ thuật)
     input_col1, input_col2, input_col3, input_col4 = st.columns(4)
@@ -1316,44 +1316,108 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     with input_col6:
         volume_color = st.selectbox("🎨 Màu sắc cột Volume hiện tại", ["🟢 XANH (Lực mua chiếm ưu thế)", "🔴 ĐỎ (Lực bán chiếm ưu thế)"])
 
-    # 2. BIỆN LUẬN THUẬT TOÁN ĐỂ ĐƯA RA KẾT LUẬN TÍN HIỆU CHÍNH XÁC
-    # Bước 1: Kiểm tra ngưỡng thanh khoản tối thiểu của thị trường
-    if user_volume < 2000:
+    # 2. THUẬT TOÁN TÍNH TOÁN ĐIỂM SỐ TRỌNG SỐ LINH HOẠT
+    # Khởi tạo điểm số nền tảng (5.0 là trạng thái cân bằng đi ngang)
+    total_score = 5.0
+    analysis_logs = []
+
+    # --- TIÊU CHÍ 1: KHẢO SÁT BIÊN ĐỘ RSI (Tối đa ảnh hưởng +/- 2.5 điểm) ---
+    if user_rsi <= 30:
+        total_score += 2.5
+        analysis_logs.append(f"• RSI ở vùng quá bán sâu ({user_rsi}): Áp lực bán cạn kiệt, lực cầu tiềm năng rất cao (+2.5 điểm Mua).")
+    elif 30 < user_rsi <= 45:
+        total_score += 1.2
+        analysis_logs.append(f"• RSI ở vùng giá thấp ({user_rsi}): Thị trường có dấu hiệu giảm quá đà trong ngắn hạn (+1.2 điểm Mua).")
+    elif 55 <= user_rsi < 70:
+        total_score -= 1.2
+        analysis_logs.append(f"• RSI ở vùng giá cao ({user_rsi}): Giá bắt đầu vào vùng rủi ro điều chỉnh (-1.2 điểm Bán).")
+    elif user_rsi >= 70:
+        total_score -= 2.5
+        analysis_logs.append(f"• RSI lọt vào vùng quá mua nguy hiểm ({user_rsi}): Lực tăng quá nóng, rủi ro sập bẫy giá cực lớn (-2.5 điểm Bán).")
+
+    # --- TIÊU CHÍ 2: ĐỘ LỆCH BIÊN ĐỘ GIÁ VỚI ĐƯỜNG MA20 (Tối đa ảnh hưởng +/- 2.0 điểm) ---
+    price_deviation = current_gold_price - user_ma20
+    if price_deviation < -5.0:  # Giá chiết khấu sâu dưới MA20
+        total_score += 2.0
+        analysis_logs.append(f"• Giá nằm dưới sâu đường xu hướng MA20 (${user_ma20}): Biên độ chiết khấu cực kỳ hấp dẫn để bắt đáy (+2.0 điểm Mua).")
+    elif -5.0 <= price_deviation < 0:
+        total_score += 0.8
+        analysis_logs.append(f"• Giá nằm dưới tiệm cận đường MA20: Xu hướng giảm ngắn hạn nhưng áp lực bán vừa phải (+0.8 điểm Mua).")
+    elif 0 < price_deviation <= 5.0:
+        total_score -= 0.8
+        analysis_logs.append(f"• Giá nằm trên tiệm cận đường MA20: Xu hướng tăng ngắn hạn nhẹ (-0.8 điểm Bán).")
+    elif price_deviation > 5.0:  # Giá tăng quá nóng vượt xa MA20
+        total_score -= 2.0
+        analysis_logs.append(f"• Giá tăng vượt xa đường xu hướng MA20 (${user_ma20}): Hiện tượng dãn biên độ quá đà, dễ có nhịp hồi kỹ thuật kéo về trục (-2.0 điểm Bán).")
+
+    # --- TIÊU CHÍ 3: XU HƯỚNG DÒNG TIỀN MACD (Tối đa ảnh hưởng +/- 1.0 điểm) ---
+    if user_macd > 0:
+        total_score += 1.0
+        analysis_logs.append(f"• MACD dương ({user_macd}): Động lực tăng trưởng trung hạn được ủng hộ (+1.0 điểm Mua).")
+    elif user_macd < 0:
+        total_score -= 1.0
+        analysis_logs.append(f"• MACD âm ({user_macd}): Động lực giảm trưởng trung hạn vẫn duy trì áp lực đè nặng (-1.0 điểm Bán).")
+
+    # --- TIÊU CHÍ 4: SỰ ĐỒNG THUẬN CỦA VOLUME VÀ MÀU SẮC (Tối đa ảnh hưởng +/- 2.0 điểm) ---
+    if user_volume >= 3000:
+        if "XANH" in volume_color:
+            total_score += 2.0
+            analysis_logs.append(f"• Volume lớn ({user_volume}) có màu XANH: Xác nhận có dòng tiền thật của dòng tiền lớn đổ vào hấp thụ lực bán (+2.0 điểm Mua).")
+        else:
+            total_score -= 2.0
+            analysis_logs.append(f"• Volume lớn ({user_volume}) có màu ĐỎ: Xác nhận áp lực tháo chạy và bán xả hàng rất quyết liệt (-2.0 điểm Bán).")
+    else:
+        analysis_logs.append(f"• Volume thị trường yếu ({user_volume}): Thanh khoản mỏng, các số liệu có độ nhiễu cao (Không cộng điểm).")
+
+    # Giới hạn thang điểm chạy từ 1.0 đến 10.0 chuẩn toán học
+    total_score = max(1.0, min(10.0, round(total_score, 1)))
+
+    # --- BƯỚC THUẬT TOÁN BIỆN LUẬN KẾT LUẬN THEO THANG ĐIỂM LINH HOẠT ---
+    if total_score >= 7.5:
+        signal = "MUA MẠNH (STRONG BUY)"
+        color = "green"
+        summary_reason = "Các chỉ số hội tụ điểm số tích lũy cực kỳ cao. Đây là vùng có tỷ lệ thắng lớn, rủi ro thấp để thực hiện lệnh mua."
+    elif 6.0 <= total_score < 7.5:
+        signal = "MUA (BUY)"
+        color = "light_green"
+        summary_reason = "Điểm số tích lũy nghiêng về phe Mua. Có thể cân nhắc mở vị thế thăm dò với khối lượng vừa phải."
+    elif 4.5 < total_score < 6.0:
         signal = "ĐỨNG NGOÀI (WAIT)"
         color = "orange"
-        reason = f"Khối lượng Volume quá thấp ({user_volume}). Thị trường đang thiếu thanh khoản trầm trọng, dòng tiền lớn chưa nhập cuộc. Mọi tín hiệu Mua/Bán lúc này đều có độ nhiễu cao, khuyến nghị đứng ngoài để bảo toàn vốn."
-    
+        summary_reason = "Điểm số nằm ở vùng tranh chấp 50/50 cân bằng. Thị trường chưa rõ xu hướng, khuyến nghị đứng ngoài bảo toàn vốn."
+    elif 3.0 <= total_score <= 4.5:
+        signal = "BÁN (SELL)"
+        color = "light_red"
+        summary_reason = "Điểm số tích lũy nghiêng về áp lực giảm. Cân nhắc chiến lược canh cao để mở vị thế bán xuống."
     else:
-        # Bước 2: Khi Volume đủ lớn (> 2000), thuật toán xét sự đồng thuận theo đúng tư duy bắt Đáy/Đỉnh
-        
-        # --- THUẬT TOÁN KÍCH HOẠT LỆNH MUA CHUẨN ĐÁY (BUY DIP) ---
-        # Điều kiện: RSI quá bán sâu VÀ Giá nằm dưới MA20 (thể hiện giảm sâu giảm giá) VÀ Cột Volume quay sang màu XANH (có lực cầu bắt đáy)
-        if user_rsi <= 35.0 and current_gold_price < user_ma20 and "XANH" in volume_color:
-            signal = "MUA (BUY)"
-            color = "green"
-            reason = f"🎯 ĐÃ XÁC NHẬN VÙNG ĐÁY! Chỉ số RSI lọt sâu vào vùng quá bán ({user_rsi}), biên độ giá chiết khấu nằm dưới đường MA20 (${user_ma20}). Sự xuất hiện của cột Volume màu XANH lớn ({user_volume}) xác nhận dòng tiền lớn (Cá mập) đã chính thức kích hoạt lệnh gom hàng bắt đáy thành công."
-        
-        # --- THUẬT TOÁN KÍCH HOẠT LỆNH BÁN CHUẨN ĐỈNH (SELL PEAK) ---
-        # Điều kiện: RSI quá mua cao VÀ Giá nằm trên MA20 (tăng quá nóng) VÀ Cột Volume quay sang màu ĐỎ (có áp lực xả hàng)
-        elif user_rsi >= 65.0 and current_gold_price > user_ma20 and "ĐỎ" in volume_color:
-            signal = "BÁN (SELL)"
-            color = "red"
-            reason = f"🎯 ĐÃ XÁC NHẬN VÙNG ĐỈNH! Chỉ số RSI tăng quá nóng vào vùng quá mua ({user_rsi}), giá đẩy lên cao vượt trục MA20 (${user_ma20}). Cột Volume chuyển sang màu ĐỎ lớn ({user_volume}) là bằng chứng hành động xả hàng, chốt lời ồ ạt của các quỹ đầu tư vĩ mô."
-        
-        # --- TRƯỜNG HỢP TRUNG TÍNH / KHÔNG ĐỒNG THUẬN ---
-        else:
-            signal = "ĐỨNG NGOÀI (WAIT)"
-            color = "orange"
-            reason = f"Các chỉ số kỹ thuật đang dao động hỗn hợp hoặc nằm trong vùng tích lũy trung tính (RSI: {user_rsi} | Giá: ${current_gold_price} | MA20: ${user_ma20}). Để đảm bảo an toàn tuyệt đối, thuật toán khuyến nghị giữ kỷ luật đứng ngoài quan sát."
+        signal = "BÁN MẠNH (STRONG SELL)"
+        color = "red"
+        summary_reason = "Điểm số chạm ngưỡng cực kỳ tiêu cực. Phe bán kiểm soát hoàn toàn cục diện, nguy cơ lao dốc rất lớn."
 
-    st.markdown("#### 📢 Kết luận từ Hệ thống Thuật toán")
+    # 3. GIAO DIỆN HIỂN THỊ KẾT QUẢ ĐIỂM SỐ LINH HOẠT
+    st.markdown("---")
+    st.subheader("📢 Kết quả Đánh giá hệ thống")
     
-    # 3. HIỂN THỊ HỘP TÍN HIỆU ĐỔI MÀU TRỰC QUAN THEO SỐ LIỆU ĐÃ ĐIỀN
-    if color == "green":
-        st.success(f"🎯 **TÍN HIỆU THUẬT TOÁN: {signal}**")
-    elif color == "red":
-        st.error(f"🎯 **TÍN HIỆU THUẬT TOÁN: {signal}**")
+    score_col1, score_col2 = st.columns([1, 3])
+    with score_col1:
+        st.metric("Điểm số Hội tụ", f"{total_score} / 10")
+    with score_col2:
+        # Chuyển đổi điểm số về dạng phần trăm để hiển thị thanh progress mượt mà
+        progress_val = int(total_score * 10)
+        st.progress(progress_val)
+        st.caption(f"Trạng thái phán quyết hệ thống: **{signal}**")
+
+    # Hiển thị hộp tín hiệu đổi màu thông minh dựa trên tổng điểm
+    if color == "green" or color == "light_green":
+        st.success(f"🎯 **TÍN HIỆU THUẬT TOÁN ĐỘNG: {signal}**")
+    elif color == "red" or color == "light_red":
+        st.error(f"🎯 **TÍN HIỆU THUẬT TOÁN ĐỘNG: {signal}**")
     else:
-        st.warning(f"🎯 **TÍN HIỆU THUẬT TOÁN: {signal}**")
+        st.warning(f"🎯 **TÍN HIỆU THUẬT TOÁN ĐỘNG: {signal}**")
         
-    st.info(f"📝 **Lý giải logic thuật toán:** {reason}")
+    st.write(f"📝 **Nhận định tổng quan:** {summary_reason}")
+    
+    # In ra toàn bộ nhật ký bóc tách điểm số cho học viên đối chiếu trực quan
+    with st.expander("🔍 Xem chi tiết bảng bóc tách trọng số kỹ thuật", expanded=True):
+        for log in analysis_logs:
+            st.write(log)
