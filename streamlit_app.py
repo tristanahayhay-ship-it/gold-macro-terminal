@@ -1320,7 +1320,7 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
                 
                 # Tạo bảng dữ liệu Đường trung bình động giống ảnh mẫu Investing
                 moving_averages = []
-                for p in:
+                for p in[5, 10, 20, 50, 100, 200]:
                     ma_val = round(latest[f'MA{p}'], 2) if not pd.isna(latest[f'MA{p}']) else round(latest['Close'], 2)
                     moving_averages.append({
                         "Tên": f"MA{p}",
