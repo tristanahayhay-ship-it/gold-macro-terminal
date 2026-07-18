@@ -1273,7 +1273,7 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     <body>
         <div class="widget-wrapper">
             <div id="tv_adv_chart" style="height: 100%; width: 100%;"></div>
-            <script type="text/javascript" src="https://tradingview.com"></script>
+            <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
             <script type="text/javascript">
                 new TradingView.widget({
                     "autosize": true,
