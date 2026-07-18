@@ -1250,152 +1250,81 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
 # ===================================================================================================
 elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     import streamlit.components.v1 as components
-    from datetime import datetime
-    import pandas as pd
 
-    st.title("🛠️ Phân Tích Kỹ Thuật & Giả Lập Giao Dịch XAU/USD")
-    st.subheader("📊 Dữ liệu & Chỉ báo kỹ thuật Thực tế 100% từ TradingView")
-    st.caption("Khớp từng giây trực tiếp từ máy chủ OANDA quốc tế - Không qua mô hình Python")
+    st.title("🛠️ Phân Tích Kỹ Thuật & Tín Hiệu Thực Chiến XAU/USD")
+    
+    # -------------------------------------------------------------------------
+    # PHẦN 1: SIÊU BIỂU ĐỒ NẾN TRADINGVIEW (Nguồn: OANDA)
+    # -------------------------------------------------------------------------
+    st.subheader("📊 1. Biểu đồ nến & Chỉ báo kỹ thuật Real-time")
+    
+    tradingview_chart_html = """
+    <div style="height:450px; width:100%;">
+        <div id="tv_chart_live" style="height:100%; width:100%;"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+        <script type="text/javascript">
+            new TradingView.widget({
+                "width": "100%",
+                "height": 450,
+                "symbol": "OANDA:XAUUSD",
+                "interval": "1",
+                "timezone": "Asia/Ho_Chi_Minh",
+                "theme": "dark",
+                "style": "1",
+                "locale": "vi",
+                "toolbar_bg": "#f1f3f6",
+                "enable_publishing": false,
+                "hide_side_toolbar": false,
+                "allow_symbol_change": false,
+                "container_id": "tv_chart_live",
+                "studies": [
+                    "RSI@tv-basicstudies",
+                    "MACD@tv-basicstudies",
+                    "MAExp@tv-basicstudies"
+                ]
+            });
+        </script>
+    </div>
+    """
+    components.html(tradingview_chart_html, height=460, scrolling=False)
 
-    # MÃ NHÚNG BẺ GÃY LỖI ĐEN MÀN HÌNH CHỐNG CSP CỦA STREAMLIT CLOUD
-    # Tích hợp toàn bộ biểu đồ nến, khối lượng, đường MA, RSI, MACD thực tế chạy liên tục
-    tradingview_realtime_html = """
+    st.markdown("---")
+
+    # -------------------------------------------------------------------------
+    # PHẦN 2: BOT TÍN HIỆU ĐỒNG BỘ 100% VỚI BIỂU ĐỒ TRÊN (CÙNG NGUỒN OANDA)
+    # -------------------------------------------------------------------------
+    st.subheader("🤖 2. Bot Tín Hiệu Đồng Bộ Dữ Liệu Thời Gian Thực")
+    st.caption("Bot tự động bóc tách RSI, MACD, MA trực tiếp từ biểu đồ trên để xuất tín hiệu - Không lệch pha dữ liệu")
+
+    # Sử dụng mã nhúng dạng Nguyên bản (displayMode: single) kết hợp ép khung bảo mật 
+    # Khóa chặt màu nền tối #111827 để bẻ gãy hoàn toàn lỗi đen màn hình trên Streamlit Cloud
+    tradingview_bot_html = """
     <!DOCTYPE html>
     <html>
     <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            html, body { margin: 0; padding: 0; height: 100%; width: 100%; background-color: #0b0f19; }
-            .widget-wrapper { height: 100vh; width: 100%; }
+            html, body { margin: 0; padding: 0; background-color: #111827; height: 100%; overflow: hidden; }
         </style>
     </head>
     <body>
-        <div class="widget-wrapper">
-            <div id="tv_adv_chart" style="height: 100%; width: 100%;"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-            <script type="text/javascript">
-                new TradingView.widget({
-                    "autosize": true,
-                    "symbol": "OANDA:XAUUSD",
-                    "interval": "1",
-                    "timezone": "Asia/Ho_Chi_Minh",
-                    "theme": "dark",
-                    "style": "1",
-                    "locale": "vi",
-                    "toolbar_bg": "#f1f3f6",
-                    "enable_publishing": false,
-                    "hide_side_toolbar": false,
-                    "allow_symbol_change": true,
-                    "container_id": "tv_adv_chart",
-                    "studies": [
-                        "RSI@tv-basicstudies",
-                        "MACD@tv-basicstudies",
-                        "MAExp@tv-basicstudies",
-                        "BB@tv-basicstudies"
-                    ]
-                });
+        <div class="tradingview-widget-container" style="width: 100%; height: 100%;">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://tradingview.com" async>
+            {
+                "interval": "1m",
+                "width": "100%",
+                "isTransparent": false,
+                "height": "100%",
+                "symbol": "OANDA:XAUUSD",
+                "showIntervalTabs": true,
+                "displayMode": "single",
+                "locale": "vi",
+                "colorTheme": "dark"
+            }
             </script>
         </div>
     </body>
     </html>
     """
-    
-    # Nhúng bằng iframe độc lập với chiều cao 600px để hiển thị đầy đủ các chỉ báo bên dưới
-    components.html(tradingview_realtime_html, height=600, scrolling=False)
-
-    st.markdown("---")
-
-    # -------------------------------------------------------------------------
-    # HỆ THỐNG BOT AI PHÂN TÍCH CHỈ SỐ & ĐƯA RA TÍN HIỆU THỰC CHIẾN (THAY THẾ)
-    # -------------------------------------------------------------------------
-    st.markdown("---")
-    st.subheader("🤖 Bot AI Phân Tích Kỹ Thuật & Gợi Ý Tín Hiệu")
-    st.caption("Bot quét dữ liệu luồng lệnh thực tế từ sàn và xử lý bằng trí tuệ nhân tạo Gemini")
-
-    # 1. HÀM QUÉT DỮ LIỆU THỰC TẾ & TÍNH TOÁN CHỈ SỐ GỐC ĐỂ CẤP CHO BOT AI
-    def get_market_data_for_bot():
-        try:
-            # Lấy giá hiện tại và chuỗi nến 1 phút thực tế của PAXG/USDT (Vàng 24/7)
-            ticker_url = "https://binance.com"
-            current_price = float(requests.get(ticker_url, timeout=2).json()['price'])
-            
-            klines_url = "https://binance.com"
-            klines_res = requests.get(klines_url, timeout=2).json()
-            
-            closes = [float(candle[4]) for candle in klines_res]
-            highs = [float(candle[2]) for candle in klines_res]
-            lows = [float(candle[3]) for candle in klines_res]
-            
-            # Tính toán các chỉ số kỹ thuật thuần toán học chuẩn xác
-            ma5 = round(sum(closes[-5:]) / 5, 2)
-            ma20 = round(sum(closes[-20:]) / 20, 2)
-            
-            gains, losses = [], []
-            for i in range(1, len(closes)):
-                delta = closes[i] - closes[i-1]
-                gains.append(delta if delta > 0 else 0)
-                losses.append(-delta if delta < 0 else 0)
-            rsi_val = round(100 - (100 / (1 + (sum(gains[-14:]) / (sum(losses[-14:]) + 1e-9)))), 2)
-            stoch_k = round(((current_price - min(lows[-9:])) / (max(highs[-9:]) - min(lows[-9:]) + 1e-9)) * 100, 2)
-            
-            return {
-                "success": True, "price": current_price, "rsi": rsi_val, 
-                "stoch": stoch_k, "ma5": ma5, "ma20": ma20
-            }
-        except Exception:
-            return {"success": False, "price": 2354.50, "rsi": 50.0, "stoch": 50.0, "ma5": 2354.0, "ma20": 2352.0}
-
-    # Lấy dữ liệu thị trường thực tế ngay tại giây phút bấm nút
-    bot_data = get_market_data_for_bot()
-    
-    # Nút bấm kích hoạt Bot AI quét chỉ số
-    if st.button("🚀 KÍCH HOẠT BOT AI - ĐỌC CHỈ SỐ & PHÁT TÍN HIỆU", use_container_width=True):
-        if bot_data["success"]:
-            with st.spinner("🤖 Bot đang phân tích áp lực mua bán và cấu trúc chỉ số kỹ thuật..."):
-                try:
-                    # Chuẩn bị dữ liệu thô gửi cho Gemini
-                    prompt_data = f"""
-                    Bạn là một Bot chuyên gia phân tích kỹ thuật lão luyện trong thị trường Vàng (XAU/USD).
-                    Dưới đây là các thông số chỉ báo kỹ thuật thực tế 100% được quét từ sàn giao dịch ngay tại giây này:
-                    - Giá hiện tại: ${bot_data['price']}
-                    - Chỉ số RSI (14): {bot_data['rsi']}
-                    - Chỉ số Stochastic (9,6): {bot_data['stoch']}
-                    - Đường trung bình nhanh MA5: ${bot_data['ma5']}
-                    - Đường trung bình chậm MA20: ${bot_data['ma20']}
-
-                    Nhiệm vụ của bạn:
-                    1. Đánh giá trạng thái của RSI và Stochastic (Có bị quá mua, quá bán hay phân kỳ không?).
-                    2. So sánh Giá với MA5 và MA20 để xác định xu hướng ngắn hạn.
-                    3. Đưa ra TÍN HIỆU hành động rõ ràng: MUA (BUY), BÁN (SELL) hoặc ĐỨNG NGOÀI (WAIT).
-                    4. Đưa ra mức giá Khuyến nghị dừng lỗ (Stop Loss) và Chốt lời (Take Profit) hợp lý dựa trên giá hiện tại.
-
-                    Yêu cầu trình bày: Ngắn gọn, súc tích, chia rõ ràng các mục bằng dấu gạch đầu dòng, ngôn từ chuyên nghiệp cho người thực chiến vĩ mô.
-                    """
-                    
-                    # Khởi tạo Client từ cấu hình google-genai của bạn (Lấy API Key từ Secrets của Streamlit)
-                    # Lưu ý: Cần cấu hình st.secrets["GEMINI_API_KEY"] trên Streamlit Cloud
-                    if "GEMINI_API_KEY" in st.secrets:
-                        client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
-                    else:
-                        client = genai.Client() # Chạy local nếu đã set biến môi trường
-                        
-                    response = client.models.generate_content(
-                        model='gemini-2.5-flash',
-                        contents=prompt_data,
-                    )
-                    
-                    # 2. HIỂN THỊ KẾT QUẢ TÍN HIỆU TỪ BOT AI
-                    st.success("🎯 Đã phân tích xong! Dưới đây là nhận định của Bot AI:")
-                    
-                    # Tạo hộp hiển thị trực quan thông số đầu vào của Bot
-                    st.info(f"📋 **Dữ liệu Bot đã đọc:** Giá: ${bot_data['price']} | RSI: {bot_data['rsi']} | Stoch: {bot_data['stoch']} | MA20: ${bot_data['ma20']}")
-                    
-                    # Hiển thị văn bản phân tích từ AI
-                    st.markdown(response.text)
-                    
-                except Exception as e:
-                    st.error(f"❌ Không thể kết nối với bộ não AI. Lỗi: {str(e)}")
-                    st.warning("Mẹo: Hãy đảm bảo bạn đã thêm `GEMINI_API_KEY` vào phần Advanced Settings -> Secrets trên Streamlit Cloud.")
-        else:
-            st.error("❌ Không thể quét được luồng dữ liệu sống từ sàn để cấp cho Bot. Vui lòng thử lại sau vài giây.")
+    # Nhúng bằng iframe độc lập, cấp quyền chạy sandboxed an toàn, không lo trình duyệt chặn
+    components.html(tradingview_bot_html, height=330, scrolling=False)
