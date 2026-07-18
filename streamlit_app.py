@@ -1290,36 +1290,15 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
 
     st.markdown("---")
 
-    # Sử dụng mã nhúng chuẩn của Widget Tóm tắt Kỹ thuật (Technical Analysis Widget)
-    # Đã sửa lại đúng đường link thư viện và cấu hình JSON nằm riêng biệt để bẻ gãy lỗi đen màn hình
-    tradingview_bot_html = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            html, body { margin: 0; padding: 0; background-color: #111827; height: 100%; overflow: hidden; }
-        </style>
-    </head>
-    <body>
-        <div class="tradingview-widget-container" style="width: 100%; height: 100%;">
-            <div class="tradingview-widget-container__widget"></div>
-            <!-- SỬA LỖI 1: Thay tv.js bằng thư viện chuyên dụng cho bảng tóm tắt chỉ báo -->
-            <script type="text/javascript" src="https://s3.tradingview.com/tv.js" async>
-            {
-                "interval": "1m",
-                "width": "100%",
-                "isTransparent": false,
-                "height": "100%",
-                "symbol": "OANDA:XAUUSD",
-                "showIntervalTabs": true,
-                "displayMode": "single",
-                "locale": "vi",
-                "colorTheme": "dark"
-            }
-            </script>
-        </div>
-    </body>
-    </html>
+    tradingview_bot_iframe = """
+    <iframe 
+        src="https://tradingview.com" 
+        width="100%" 
+        height="380" 
+        frameborder="0" 
+        allowtransparency="true" 
+        scrolling="no" 
+        style="box-sizing: border-box; border-radius: 8px; border: 1px solid #374151;">
+    </iframe>
     """
-    # Nhúng bằng iframe độc lập với chiều cao được nới rộng lên 380px để không bị cắt mất chân chữ
-    components.html(tradingview_bot_html, height=380, scrolling=False)
+    components.html(tradingview_bot_iframe, height=390, scrolling=False)
