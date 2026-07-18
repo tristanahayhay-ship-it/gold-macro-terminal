@@ -1531,30 +1531,38 @@ elif menu == "Giá Vàng VIỆT NAM":
         </div>
         """, unsafe_allow_html=True)
 
-    # -------------------------------------------------------------------------
-    # 1. THUẬT TOÁN CÀO LUỒNG DỮ LIỆU SỐNG FOREXFACTORY (THỜI GIAN THỰC 100%)
-    # -------------------------------------------------------------------------
-    import xml.etree.ElementTree as ET
 
-    @st.cache_data(ttl=30)  # Chỉ lưu bộ nhớ đệm 30 giây để đón tin mới ra siêu tốc
-    def get_realtime_forexfactory_calendar():
+elif menu == "📅 Lịch Kinh Tế & AI Nhận Định (USD)":
+    from streamlit_autorefresh import st_autorefresh
+    import xml.etree.ElementTree as ET
+    import requests
+    import pandas as pd
+    from datetime import datetime
+
+    # 1. TRÁI TIM REAL-TIME: Tự động quét lại luồng dữ liệu của ForexFactory sau mỗi 30 giây
+    st_autorefresh(interval=30000, limit=None, key="forexfactory_live_stream")
+
+    st.title("📅 Lịch Kinh Tế ForexFactory Thực Tế 100%")
+    st.caption("Dữ liệu gốc cập nhật liên tục từ ForexFactory - Tự động nhảy số ngay khi công bố tin mới")
+    st.markdown("---")
+
+    # 2. THUẬT TOÁN QUÈT LUỒNG DỮ LIỆU SỐNG KHÔNG QUA MÔ HÌNH
+    @st.cache_data(ttl=15) # Chỉ lưu bộ nhớ đệm 15 giây để đón đầu dữ liệu thực tế siêu tốc
+    def fetch_forexfactory_live_data():
         try:
-            # Sử dụng nguồn cấp luồng dữ liệu XML sạch, chính thức của ForexFactory dành cho lập trình viên
-            # Cổng này tải siêu nhẹ, cập nhật số liệu Thực tế (Actual) ngay giây phút công bố
+            # Đường dẫn cổng XML sạch chính thức được mở của ForexFactory
             url = "https://forexfactory.com"
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
             response = requests.get(url, headers=headers, timeout=5)
             
             if response.status_code == 200:
                 root = ET.fromstring(response.content)
-                events_list = []
-                
+                events = []
                 for item in root.findall('event'):
-                    # Thuật toán lọc chuẩn xác: Chỉ lấy các tin tức thuộc đồng USD
+                    # Chỉ lọc các tin tức tác động trực tiếp đến đồng USD
                     if item.find('currency').text == 'USD':
-                        events_list.append({
-                            "title": item.find('title').text if item.find('title') is not None else "",
-                            "currency": "USD",
+                        events.append({
+                            "title": item.find('title').text if item.find('title') is not None else "Sự kiện vĩ mô",
                             "date": item.find('date').text if item.find('date') is not None else "",
                             "time": item.find('time').text if item.find('time') is not None else "",
                             "impact": item.find('impact').text if item.find('impact') is not None else "Low",
@@ -1562,188 +1570,100 @@ elif menu == "Giá Vàng VIỆT NAM":
                             "previous": item.find('previous').text if item.find('previous') is not None else "",
                             "actual": item.find('actual').text if item.find('actual') is not None else ""
                         })
-                
-                if events_list:
-                    return pd.DataFrame(events_list)
+                if events:
+                    return pd.DataFrame(events)
         except Exception:
             pass
-        
-        # Luồng dữ liệu dự phòng thực tế để trang web luôn hoạt động an toàn
-        mock_data = [
-            {"title": "Core Retail Sales m/m", "currency": "USD", "date": "07-15-2026", "time": "6:30pm", "impact": "High", "forecast": "0.2%", "previous": "0.1%", "actual": "0.3%"},
-            {"title": "Unemployment Claims", "currency": "USD", "date": "07-16-2026", "time": "6:30pm", "impact": "Medium", "forecast": "222K", "previous": "215K", "actual": ""},
-            {"title": "CPI m/m (Lạm phát tháng)", "currency": "USD", "date": "07-22-2026", "time": "6:30pm", "impact": "High", "forecast": "0.1%", "previous": "0.2%", "actual": ""},
-            {"title": "Federal Funds Rate (Lãi suất FED)", "currency": "USD", "date": "07-30-2026", "time": "1:00am", "impact": "High", "forecast": "5.25%", "previous": "5.50%", "actual": ""}
-        ]
-        return pd.DataFrame(mock_data)
+        return pd.DataFrame()
 
-    # Đổ luồng nến dữ liệu sống vào DataFrame chính của bạn
-    df_cal = get_realtime_forexfactory_calendar()
+    df_cal = fetch_forexfactory_live_data()
 
-    # -------------------------------------------------------------------------
-    # 2. XỬ LÝ SỐ LIỆU THỰC TẾ & THỐNG KÊ BIẾN ĐỘNG (ĐOẠN TIẾP THEO)
-    # -------------------------------------------------------------------------
-    # Kiểm tra tính toàn vẹn của dữ liệu để tránh lỗi hệ thống
-    if df_cal.empty:
-        df_cal = pd.DataFrame(columns=['title', 'currency', 'date', 'time', 'impact', 'forecast', 'previous', 'actual'])
+    # 3. HÀM TOÁN HỌC CHUYỂN ĐỔI CHUỖI THÀNH SỐ ĐỂ ĐẢM BẢO SO SÁNH CHÍNH XÁC
+    def clean_and_parse_value(val_str):
+        if not val_str or pd.isna(val_str) or str(val_str).strip() == "":
+            return None
+        try:
+            # Bóc tách các ký tự đặc biệt tài chính để đưa về số thực tính toán
+            clean_str = str(val_str).replace('%', '').replace('K', '').replace('M', '').replace('$', '').strip()
+            return float(clean_str)
+        except:
+            return None
 
-    # Thống kê phân loại mức độ tác động tin tức vĩ mô dựa trên dữ liệu thật vừa cào
-    col_stat1, col_stat2, col_stat3 = st.columns(3)
-    
-    # Ép chuỗi về chữ thường để thuật toán đếm số lượng tin chuẩn xác 100%
-    high_count = len(df_cal[df_cal['impact'].str.lower() == 'high'])
-    med_count = len(df_cal[df_cal['impact'].str.lower() == 'medium'])
-    low_count = len(df_cal[df_cal['impact'].str.lower() == 'low'])
-    
-    # Hiển thị thông số dạng thẻ Metric chuyên nghiệp
-    with col_stat1:
-        st.metric("🔴 Tin Tức Tác Động Mạnh (High)", f"{high_count} Tin")
-    with col_stat2:
-        st.metric("🟡 Tin Tức Tác Động Vừa (Medium)", f"{med_count} Tin")
-    with col_stat3:
-        st.metric("🟢 Tin Tức Tác Động Yếu (Low)", f"{low_count} Tin")
-
-    st.markdown("---")
-
-    # -------------------------------------------------------------------------
-    # 3. HIỂN THỊ LỊCH KINH TẾ ĐƯỢC CHUẨN HÓA GIAO DIỆN (ĐOẠN TIẾP THEO)
-    # -------------------------------------------------------------------------
-    st.subheader("📋 Danh Sách Sự Kiện Vĩ Mô Đồng USD Trong Tuần")
-    
+    # 4. GIAO DIỆN HIỂN THỊ DẠNG HỘP THẺ HỢP LÝ THEO TIÊU CHUẨN ĐÀO TẠO
     if not df_cal.empty:
-        # Hàm xử lý chuỗi số liệu thành số thực để so sánh toán học chính xác 100%
-        def parse_value(val_str):
-            if not val_str or pd.isna(val_str) or str(val_str).strip() == "":
-                return None
-            try:
-                clean_str = str(val_str).replace('%', '').replace('K', '').replace('M', '').replace('$', '').strip()
-                return float(clean_str)
-            except:
-                return None
+        # Thống kê nhanh số lượng tin trong tuần
+        col_h, col_m, col_l = st.columns(3)
+        col_h.metric("🔴 Tin Tác Động Mạnh", f"{len(df_cal[df_cal['impact'].str.lower() == 'high'])} Tin")
+        col_m.metric("🟡 Tin Tác Động Vừa", f"{len(df_cal[df_cal['impact'].str.lower() == 'medium'])} Tin")
+        col_l.metric("🟢 Tin Tác Động Yếu", f"{len(df_cal[df_cal['impact'].str.lower() == 'low'])} Tin")
+        st.markdown("---")
 
-        # Khởi chạy vòng lặp duyệt qua từng tin tức vĩ mô thật vừa cào về
+        # Duyệt qua từng sự kiện thật của tuần này
         for idx, row in df_cal.iterrows():
-            # Định dạng màu sắc cảnh báo dựa trên mức độ quan trọng (Impact)
             impact_lower = str(row['impact']).lower()
-            if impact_lower == 'high':
-                bg_color = "#111827"
-                border_color = "#ef4444"
-                badge = "🔴 HIGH IMPACT (Cực kỳ quan trọng)"
-            elif impact_lower == 'medium':
-                bg_color = "#1f2937"
-                border_color = "#f59e0b"
-                badge = "🟡 MEDIUM IMPACT (Trung bình)"
-            else:
-                bg_color = "#111827"
-                border_color = "#22c55e"
-                badge = "🟢 LOW IMPACT (Biến động thấp)"
-
-            # THUẬT TOÁN LOGIC TOÁN HỌC - TỰ ĐỘNG SO SÁNH SỐ LIỆU ĐỂ PHÂN TÍCH TIN
-            act_num = parse_value(row.get('actual', ''))
-            for_num = parse_value(row.get('forecast', ''))
             
-            # Khởi tạo màu sắc chữ mặc định cho cột Thực tế là trắng xám
-            txt_color = "#f3f4f6" 
-            market_conclusion = "Chờ công bố dữ liệu"
+            # Cấu hình đường chỉ sọc màu sắc dựa trên mức độ tin
+            if impact_lower == 'high':
+                border_color = "#ef4444" # Đỏ
+                badge_text = "🔴 HIGH IMPACT (Biến động mạnh)"
+            elif impact_lower == 'medium':
+                border_color = "#f59e0b" # Vàng
+                badge_text = "🟡 MEDIUM IMPACT (Biến động vừa)"
+            else:
+                border_color = "#10b981" # Xanh lá
+                badge_text = "🟢 LOW IMPACT (Biến động thấp)"
+
+            # Tiến hành so sánh toán học thực tế giữa Actual và Forecast
+            act_num = clean_and_parse_value(row['actual'])
+            for_num = clean_and_parse_value(row['forecast'])
+            
+            txt_color = "#ffffff" # Màu mặc định
+            market_verdict = "👉 Đang chờ công bố số liệu thực tế từ ForexFactory..."
             
             if act_num is not None and for_num is not None:
-                # Đọc tên sự kiện để biết tin Thất nghiệp (Càng cao càng xấu cho USD) hay tin CPI/Doanh số (Càng cao càng tốt cho USD)
-                event_name_lower = str(row.get('title', '')).lower()
-                is_unemployment = "unemployment" in event_name_lower or "claims" in event_name_lower
+                event_title_lower = str(row['title']).lower()
+                # Nhận diện loại tin thất nghiệp (Claims) nghịch biến với sức mạnh kinh tế
+                is_unemployment_news = "claims" in event_title_lower or "unemployment" in event_name_lower
                 
-                if is_unemployment:
-                    # Trợ cấp thất nghiệp tăng -> Kinh tế xấu -> USD Giảm -> VÀNG TĂNG
+                if is_unemployment_news:
                     if act_num > for_num:
-                        txt_color = "#10b981"  # Màu Xanh Lá
-                        market_conclusion = "🟢 Tin xấu cho USD (Thất nghiệp tăng) -> Ưu tiên lệnh MUA VÀNG (BUY)"
+                        txt_color = "#10b981" # Thất nghiệp tăng -> USD giảm -> VÀNG TĂNG
+                        market_verdict = "🟢 Thực tế > Dự báo: Thất nghiệp tăng (Vĩ mô yếu) -> USD suy yếu -> Ưu tiên lệnh MUA VÀNG (BUY)"
                     elif act_num < for_num:
-                        txt_color = "#ef4444"  # Màu Đỏ
-                        market_conclusion = "🔴 Tin tốt cho USD (Thất nghiệp giảm) -> Ưu tiên lệnh BÁN VÀNG (SELL)"
+                        txt_color = "#ef4444" # Thất nghiệp giảm -> USD tăng -> VÀNG GIẢM
+                        market_verdict = "🔴 Thực tế < Dự báo: Thất nghiệp giảm (Vĩ mô tốt) -> USD mạnh lên -> Ưu tiên lệnh BÁN VÀNG (SELL)"
                     else:
-                        market_conclusion = "🟡 Số liệu khớp dự báo -> Thị trường đi ngang Sideways"
+                        market_verdict = "🟡 Thực tế = Dự báo: Khớp dữ liệu kỳ vọng -> Giá Vàng đi ngang Sideways"
                 else:
-                    # Các tin kinh tế khác (CPI, Bảng lương, Bán lẻ) tăng -> Kinh tế tốt -> USD Tăng -> VÀNG GIẢM
+                    # Các tin vĩ mô thuận biến (CPI, Doanh số bán lẻ, GDP)
                     if act_num > for_num:
-                        txt_color = "#ef4444"  # Màu Đỏ (Tốt cho USD nhưng là Đỏ với Vàng)
-                        market_conclusion = "🔴 Tin tốt cho USD (Vĩ mô mạnh) -> Ưu tiên lệnh BÁN VÀNG (SELL)"
+                        txt_color = "#ef4444" # Kinh tế tốt -> USD tăng -> VÀNG GIẢM
+                        market_verdict = "🔴 Thực tế > Dự báo: Chỉ số vĩ mô tăng mạnh (Kinh tế tốt) -> USD mạnh lên -> Ưu tiên lệnh BÁN VÀNG (SELL)"
                     elif act_num < for_num:
-                        txt_color = "#10b981"  # Màu Xanh Lá (Xấu cho USD nhưng là Xanh với Vàng)
-                        market_conclusion = "🟢 Tin xấu cho USD (Vĩ mô yếu) -> Ưu tiên lệnh MUA VÀNG (BUY)"
+                        txt_color = "#10b981" # Kinh tế xấu -> USD giảm -> VÀNG TĂNG
+                        market_verdict = "🟢 Thực tế < Dự báo: Chỉ số vĩ mô sụt giảm (Kinh tế yếu) -> USD suy yếu -> Ưu tiên lệnh MUA VÀNG (BUY)"
                     else:
-                        market_conclusion = "🟡 Số liệu khớp dự báo -> Thị trường đi ngang Sideways"
-            elif act_num is not None:
-                market_conclusion = "Dữ liệu đã công bố - Hãy đối chiếu với chu kỳ trước"
+                        market_verdict = "🟡 Thực tế = Dự báo: Khớp dữ liệu kỳ vọng -> Giá Vàng đi ngang Sideways"
+            elif row['actual'].strip() != "":
+                market_verdict = f"Dữ liệu công bố: {row['actual']} - Hãy đối chiếu trực tiếp với lịch sử"
 
-            # VẼ HỘP THỂ HTML CUSTOM CHO TỪNG TIN ĐỒNG BỘ THEO THEME DARK MODE CỦA BẠN
+            # Đổ dữ liệu thật vào cấu hình giao diện tối màu (Dark mode) sang trọng
             st.markdown(f"""
-            <div style="background-color: {bg_color}; border-left: 5px solid {border_color}; border-radius: 8px; padding: 15px; margin-bottom: 12px; border-top: 1px solid #374151; border-right: 1px solid #374151; border-bottom: 1px solid #374151;">
+            <div style="background-color: #111827; border-left: 5px solid {border_color}; border-radius: 8px; padding: 16px; margin-bottom: 12px; border-top: 1px solid #374151; border-right: 1px solid #374151; border-bottom: 1px solid #374151;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="color: {border_color}; font-weight: bold; font-size: 13px;">{badge}</span>
-                    <span style="color: #9ca3af; font-size: 13px;">⏱️ {row.get('date', '---')} {row.get('time', '---')}</span>
+                    <span style="color: {border_color}; font-weight: bold; font-size: 13px;">{badge_text}</span>
+                    <span style="color: #9ca3af; font-size: 13px;">⏱️ {row['date']} lúc {row['time']}</span>
                 </div>
-                <h4 style="margin: 0 0 10px 0; color: #f3f4f6; font-size: 16px;">{row.get('title', '---')}</h4>
-                <div style="display: flex; gap: 20px; font-size: 14px; margin-bottom: 10px;">
-                    <div style="color: #9ca3af;">Dự báo: <b style="color: #f3f4f6;">{row.get('forecast', '---')}</b></div>
-                    <div style="color: #9ca3af;">Kỳ trước: <b style="color: #f3f4f6;">{row.get('previous', '---')}</b></div>
-                    <div style="color: #9ca3af;">Thực tế: <b style="color: {txt_color}; font-size: 15px;">{row.get('actual', '👉 Đang chờ...')}</b></div>
+                <h4 style="margin: 0 0 12px 0; color: #f3f4f6; font-size: 16px;">{row['title']}</h4>
+                <div style="display: flex; gap: 24px; font-size: 14px; margin-bottom: 12px;">
+                    <div style="color: #9ca3af;">Dự báo: <b style="color: #e5e7eb;">{row['forecast'] if row['forecast'] else '---'}</b></div>
+                    <div style="color: #9ca3af;">Kỳ trước: <b style="color: #e5e7eb;">{row['previous'] if row['previous'] else '---'}</b></div>
+                    <div style="color: #9ca3af;">Thực tế: <b style="color: {txt_color}; font-size: 15px;">{row['actual'] if row['actual'] else '👉 Chờ công bố...'}</b></div>
                 </div>
-                <div style="background-color: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 4px; font-size: 13px; color: #e5e7eb; font-weight: 500;">
-                    💡 {market_conclusion}
+                <div style="background-color: rgba(0,0,0,0.25); padding: 10px 12px; border-radius: 6px; font-size: 13px; color: #f3f4f6; border: 1px solid #1f2937;">
+                    {market_verdict}
                 </div>
             </div>
             """, unsafe_allow_html=True)
     else:
-        st.info("📅 Không có sự kiện vĩ mô nào của đồng USD được ghi nhận trong khoảng thời gian này.")
-
-    # -------------------------------------------------------------------------
-    # 4. HỆ THỐNG TRÍ TUỆ NHÂN TẠO AI PHÂN TÍCH XU HƯỚNG (ĐOẠN CUỐI CÙNG)
-    # -------------------------------------------------------------------------
-    st.markdown("---")
-    st.subheader("🤖 Hệ thống Trí Tuệ Nhân Tạo AI Phân Tích Kịch Bản")
-    st.caption("Nhấn nút dưới đây để kích hoạt AI bóc tách đống lịch kinh tế ở trên và đưa ra chiến lược cụ thể cho giá Vàng.")
-
-    if st.button("🧠 KÍCH HOẠT AI - PHÂN TÍCH KỊCH BẢN VĨ MÔ & GIÁ VÀNG", use_container_width=True, key="trigger_macro_ai"):
-        with st.spinner("Bot AI đang phân tích chuỗi dữ liệu kinh tế và lập luận kịch bản tác động..."):
-            try:
-                # Chuyển đổi bảng dữ liệu lịch kinh tế thô ở trên thành định dạng văn bản để cấp cho AI
-                calendar_text = df_cal[['title', 'date', 'time', 'impact', 'forecast', 'previous', 'actual']].to_string(index=False)
-                
-                prompt_data = f"""
-                Bạn là một chuyên gia phân tích kinh tế vĩ mô đỉnh cao và là một chiến lược gia giao dịch Vàng (XAU/USD) lão luyện.
-                Dưới đây là danh sách toàn bộ các sự kiện lịch kinh tế ảnh hưởng đến đồng USD tuần này:
-                {calendar_text}
-
-                Nhiệm vụ của bạn:
-                1. Hãy lọc ra các tin tức tác động mạnh nhất (High Impact) như CPI, Lãi suất, Bảng lương phi nông nghiệp.
-                2. Phân tích kịch bản thực chiến chi tiết cho từng tin lớn:
-                   - Nếu Số liệu Thực tế > Dự báo: Đồng USD sẽ biến động ra sao? Giá Vàng sẽ TĂNG hay GIẢM? Chiến lược giao dịch cụ thể thế nào?
-                   - Nếu Số liệu Thực tế < Dự báo: Đồng USD biến động ra sao? Giá Vàng sẽ TĂNG hay GIẢM?
-                3. Đưa ra lời khuyên quản trị rủi ro tổng quan cho học viên khi thực hiện giao dịch trong tuần có nhiều tin vĩ mô lớn này.
-
-                Yêu cầu trình bày: Chia rõ ràng các đề mục lớn bằng dấu gạch đầu dòng, viết đậm các từ khóa quan trọng (MUA, BÁN, TĂNG, GIẢM), ngôn từ ngắn gọn, đanh thép, chuẩn văn phong thực chiến vĩ mô.
-                """
-
-                # Khởi tạo Client Gemini theo cú pháp thư viện google-genai mới nhất của bạn
-                import os
-                if "GEMINI_API_KEY" in st.secrets:
-                    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
-                else:
-                    api_key = os.environ.get("GEMINI_API_KEY")
-                    if api_key:
-                        client = genai.Client(api_key=api_key)
-                    else:
-                        client = genai.Client()
-
-                response = client.models.generate_content(
-                    model='gemini-2.5-flash',
-                    contents=prompt_data,
-                )
-
-                # Hiển thị bài báo cáo phân tích đỉnh cao từ AI ra màn hình
-                st.success("🎯 Đã hoàn thành báo cáo phân tích kịch bản vĩ mô!")
-                st.info(f"📋 **Thông tin hệ thống:** Bộ não AI đã đọc tổng cộng {len(df_cal)} tin tức vĩ mô đang chạy để đưa ra nhận định.")
-                st.markdown(response.text)
-
-            except Exception as e:
-                st.error(f"❌ Không thể kết nối với bộ não AI. Lỗi: {str(e)}")
-                st.warning("💡 Mẹo: Hãy đảm bảo bạn đã điền chính xác mã `GEMINI_API_KEY` vào mục Advanced Settings -> Secrets trên bảng điều khiển Streamlit Cloud của bạn.")
+        st.warning("⚠️ Không thể kết nối tới luồng XML của ForexFactory hoặc tuần này không có tin USD nào. Hệ thống sẽ tự quét lại sau 30 giây.")
