@@ -1289,3 +1289,42 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     components.html(tradingview_chart_html, height=460, scrolling=False)
 
     st.markdown("---")
+
+//@version=5
+indicator("Bot Thuật Toán Tín Hiệu Thực Chiến XAU/USD", overlay=true)
+
+// 1. KHAI BÁO CÔNG THỨC TOÁN HỌC CHUẨN CHO THUẬT TOÁN
+src = close
+ma20 = ta.sma(src, 20)
+rsiVal = ta.rsi(src, 14)
+
+// Tính toán MACD chuẩn (12, 26, 9)
+[macdLine, signalLine, _] = ta.macd(src, 12, 26, 9)
+
+// Vẽ đường xu hướng MA20 lên biểu đồ để người học dễ nhìn
+plot(ma20, color=color.blue, title="Đường xu hướng MA20", width=2)
+
+// 2. ĐỊNH NGHĨA LOGIC THUẬT TOÁN ĐỂ ĐƯA RA KẾT LUẬN
+buySignal = (rsiVal < 30) and (src > ma20)
+sellSignal = (rsiVal > 70) and (src < ma20)
+
+// 3. ĐƯA KẾT LUẬN TÍN HIỆU TRỰC TIẾP LÊN MÀN HÌNH BIỂU ĐỒ (LIÊN KẾT 100%)
+// Nếu thỏa mãn thuật toán MUA, găm một hình tam giác màu xanh dưới cây nến kèm chữ MUA
+plotshape(series=buySignal, title="Tín hiệu MUA", style=shape.triangleup, 
+          location=location.belowbar, color=color.green, size=size.normal, text="MUA (BUY)")
+
+// Nếu thỏa mãn thuật toán BÁN, găm một hình tam giác màu đỏ trên cây nến kèm chữ BÁN
+plotshape(series=sellSignal, title="Tín hiệu BÁN", style=shape.triangledown, 
+          location=location.abovebar, color=color.red, size=size.normal, text="BÁN (SELL)")
+
+// Hiển thị trạng thái số liệu RSI và MACD thời gian thực ngay trên góc biểu đồ
+var table infoTable = table.new(position = position.top_right, columns = 2, rows = 3, bgcolor = color.new(color.black, 20), border_width = 1)
+if barstate.islast
+    table.cell(infoTable, 0, 0, "Chỉ báo", text_color=color.white)
+    table.cell(infoTable, 1, 0, "Giá trị Live", text_color=color.white)
+    
+    table.cell(infoTable, 0, 1, "RSI (14)", text_color=color.gray)
+    table.cell(infoTable, 1, 1, str.tostring(rsiVal, "#.##"), text_color = rsiVal > 70 ? color.red : (rsiVal < 30 ? color.green : color.orange))
+    
+    table.cell(infoTable, 0, 2, "MACD", text_color=color.gray)
+    table.cell(infoTable, 1, 2, str.tostring(macdLine, "#.##"), text_color = macdLine > 0 ? color.green : color.red)
