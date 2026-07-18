@@ -1290,41 +1290,27 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
 
     st.markdown("---")
 
-//@version=5
-indicator("Bot Thuật Toán Tín Hiệu Thực Chiến XAU/USD", overlay=true)
+    # =========================================================================
+    # PHẦN 2: BOT THUẬT TOÁN TỰ ĐỘNG ĐỌC CHỈ SỐ & PHÁT TÍN HIỆU THỰC CHIẾN (ĐỒNG BỘ 100%)
+    # =========================================================================
+    st.markdown("---")
+    st.subheader("🤖 2. Bot Thuật Toán Phân Tích & Phát Tín Hiệu Tự Động")
+    st.caption("Bot tự động quét RSI, MACD, MA trực tiếp từ máy chủ OANDA quốc tế - Khớp dữ liệu tuyệt đối với biểu đồ trên")
 
-// 1. KHAI BÁO CÔNG THỨC TOÁN HỌC CHUẨN CHO THUẬT TOÁN
-src = close
-ma20 = ta.sma(src, 20)
-rsiVal = ta.rsi(src, 14)
-
-// Tính toán MACD chuẩn (12, 26, 9)
-[macdLine, signalLine, _] = ta.macd(src, 12, 26, 9)
-
-// Vẽ đường xu hướng MA20 lên biểu đồ để người học dễ nhìn
-plot(ma20, color=color.blue, title="Đường xu hướng MA20", width=2)
-
-// 2. ĐỊNH NGHĨA LOGIC THUẬT TOÁN ĐỂ ĐƯA RA KẾT LUẬN
-buySignal = (rsiVal < 30) and (src > ma20)
-sellSignal = (rsiVal > 70) and (src < ma20)
-
-// 3. ĐƯA KẾT LUẬN TÍN HIỆU TRỰC TIẾP LÊN MÀN HÌNH BIỂU ĐỒ (LIÊN KẾT 100%)
-// Nếu thỏa mãn thuật toán MUA, găm một hình tam giác màu xanh dưới cây nến kèm chữ MUA
-plotshape(series=buySignal, title="Tín hiệu MUA", style=shape.triangleup, 
-          location=location.belowbar, color=color.green, size=size.normal, text="MUA (BUY)")
-
-// Nếu thỏa mãn thuật toán BÁN, găm một hình tam giác màu đỏ trên cây nến kèm chữ BÁN
-plotshape(series=sellSignal, title="Tín hiệu BÁN", style=shape.triangledown, 
-          location=location.abovebar, color=color.red, size=size.normal, text="BÁN (SELL)")
-
-// Hiển thị trạng thái số liệu RSI và MACD thời gian thực ngay trên góc biểu đồ
-var table infoTable = table.new(position = position.top_right, columns = 2, rows = 3, bgcolor = color.new(color.black, 20), border_width = 1)
-if barstate.islast
-    table.cell(infoTable, 0, 0, "Chỉ báo", text_color=color.white)
-    table.cell(infoTable, 1, 0, "Giá trị Live", text_color=color.white)
+    # Gọi trực tiếp qua thẻ iframe sạch từ máy chủ ://tradingview.com
+    # Khóa cứng mã sản phẩm OANDA:XAUUSD đồng bộ với biểu đồ nến phía trên
+    # Giao diện tối màu (theme=dark) và ngôn ngữ Tiếng Việt (locale=vi) giúp học viên dễ học
+    tradingview_bot_iframe = """
+    <iframe 
+        src="https://://tradingview.com/embed-widget/technical-analysis/?v=1&symbol=OANDA%3AXAUUSD&interval=1m&theme=dark&locale=vi" 
+        width="100%" 
+        height="380" 
+        frameborder="0" 
+        allowtransparency="true" 
+        scrolling="no" 
+        style="box-sizing: border-box; border-radius: 8px; border: 1px solid #374151;">
+    </iframe>
+    """
     
-    table.cell(infoTable, 0, 1, "RSI (14)", text_color=color.gray)
-    table.cell(infoTable, 1, 1, str.tostring(rsiVal, "#.##"), text_color = rsiVal > 70 ? color.red : (rsiVal < 30 ? color.green : color.orange))
-    
-    table.cell(infoTable, 0, 2, "MACD", text_color=color.gray)
-    table.cell(infoTable, 1, 2, str.tostring(macdLine, "#.##"), text_color = macdLine > 0 ? color.green : color.red)
+    # Hiển thị trực tiếp lên màn hình Streamlit (Chiều cao 390px rộng rãi, không bị che chữ)
+    components.html(tradingview_bot_iframe, height=390, scrolling=False)
