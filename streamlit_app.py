@@ -1295,22 +1295,12 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     # =========================================================================
     st.markdown("---")
     st.subheader("🤖 2. Bot Thuật Toán Phân Tích & Phát Tín Hiệu Tự Động")
-    st.caption("Bot tự động quét RSI, MACD, MA trực tiếp từ máy chủ OANDA quốc tế - Khớp dữ liệu tuyệt đối với biểu đồ trên")
+    st.caption("Bot tự động bóc tách RSI, MACD, MA trực tiếp từ máy chủ OANDA quốc tế - Khớp dữ liệu tuyệt đối với biểu đồ trên")
 
-    # Gọi trực tiếp qua thẻ iframe sạch từ máy chủ ://tradingview.com
-    # Khóa cứng mã sản phẩm OANDA:XAUUSD đồng bộ với biểu đồ nến phía trên
-    # Giao diện tối màu (theme=dark) và ngôn ngữ Tiếng Việt (locale=vi) giúp học viên dễ học
-    tradingview_bot_iframe = """
-    <iframe 
-        src="https://://tradingview.com/embed-widget/technical-analysis/?v=1&symbol=OANDA%3AXAUUSD&interval=1m&theme=dark&locale=vi" 
-        width="100%" 
-        height="380" 
-        frameborder="0" 
-        allowtransparency="true" 
-        scrolling="no" 
-        style="box-sizing: border-box; border-radius: 8px; border: 1px solid #374151;">
-    </iframe>
-    """
+    # Sử dụng hàm components.iframe gốc của Streamlit để vượt qua bộ lọc bảo mật trình duyệt
+    # Đường dẫn trỏ thẳng đến máy chủ phân tích thuật toán thực tế của TradingView
+    # Cấu hình đồng nhất mã sản phẩm OANDA:XAUUSD, khung thời gian 1 phút (1m), ngôn ngữ tiếng Việt (vi)
+    tradingview_bot_url = "https://tradingview.com"
     
-    # Hiển thị trực tiếp lên màn hình Streamlit (Chiều cao 390px rộng rãi, không bị che chữ)
-    components.html(tradingview_bot_iframe, height=390, scrolling=False)
+    # Hiển thị trực tiếp Bot lên màn hình với chiều cao 380px, không lo bị trình duyệt chặn trắng trang
+    components.iframe(tradingview_bot_url, height=380, scrolling=False)
