@@ -1304,7 +1304,7 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
         <div class="tradingview-widget-container" style="width: 100%; height: 100%;">
             <div class="tradingview-widget-container__widget"></div>
             <!-- SỬA LỖI 1: Thay tv.js bằng thư viện chuyên dụng cho bảng tóm tắt chỉ báo -->
-            <script type="text/javascript" src="https://tradingview.com" async>
+            <script type="text/javascript" src="https://s3.tradingview.com/tv.js" async>
             {
                 "interval": "1m",
                 "width": "100%",
