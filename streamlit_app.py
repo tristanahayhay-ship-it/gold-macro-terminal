@@ -1256,17 +1256,16 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     st.title("🛠️ Phân Tích Kỹ Thuật & Giả Lập Giao Dịch XAU/USD")
     st.subheader("📊 Bảng dữ liệu và chỉ số kỹ thuật thực tế 100% (Nguồn: TradingView)")
 
-    # Mã nhúng Widget phân tích kỹ thuật chuẩn xác tuyệt đối của TradingView
-    # Dữ liệu chạy trực tiếp từ máy chủ sàn OANDA quốc tế về trình duyệt người dùng
-    # Không qua tính toán Python, không bị lỗi mô hình, không bị sai lệch giá
+    # Đã sửa lỗi: Khóa cứng màu nền tối #111827 trùng khớp với theme config.toml của bạn
+    # Đã chuyển "isTransparent" thành false để ép widget vẽ chữ trắng trên nền tối
     tradingview_market_html = """
-    <div class="tradingview-widget-container" style="width: 100%; height: 400px; background-color: #0b0f19;">
-        <div class="tradingview-widget-container__widget"></div>
+    <div class="tradingview-widget-container" style="width: 100%; height: 400px; background-color: #111827; border-radius: 8px; overflow: hidden; border: 1px solid #374151;">
+        <div class="tradingview-widget-container__widget" style="width: 100%; height: 100%;"></div>
         <script type="text/javascript" src="https://tradingview.com" async>
         {
             "interval": "1m",
             "width": "100%",
-            "isTransparent": true,
+            "isTransparent": false,
             "height": "100%",
             "symbol": "OANDA:XAUUSD",
             "showIntervalTabs": true,
@@ -1278,8 +1277,8 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     </div>
     """
     
-    # Hiển thị trực tiếp bảng số liệu lên giao diện Streamlit (Chiều cao 400px vừa vặn)
-    components.html(tradingview_market_html, height=410, scrolling=False)
+    # Hiển thị trực tiếp bảng số liệu lên giao diện Streamlit
+    components.html(tradingview_market_html, height=420, scrolling=False)
 
     st.markdown("---")
     
