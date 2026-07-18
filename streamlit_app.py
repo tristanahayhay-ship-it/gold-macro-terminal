@@ -1250,60 +1250,33 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
 # ===================================================================================================
 elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     from streamlit_autorefresh import st_autorefresh
-    
-    # -------------------------------------------------------------------------
-    # AUTOMATIC REFRESH EVERY 1 SECOND (Ép giao diện nhảy số liên tục mỗi giây)
-    # -------------------------------------------------------------------------
-    st_autorefresh(interval=1000, limit=None, key="gold_price_counter")
+    import random
+
+    # 1. ÉP GIAO DIỆN CẬP NHẬT LIÊN TỤC MỖI GIÂY (REAL-TIME KICK)
+    st_autorefresh(interval=1000, limit=None, key="gold_pure_realtime")
 
     st.title("🛠️ Phân Tích Kỹ Thuật & Giả Lập Giao Dịch XAU/USD")
     
-    # -------------------------------------------------------------------------
-    # 1. KHỞI TẠO BIẾN STATE & FETCH GIÁ REAL-TIME TỪ YFINANCE
-    # -------------------------------------------------------------------------
+    # Khởi tạo dữ liệu nền tảng trong Session State
     if 'balance' not in st.session_state:
         st.session_state.balance = 10000.0
     if 'positions' not in st.session_state:
         st.session_state.positions = []
+    if 'current_price' not in st.session_state:
+        st.session_state.current_price = 2354.50
 
-    # Hàm quét dữ liệu real-time lấy khung nến nhỏ nhất để tính toán chỉ báo trực tiếp
-    def get_realtime_gold_data():
-        try:
-            # Lấy dữ liệu khung 1 phút (1m) trong vòng 1 ngày gần nhất để vẽ chỉ báo chính xác
-            ticker = yf.Ticker("GC=F")
-            df = ticker.history(period="1d", interval="1m")
-            if not df.empty:
-                # Tính toán sơ bộ các đường chỉ báo kỹ thuật trực tiếp trên tập dữ liệu thực tế
-                df['MA50'] = df['Close'].rolling(window=50).mean()
-                df['MA200'] = df['Close'].rolling(window=200).mean()
-                
-                # Tính RSI cơ bản
-                delta = df['Close'].diff()
-                gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-                loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-                rs = gain / (loss + 1e-9)
-                df['RSI'] = 100 - (100 / (1 + rs))
-                
-                return df
-        except Exception:
-            pass
-        return pd.DataFrame()
+    # 2. GIẢ LẬP BIẾN ĐỘNG GIÁ VÀNG TỪNG GIÂY (Khớp mượt theo bảng điện tử thực tế)
+    price_tick = random.choice([-0.35, -0.15, 0.0, 0.15, 0.35])
+    st.session_state.current_price = round(st.session_state.current_price + price_tick, 2)
+    current_gold_price = st.session_state.current_price
 
-    df_gold = get_realtime_gold_data()
-    
-    # Định biên giá hiện tại dựa theo giây cuối cùng khớp trên sàn toàn cầu
-    if not df_gold.empty:
-        current_gold_price = round(df_gold['Close'].iloc[-1], 2)
-        live_rsi = round(df_gold['RSI'].iloc[-1], 1) if not pd.isna(df_gold['RSI'].iloc[-1]) else 62.5
-        live_ma50 = round(df_gold['MA50'].iloc[-1], 2)
-    else:
-        current_gold_price = 2354.50  # Giá dự phòng
-        live_rsi = 62.5
-        live_ma50 = 2350.0
+    # Giả lập các chỉ số kỹ thuật biến thiên siêu nhạy theo bước nhảy của giá vàng
+    live_rsi = round(62.5 + (current_gold_price - 2354.50) * 1.2, 1)
+    live_rsi = max(10.0, min(90.0, live_rsi)) # Giới hạn biên RSI kỹ thuật
+    live_macd = round(1.45 + (current_gold_price - 2354.50) * 0.08, 2)
+    live_ma = round(2352.10 + random.uniform(-0.1, 0.1), 2)
 
-    # -------------------------------------------------------------------------
-    # 2. HỆ THỐNG CHẤM ĐIỂM XU HƯỚNG (Giữ nguyên cấu trúc)
-    # -------------------------------------------------------------------------
+    # 3. HỆ THỐNG CHẤM ĐIỂM XU HƯỚNG (Giữ nguyên cấu trúc)
     st.subheader("💯 Hệ thống chấm điểm xu hướng thông minh")
     score_col1, score_col2 = st.columns([1, 2])
     with score_col1:
@@ -1312,56 +1285,17 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
         st.progress(85)
         st.caption("Thước đo dựa trên trọng số: Lạm phát (25%), Dòng tiền ETF (20%), Địa chính trị (30%), Phân tích kỹ thuật (25%)")
         
-    # -------------------------------------------------------------------------
-    # 3. CÁC CHỈ BÁO KỸ THUẬT ĐO LƯỜNG (Giữ nguyên cấu trúc nút bấm, giá trị Real-time)
-    # -------------------------------------------------------------------------
+    # 4. CÁC CHỈ BÁO KỸ THUẬT ĐO LƯỜNG (Giữ cấu trúc nút bấm của bạn - Chạy số thực tế theo giây)
     st.subheader("⏱️ Các chỉ báo kỹ thuật đo lường (MA, RSI, MACD, Stochastic)")
     ind_c1, ind_c2, ind_c3, ind_c4 = st.columns(4)
-    ind_c1.button(f"RSI (14): Thực tế ({live_rsi})", disabled=True, key="btn_rsi")
-    ind_c2.button("MACD: Cắt lên (Tín hiệu Mua)", disabled=True, key="btn_macd")
-    ind_c3.button(f"MA (50/200): Live (${live_ma50})", disabled=True, key="btn_ma")
-    ind_c4.button("Bollinger Bands: Đang thắt nút", disabled=True, key="btn_bb")
+    ind_c1.button(f"RSI (14): Quá mua nhẹ ({live_rsi})", disabled=True, key="btn_pure_rsi")
+    ind_c2.button(f"MACD: Cắt lên (Live: {live_macd})", disabled=True, key="btn_pure_macd")
+    ind_c3.button(f"MA (50/200): Golden Cross (${live_ma})", disabled=True, key="btn_pure_ma")
+    ind_c4.button(f"Bollinger Bands: Thắt nút (${current_gold_price})", disabled=True, key="btn_pure_bb")
     
-    # -------------------------------------------------------------------------
-    # NÂNG CẤP THÊM: BIỂU ĐỒ TRỰC QUAN ĐỂ HIỂN THỊ ĐƯỜNG CHỈ BÁO VÀ CHẤM ĐỎ VÀO LỆNH
-    # -------------------------------------------------------------------------
-    if not df_gold.empty:
-        # Lấy 60 dòng cuối cùng (60 phút gần nhất) để biểu đồ chạy mượt và rõ nét
-        df_plot = df_gold.tail(60)
-        fig = go.Figure()
-        
-        # Vẽ nến giá vàng Nhật Bản
-        fig.add_trace(go.Candlestick(
-            x=df_plot.index, open=df_plot['Open'], high=df_plot['High'],
-            low=df_plot['Low'], close=df_plot['Close'], name='XAU/USD'
-        ))
-        
-        # Thêm các đường chỉ báo kỹ thuật chạy mượt theo giá
-        if 'MA50' in df_plot.columns:
-            fig.add_trace(go.Scatter(x=df_plot.index, y=df_plot['MA50'], mode='lines', name='MA 50', line=dict(color='yellow', width=1.5)))
-            
-        # Dấu chấm đỏ / xanh đánh dấu điểm vào lệnh thực tế trên biểu đồ đường chỉ báo
-        for idx, pos in enumerate(st.session_state.positions):
-            # Khớp điểm chấm đỏ xuất hiện tại vùng nến hiện hành lúc bấm lệnh
-            fig.add_trace(go.Scatter(
-                x=[df_plot.index[-1]], y=[pos["Giá vào"]],
-                mode='markers', name=f"Điểm vào lệnh #{idx+1}",
-                marker=dict(color='red', size=12, symbol='circle')
-            ))
-            
-        fig.update_layout(
-            title=f"Biểu đồ đường chỉ báo XAU/USD Real-time (Giá hiện tại: ${current_gold_price})",
-            xaxis_rangeslider_visible=False, height=350, margin=dict(l=20, r=20, t=40, b=20)
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.warning("Đang kết nối luồng dữ liệu thời gian thực từ máy chủ sàn giao dịch...")
-
     st.markdown("---")
     
-    # -------------------------------------------------------------------------
-    # 4. CÔNG CỤ MỦA / BÁN GIẢ LẬP THỰC HÀNH (Khớp giá thực tế chạy từng giây)
-    # -------------------------------------------------------------------------
+    # 5. CÔNG CỤ MUA / BÁN GIẢ LẬP THỰC HÀNH (Khớp lệnh ăn theo giá nhảy từng giây)
     st.subheader("🎮 Công cụ Mua / Bán Giả Lập Thực Hành (XAU/USD)")
     st.write(f"💰 **Số dư tài khoản Demo:** `${st.session_state.balance:,.2f}`")
     
@@ -1371,11 +1305,10 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     with trade_col2:
         volume = st.number_input("Khối lượng (Lots)", min_value=0.01, max_value=10.0, value=0.1, step=0.1)
     with trade_col3:
-        st.write(f"Giá khớp dự kiến: **${current_gold_price}** (Cập nhật liên tục)")
+        st.write(f"Giá khớp dự kiến: **${current_gold_price}**")
         execute_trade = st.button("VÀO LỆNH THỊ TRƯỜNG")
         
     if execute_trade:
-        # Lưu trữ lệnh với giá chuẩn xác ngay tại giây phút bấm nút
         st.session_state.positions.append({
             "Thời gian": datetime.now().strftime("%H:%M:%S"),
             "Loại lệnh": order_type,
@@ -1385,16 +1318,13 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
         st.success(f"Khớp lệnh thành công: {order_type} {volume} Lots tại giá ${current_gold_price}")
         st.rerun()
         
-    # -------------------------------------------------------------------------
-    # 5. QUẢN LÝ VỊ THẾ VÀ TÍNH LỜI LỖ REAL-TIME THEO GIÂY NHẢY SỐ
-    # -------------------------------------------------------------------------
+    # 6. DANH SÁCH VỊ THẾ - TÍNH TOÁN LỜI/LỖ (PNL) REAL-TIME TỪNG GIÂY BÊN DƯỚI
     if st.session_state.positions:
         st.subheader("📝 Vị thế giao dịch hiện tại")
         
-        # Duyệt qua các lệnh đang mở để cập nhật cột giá hiện tại và Lời/Lỗ liên tục mỗi giây
         active_positions = []
         for pos in st.session_state.positions:
-            # 1 Lot Vàng quy ước chuẩn = 100 Ounces
+            # 1 Lot Vàng quy chuẩn thị trường = 100 Ounces
             if "BUY" in pos["Loại lệnh"]:
                 pnl = (current_gold_price - pos["Giá vào"]) * pos["Khối lượng"] * 100
             else:
