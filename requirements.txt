@@ -7,3 +7,4 @@ requests
 google-genai
 ccxt
 streamlit-autorefresh
+ta
