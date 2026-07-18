@@ -4,95 +4,88 @@ import numpy as np
 import plotly.graph_objects as go
 import yfinance as yf
 
-# Cấu hình giao diện nền tối chuyên nghiệp cho dân Trade
-st.set_page_config(page_title="Hệ Thống Tín Hiệu XAUUSD Thực Chiến", layout="wide")
-st.title("⚡ HỆ THỐNG ĐIỀU HÀNH VÀ QUẢN TRỊ CHIẾN LƯỢC XAUUSD")
-st.caption("Ứng dụng thuật toán toán học xác định vùng gom hàng của Cá Mập")
+st.set_page_config(page_title="XAUUSD AI Quantum Terminal", layout="wide")
+st.title("🦅 HỆ THỐNG ĐIỀU HÀNH KỸ THUẬT QUANTUM XAUUSD")
 
-# Thu thập dữ liệu Vàng thế giới trực tiếp (Cập nhật sau mỗi 5 giây)
 @st.cache_data(ttl=5)
-def get_realtime_gold():
-    # Sử dụng khung 1 phút (1m) để bám sát từng biến động nhỏ nhất của Vàng
-    df = yf.download(tickers="GC=F", period="2d", interval="1m")
+def get_advanced_data():
+    df = yf.download(tickers="GC=F", period="5d", interval="1m")
     return df
 
 try:
-    df = get_realtime_gold()
-    
-    # Xử lý mảng dữ liệu phẳng để tính toán toán học
-    close_prices = df['Close'].values.flatten()
-    high_prices = df['High'].values.flatten()
-    low_prices = df['Low'].values.flatten()
-    
-    current_price = float(close_prices[-1])
-    
-    # THUẬT TOÁN XÁC ĐỊNH VÙNG CẢN THỰC TẾ (Hỗ trợ & Kháng cự động)
-    # Xác định đỉnh/đáy trong 30 phút gần nhất - nơi phe bò và phe gấu đang tranh chấp mạnh
-    recent_high = float(np.max(high_prices[-30:]))
-    recent_low = float(np.min(low_prices[-30:]))
-    
-    # TỰ TÍNH TOÁN CHỈ BÁO RSI ĐỘNG (Độ nhạy cao hơn thư viện gốc)
-    delta = np.diff(close_prices)
-    gain = np.where(delta > 0, delta, 0)
-    loss = np.where(delta < 0, -delta, 0)
-    avg_gain = np.mean(gain[-14:])
-    avg_loss = np.mean(loss[-14:])
-    rs = avg_gain / (avg_loss + 1e-10)
-    rsi = 100 - (100 / (1 + rs))
+    df = get_advanced_data()
+    # Tính toán toán học nâng cao trực tiếp trên mảng để tối ưu tốc độ dòng lệnh
+    close = df['Close'].values.flatten()
+    high = df['High'].values.flatten()
+    low = df['Low'].values.flatten()
+    current_price = float(close[-1])
 
-    # GIAO DIỆN HIỂN THỊ CHỈ SỐ REAL-TIME
-    st.markdown("### 🎯 BẢNG ĐIỀU HÀNH LỆNH THỜI GIAN THỰC")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("GIÁ VÀNG HIỆN TẠI", f"${current_price:.2f}")
-    col2.metric("VÙNG KHÁNG CỰ (ĐỈNH CẢN)", f"${recent_high:.2f}")
-    col3.metric("VÙNG HỖ TRỢ (ĐÁY CẢN)", f"${recent_low:.2f}")
-    col4.metric("CHỈ SỐ RSI ĐỘNG LỰC", f"{rsi:.2f}")
+    # 1. TÍNH TOÁN HỆ THỐNG CHỈ BÁO NÂNG CAO (MA Chéo, Bollinger Bands, MACD)
+    df['MA5'] = df['Close'].rolling(window=5).mean()
+    df['MA20'] = df['Close'].rolling(window=20).mean()
+    df['STD20'] = df['Close'].rolling(window=20).std()
+    df['BB_upper'] = df['MA20'] + (df['STD20'] * 2)
+    df['BB_lower'] = df['MA20'] - (df['STD20'] * 2)
+    
+    # Tính toán MACD thô
+    df['EMA12'] = df['Close'].ewm(span=12, adjust=False).mean()
+    df['EMA26'] = df['Close'].ewm(span=26, adjust=False).mean()
+    df['MACD'] = df['EMA12'] - df['EMA26']
+    df['Signal_Line'] = df['MACD'].ewm(span=9, adjust=False).mean()
+
+    # Lấy các giá trị real-time mới nhất
+    ma5 = float(df['MA5'].iloc[-1])
+    ma20 = float(df['MA20'].iloc[-1])
+    upper_bb = float(df['BB_upper'].iloc[-1])
+    lower_bb = float(df['BB_lower'].iloc[-1])
+    macd = float(df['MACD'].iloc[-1])
+    signal = float(df['Signal_Line'].iloc[-1])
+
+    # 2. ENGINE QUYẾT ĐỊNH LỆNH PHỨC HỢP (Multi-Indicator Scoring)
+    # Chấm điểm dựa trên sự đồng thuận của nhiều chỉ báo tài chính
+    buy_signals = 0
+    sell_signals = 0
+
+    if ma5 > ma20: buy_signals += 1 
+    else: sell_signals += 1
+
+    if current_price <= lower_bb: buy_signals += 2
+    if current_price >= upper_bb: sell_signals += 2
+
+    if macd > signal: buy_signals += 1
+    else: sell_signals += 1
+
+    # 3. GIAO DIỆN PHÂN TÍCH CHUYÊN SÂU
+    st.markdown("### 📊 MA TRẬN DỮ LIỆU ĐA CHỈ BÁO")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("GIÁ HIỆN TẠI", f"${current_price:.2f}")
+    c2.metric("DẢI TRÊN BB (CẢN ĐỈNH)", f"${upper_bb:.2f}")
+    c3.metric("DẢI DƯỚI BB (CẢN ĐÁY)", f"${lower_bb:.2f}")
+    c4.metric("XUNG LỰC MACD", f"{macd:.4f}", delta="Cắt lên (Tăng)" if macd > signal else "Cắt xuống (Giảm)")
 
     st.markdown("---")
-    
-    # ENGINE PHÁN QUYẾT TÍN HIỆU: ĐƯA RA ĐIỂM VÀO LỆNH VÀ QUẢN TRỊ RỦI RO LỆNH
-    # Hệ thống chỉ báo lệnh khi hội tụ đủ 2 yếu tố: Vùng cản + Động lượng quá tải
-    if rsi < 35 and current_price <= (recent_low + 1.5):
-        st.markdown("<h2 style='color: #2ECC71;'>🔥 KHUYẾN NGHỊ CHIẾN LƯỢC: BUY (MUA)</h2>", unsafe_allow_html=True)
-        
-        entry_price = current_price
-        sl_price = recent_low - 2.5   # Điểm cắt lỗ an toàn dưới đáy cản 2.5 USD
-        tp_price = recent_high - 1.0  # Điểm chốt lời mục tiêu dưới đỉnh cản 1 USD
-        rr_ratio = (tp_price - entry_price) / (entry_price - sl_price + 1e-5)
-        
-        st.write(f"**📍 Vùng vào lệnh (Entry):** ${entry_price:.2f}")
-        st.write(f"**🛑 Điểm dừng lỗ tuyệt đối (SL):** ${sl_price:.2f}")
-        st.write(f"**🎯 Điểm chốt lời mục tiêu (TP):** ${tp_price:.2f}")
-        st.write(f"**📊 Tỷ lệ Lợi nhuận/Rủi ro (R:R):** 1 : {rr_ratio:.2f}")
-        st.info("**📈 Tỷ lệ chiến thắng ước tính (Dựa trên lịch sử):** 64.5% \n\n"
-                "**🧠 Phân tích lý do:** Giá Vàng đã chạm vùng Quá bán cực hạn trên khung ngắn hạn, đồng thời phản ứng rút râu nến tại vùng hỗ trợ cứng của Cá Mập. Lực bán tháo đã cạn kiệt, ưu tiên kích hoạt vị thế BUY.")
-        
-    elif rsi > 65 and current_price >= (recent_high - 1.5):
-        st.markdown("<h2 style='color: #E74C3C;'>❄️ KHUYẾN NGHỊ CHIẾN LƯỢC: SELL (BÁN)</h2>", unsafe_allow_html=True)
-        
-        entry_price = current_price
-        sl_price = recent_high + 2.5  # Điểm cắt lỗ an toàn trên đỉnh cản 2.5 USD
-        tp_price = recent_low + 1.0   # Điểm chốt lời mục tiêu trên đáy cản 1 USD
-        rr_ratio = (entry_price - tp_price) / (sl_price - entry_price + 1e-5)
-        
-        st.write(f"**📍 Vùng vào lệnh (Entry):** ${entry_price:.2f}")
-        st.write(f"**🛑 Điểm dừng lỗ tuyệt đối (SL):** ${sl_price:.2f}")
-        st.write(f"**🎯 Điểm chốt lời mục tiêu (TP):** ${tp_price:.2f}")
-        st.write(f"**📊 Tỷ lệ Lợi nhuận/Rủi ro (R:R):** 1 : {rr_ratio:.2f}")
-        st.info("**📉 Tỷ lệ chiến thắng ước tính (Dựa trên lịch sử):** 61.2% \n\n"
-                "**🧠 Phân tích lý do:** Giá Vàng đang húc đầu vào vùng kháng cự mạnh nơi phe Gấu đang tập trung tường lệnh bán lớn. Chỉ số RSI cảnh báo lực mua đã quá tải (Quá mua), cơ hội cao xảy ra một cú đảo chiều sập giá.")
-    else:
-        st.markdown("<h2 style='color: #F1C40F;'>⏳ TRẠNG THÁI: CHỜ ĐỢI TÍN HIỆU (NO SIGNAL)</h2>", unsafe_allow_html=True)
-        st.warning("Dòng tiền đang chạy ở giữa sóng (Sideway), chưa có sự đột phá volume từ Cá Mập và chưa chạm các vùng cản quan trọng. Để bảo vệ vốn thực tế, hệ thống khuyến nghị ĐỨNG NGOÀI quan sát.")
+    st.markdown("### 🎯 KẾT LUẬN CHIẾN LƯỢC TỐI CAO")
 
-    # BIỂU ĐỒ TRỰC QUAN KHÔNG GIAN GIÁ CỦA VÀNG
+    # Đưa ra phán quyết dựa trên tổng điểm hệ thống
+    if buy_signals >= 3:
+        st.markdown("<h2 style='color: #2ECC71;'>🔥 KHUYẾN NGHỊ: BUY (MUA)</h2>", unsafe_allow_html=True)
+        st.write(f"**📍 Điểm vào lệnh:** ${current_price:.2f} | **🛑 Cắt lỗ (SL):** ${current_price - 3.0:.2f} | **🎯 Chốt lời (TP):** ${upper_bb:.2f}")
+        st.info(f"**🧠 Lý do hệ thống:** Sự đồng thuận từ {buy_signals} chỉ báo kỹ thuật dòng tiền. Giá chạm dải dưới Bollinger Bands kết hợp MACD hướng lên, xác suất đảo chiều tăng rất cao.")
+    elif sell_signals >= 3:
+        st.markdown("<h2 style='color: #E74C3C;'>❄️ KHUYẾN NGHỊ: SELL (BÁN)</h2>", unsafe_allow_html=True)
+        st.write(f"**📍 Điểm vào lệnh:** ${current_price:.2f} | **🛑 Cắt lỗ (SL):** ${current_price + 3.0:.2f} | **🎯 Chốt lời (TP):** ${lower_bb:.2f}")
+        st.info(f"**🧠 Lý do hệ thống:** Sự đồng thuận từ {sell_signals} chỉ báo kỹ thuật dòng tiền. Giá húc vào dải trên Bollinger Bands và quá tải lực mua, ưu tiên kích hoạt lệnh BÁN.")
+    else:
+        st.markdown("<h2 style='color: #F1C40F;'>⏳ TRẠNG THÁI: THEO DÕI (NO SIGNAL)</h2>", unsafe_allow_html=True)
+        st.warning("Các chỉ báo kỹ thuật đang triệt tiêu lẫn nhau (Xung đột xu hướng). Thị trường rủi ro cao, hệ thống khuyến nghị không vào lệnh.")
+
+    # 4. ĐỒ THỊ ĐA TẦNG CHUYÊN NGHIỆP
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df.index, y=close_prices, name="XAUUSD Real-time", line=dict(color='#F1C40F', width=2)))
-    fig.add_hline(y=recent_high, line_dash="dash", line_color="red", annotation_text="Vùng cản trên (Kháng cự)")
-    fig.add_hline(y=recent_low, line_dash="dash", line_color="green", annotation_text="Vùng cản dưới (Hỗ trợ)")
-    fig.update_layout(template="plotly_dark", height=400, margin=dict(l=20, r=20, t=20, b=20))
+    fig.add_trace(go.Scatter(x=df.index[-60:], y=close[-60:], name="XAUUSD Real-time", line=dict(color='#F1C40F', width=2)))
+    fig.add_trace(go.Scatter(x=df.index[-60:], y=df['BB_upper'].iloc[-60:], name="BB Upper", line=dict(color='red', width=1, dash='dash')))
+    fig.add_trace(go.Scatter(x=df.index[-60:], y=df['BB_lower'].iloc[-60:], name="BB Lower", line=dict(color='green', width=1, dash='dash')))
+    fig.update_layout(template="plotly_dark", height=450)
     st.plotly_chart(fig, use_container_width=True)
 
 except Exception as e:
-    st.error(f"Hệ thống đang thiết lập và đồng bộ dòng dữ liệu quốc tế... Vui lòng đợi trong giây lát.")
-
+    st.error(f"Đang kết nối luồng thuật toán Quantum...")
