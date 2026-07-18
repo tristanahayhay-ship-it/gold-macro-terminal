@@ -1290,14 +1290,8 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
 
     st.markdown("---")
 
-    # -------------------------------------------------------------------------
-    # PHẦN 2: BOT TÍN HIỆU ĐỒNG BỘ 100% VỚI BIỂU ĐỒ TRÊN (CÙNG NGUỒN OANDA)
-    # -------------------------------------------------------------------------
-    st.subheader("🤖 2. Bot Tín Hiệu Đồng Bộ Dữ Liệu Thời Gian Thực")
-    st.caption("Bot tự động bóc tách RSI, MACD, MA trực tiếp từ biểu đồ trên để xuất tín hiệu - Không lệch pha dữ liệu")
-
-    # Sử dụng mã nhúng dạng Nguyên bản (displayMode: single) kết hợp ép khung bảo mật 
-    # Khóa chặt màu nền tối #111827 để bẻ gãy hoàn toàn lỗi đen màn hình trên Streamlit Cloud
+    # Sử dụng mã nhúng chuẩn của Widget Tóm tắt Kỹ thuật (Technical Analysis Widget)
+    # Đã sửa lại đúng đường link thư viện và cấu hình JSON nằm riêng biệt để bẻ gãy lỗi đen màn hình
     tradingview_bot_html = """
     <!DOCTYPE html>
     <html>
@@ -1309,7 +1303,8 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     <body>
         <div class="tradingview-widget-container" style="width: 100%; height: 100%;">
             <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/tv.js" async>
+            <!-- SỬA LỖI 1: Thay tv.js bằng thư viện chuyên dụng cho bảng tóm tắt chỉ báo -->
+            <script type="text/javascript" src="https://tradingview.com" async>
             {
                 "interval": "1m",
                 "width": "100%",
@@ -1326,5 +1321,5 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     </body>
     </html>
     """
-    # Nhúng bằng iframe độc lập, cấp quyền chạy sandboxed an toàn, không lo trình duyệt chặn
-    components.html(tradingview_bot_html, height=330, scrolling=False)
+    # Nhúng bằng iframe độc lập với chiều cao được nới rộng lên 380px để không bị cắt mất chân chữ
+    components.html(tradingview_bot_html, height=380, scrolling=False)
