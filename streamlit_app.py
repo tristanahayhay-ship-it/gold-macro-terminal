@@ -1291,7 +1291,7 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     st.markdown("---")
 
     # =========================================================================
-    # PHẦN 2: THUẬT TOÁN TỰ ĐỘNG PHÁT TÍN HIỆU THEO THÔNG SỐ & MÀU SẮC VOLUME
+    # PHẦN 2: THUẬT TOÁN TỰ ĐỘNG PHÁT TÍN HIỆU - NÂNG CẤP BẮT ĐÁY/ĐỈNH THỰC CHIẾN
     # =========================================================================
     st.markdown("---")
     st.subheader("🤖 Bot Thuật Toán Phân Tích & Gợi Ý Tín Hiệu")
@@ -1314,7 +1314,6 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     with input_col5:
         current_gold_price = st.number_input("💵 Giá Vàng (XAU/USD) hiện tại trên biểu đồ ($)", min_value=0.0, value=2354.50, step=0.1)
     with input_col6:
-        # Ô CHỌN MÀU SẮC CỦA CỘT VOLUME THỰC TẾ TRÊN BIỂU ĐỒ
         volume_color = st.selectbox("🎨 Màu sắc cột Volume hiện tại", ["🟢 XANH (Lực mua chiếm ưu thế)", "🔴 ĐỎ (Lực bán chiếm ưu thế)"])
 
     # 2. BIỆN LUẬN THUẬT TOÁN ĐỂ ĐƯA RA KẾT LUẬN TÍN HIỆU CHÍNH XÁC
@@ -1325,37 +1324,27 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
         reason = f"Khối lượng Volume quá thấp ({user_volume}). Thị trường đang thiếu thanh khoản trầm trọng, dòng tiền lớn chưa nhập cuộc. Mọi tín hiệu Mua/Bán lúc này đều có độ nhiễu cao, khuyến nghị đứng ngoài để bảo toàn vốn."
     
     else:
-        # Bước 2: Khi Volume đủ lớn (> 2000), thuật toán xét sự đồng thuận giữa Chỉ báo và Màu Volume
+        # Bước 2: Khi Volume đủ lớn (> 2000), thuật toán xét sự đồng thuận theo đúng tư duy bắt Đáy/Đỉnh
         
-        # --- ĐIỀU KIỆN LỆNH MUA (BUY) ---
-        if user_rsi <= 35.0 and current_gold_price > user_ma20:
-            if "XANH" in volume_color:
-                signal = "MUA (BUY)"
-                color = "green"
-                reason = f"Chỉ số RSI ở vùng quá bán thấp ({user_rsi}) kết hợp giá nằm trên MA20. Đặc biệt, cột Volume có màu XANH với khối lượng lớn ({user_volume}) xác nhận phe Mua đang đổ tiền thật vào đẩy giá lên rất uy tín."
-            else:
-                # Bẫy tăng giá (Bull Trap) khi chỉ báo đẹp nhưng cây Volume lại màu Đỏ
-                signal = "ĐỨNG NGOÀI (WAIT)"
-                color = "orange"
-                reason = f"Mặc dù RSI ({user_rsi}) và giá có tín hiệu muốn tăng, nhưng cột Volume lại có màu ĐỎ ({user_volume}). Thuật toán cảnh báo đây là bẫy tăng giá (Bull Trap) do phe bán ép giá xuống ngầm. Khuyến nghị ĐỨNG NGOÀI."
+        # --- THUẬT TOÁN KÍCH HOẠT LỆNH MUA CHUẨN ĐÁY (BUY DIP) ---
+        # Điều kiện: RSI quá bán sâu VÀ Giá nằm dưới MA20 (thể hiện giảm sâu giảm giá) VÀ Cột Volume quay sang màu XANH (có lực cầu bắt đáy)
+        if user_rsi <= 35.0 and current_gold_price < user_ma20 and "XANH" in volume_color:
+            signal = "MUA (BUY)"
+            color = "green"
+            reason = f"🎯 ĐÃ XÁC NHẬN VÙNG ĐÁY! Chỉ số RSI lọt sâu vào vùng quá bán ({user_rsi}), biên độ giá chiết khấu nằm dưới đường MA20 (${user_ma20}). Sự xuất hiện của cột Volume màu XANH lớn ({user_volume}) xác nhận dòng tiền lớn (Cá mập) đã chính thức kích hoạt lệnh gom hàng bắt đáy thành công."
         
-        # --- ĐIỀU KIỆN LỆNH BÁN (SELL) ---
-        elif user_rsi >= 65.0 and current_gold_price < user_ma20:
-            if "ĐỎ" in volume_color:
-                signal = "BÁN (SELL)"
-                color = "red"
-                reason = f"Chỉ số RSI rơi vào vùng quá mua cao ({user_rsi}) kết hợp giá thủng MA20. Thêm vào đó, cột Volume màu ĐỎ lớn ({user_volume}) xác nhận áp lực tháo chạy và kích hoạt đà bán tháo thực tế từ các quỹ đầu tư lớn."
-            else:
-                # Bẫy giảm giá (Bear Trap) khi chỉ báo xấu nhưng cây Volume lại màu Xanh giữ giá
-                signal = "ĐỨNG NGOÀI (WAIT)"
-                color = "orange"
-                reason = f"Chỉ báo có xu hướng giảm, nhưng cột Volume lại xuất hiện màu XANH ({user_volume}) chứng tỏ đang có lực cầu bắt đáy đỡ giá phía dưới. Thuật toán nhận diện bẫy giảm giá (Bear Trap), khuyến nghị ĐỨNG NGOÀI."
+        # --- THUẬT TOÁN KÍCH HOẠT LỆNH BÁN CHUẨN ĐỈNH (SELL PEAK) ---
+        # Điều kiện: RSI quá mua cao VÀ Giá nằm trên MA20 (tăng quá nóng) VÀ Cột Volume quay sang màu ĐỎ (có áp lực xả hàng)
+        elif user_rsi >= 65.0 and current_gold_price > user_ma20 and "ĐỎ" in volume_color:
+            signal = "BÁN (SELL)"
+            color = "red"
+            reason = f"🎯 ĐÃ XÁC NHẬN VÙNG ĐỈNH! Chỉ số RSI tăng quá nóng vào vùng quá mua ({user_rsi}), giá đẩy lên cao vượt trục MA20 (${user_ma20}). Cột Volume chuyển sang màu ĐỎ lớn ({user_volume}) là bằng chứng hành động xả hàng, chốt lời ồ ạt của các quỹ đầu tư vĩ mô."
         
-        # --- TRƯỜNG HỢP THỊ TRƯỜNG ĐI NGANG (SIDEWAYS) ---
+        # --- TRƯỜNG HỢP TRUNG TÍNH / KHÔNG ĐỒNG THUẬN ---
         else:
             signal = "ĐỨNG NGOÀI (WAIT)"
             color = "orange"
-            reason = f"Các thông số chỉ báo kỹ thuật đang dao động trong vùng tích lũy trung tính (RSI: {user_rsi} | MA20: ${user_ma20}). Mặc dù thị trường có Volume đạt {user_volume}, nhưng dòng tiền chưa chọn rõ xu hướng bứt phá."
+            reason = f"Các chỉ số kỹ thuật đang dao động hỗn hợp hoặc nằm trong vùng tích lũy trung tính (RSI: {user_rsi} | Giá: ${current_gold_price} | MA20: ${user_ma20}). Để đảm bảo an toàn tuyệt đối, thuật toán khuyến nghị giữ kỷ luật đứng ngoài quan sát."
 
     st.markdown("#### 📢 Kết luận từ Hệ thống Thuật toán")
     
@@ -1368,4 +1357,3 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
         st.warning(f"🎯 **TÍN HIỆU THUẬT TOÁN: {signal}**")
         
     st.info(f"📝 **Lý giải logic thuật toán:** {reason}")
-
