@@ -4,60 +4,57 @@ from macro_engine import evaluate_d1_quantum_signal
 # 1. CẤU HÌNH TRANG WEB TOÀN CỤC
 st.set_page_config(page_title="XAUUSD D1 Macro Executive Terminal", layout="wide")
 
-# 2. BỘ MÃ HÓA CSS CAO CẤP: CHUYỂN NỀN ĐEN TUYỀN & CHỮ TRẮNG RỰC (LOẠI BỎ CHỮ MỜ 100%)
+# 2. BỘ MÃ HÓA CSS CAO CẤP: CHUYỂN TOÀN BỘ SANG NỀN TRẮNG CHỮ ĐEN ĐẬM (HẾT MỜ 100%)
 st.markdown("""
     <style>
-    /* Ép toàn bộ nền trang web sang màu đen tuyền đậm đặc */
-    .stApp, html, body, [data-testid="stAppViewContainer"] { 
-        background-color: #000000 !important; 
+    /* Ép nền toàn bộ trang web sang màu trắng tinh để tạo độ tương phản */
+    .stApp, html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"] { 
+        background-color: #FFFFFF !important; 
     }
     
-    /* Ép tất cả các văn bản thông thường, tiêu đề, và markdown lên màu trắng tinh rực rỡ */
-    h1, h2, h3, h4, h5, h6, p, .stMarkdown, li, span, div { 
-        color: #FFFFFF !important; 
-        font-family: 'Courier New', Courier, monospace !important;
+    /* ÉP TẤT CẢ CÁC LOẠI CHỮ TRÊN MÀN HÌNH THÀNH MÀU ĐEN ĐẬM, TO RÕ NÉT */
+    h1, h2, h3, h4, h5, h6, p, .stMarkdown, li, span, div, label { 
+        color: #000000 !important; 
+        font-family: 'Arial', sans-serif !important;
+        font-weight: bold !important;
     }
     
-    /* Cấu hình lại toàn bộ các ô nhập dữ liệu, ô chọn (Dropdown) sang nền đen, viền xanh */
+    /* Định dạng các ô nhập dữ liệu và ô chọn xổ xuống (Dropdown) */
     div[data-baseweb="select"], .stSelectbox div, input, [data-testid="stNumberInput"] div {
-        background-color: #0F141C !important;
-        border: 1px solid #00FF66 !important;
+        background-color: #F3F4F6 !important; /* Nền xám nhạt dễ nhìn */
+        border: 2px solid #000000 !important; /* Viền đen dày rõ ràng */
         border-radius: 6px !important;
     }
 
-    /* ÉP CHỮ BÊN TRONG CÁC Ô CHỌN VÀ Ô NHẬP SỐ THÀNH MÀU TRẮNG TINH, TO RÕ */
+    /* ÉP CHỮ TRONG CÁC Ô LỰA CHỌN VÀ DROPDOWN XỔ XUỐNG THÀNH MÀU ĐEN TUYỀN */
     div[data-baseweb="select"] *, 
     div[role="listbox"] *,
     .stSelectbox div,
     input,
-    span[data-baseweb="select"] {
-        color: #FFFFFF !important;
-        font-weight: bold !important;
+    span[data-baseweb="select"],
+    div[role="option"] * {
+        color: #000000 !important;
+        font-weight: 900 !important;
         font-size: 16px !important;
     }
     
-    /* Làm nổi bật nhãn tiêu đề của các ô nhập liệu (Màu xanh neon rực rỡ) */
+    /* Nhãn tiêu đề của các ô nhập liệu thành màu xanh lá cây đậm để phân biệt */
     div[data-testid="stWidgetLabel"] p {
         font-size: 16px !important;
         font-weight: bold !important;
-        color: #00FF66 !important; 
+        color: #1E8449 !important; 
     }
 
-    /* Định dạng lại nút bấm Kích Hoạt to rõ, nền xanh chữ đen cực kỳ dễ đọc */
+    /* Định dạng lại nút bấm Kích Hoạt: Nền đen chữ trắng cực kỳ nổi bật */
     button[data-testid="stBaseButton-secondaryFormSubmit"], 
     button[data-testid="stBaseButton-secondary"] {
-        background-color: #00FF66 !important;
-        color: #000000 !important;
+        background-color: #000000 !important;
+        color: #FFFFFF !important;
         font-weight: bold !important;
         font-size: 18px !important;
         border: none !important;
         border-radius: 8px !important;
         padding: 10px 20px !important;
-    }
-    
-    /* Giữ màu chữ đen chuẩn cho danh sách lựa chọn khi xổ xuống để không bị chìm nền */
-    ul[role="listbox"] li * {
-        color: #000000 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -90,22 +87,22 @@ if st.button("🚀 KÍCH HOẠT THẨM ĐỊNH TOÀN DIỆN KHUNG NGÀY", use_co
     decision, logic_reasons, winrate = evaluate_d1_quantum_signal(user_rsi, user_trend, user_fed, user_liquidity, user_price_action)
     
     if "BUY" in decision:
-        st.markdown(f"<div style='background-color: #112A11; padding: 25px; border-radius: 8px; border-left: 8px solid #2ECC71;'>"
-                    f"<h2 style='color: #2ECC71 !important; margin: 0; text-align: center; font-weight: bold;'>🎯 {decision}</h2>"
+        st.markdown(f"<div style='background-color: #D4EFDF; padding: 25px; border-radius: 8px; border-left: 8px solid #2ECC71;'>"
+                    f"<h2 style='color: #196F3D !important; margin: 0; text-align: center; font-weight: bold;'>🎯 {decision}</h2>"
                     f"</div>", unsafe_allow_html=True)
-        st.markdown(f"### 📊 Xác suất thành công của sóng ngày: <span style='color: #2ECC71; font-weight: bold;'>{winrate}%</span>", unsafe_allow_html=True)
+        st.markdown(f"### 📊 Xác suất thành công của sóng ngày: <span style='color: #196F3D; font-weight: bold;'>{winrate}%</span>", unsafe_allow_html=True)
         st.info("💡 **Chiến lược Quản trị vốn Swing D1:** Kích hoạt vị thế MUA và xác định giữ lệnh từ vài ngày đến vài tuần. Điểm dừng lỗ (SL) phải đặt an toàn dưới đáy nến D1 đảo chiều (Thường cách điểm vào lệnh từ 15 - 25 USD tùy biến động ATR ngày). Mục tiêu chốt lời (TP) hướng tới vùng kháng cự đỉnh D1 tiếp theo.")
         
     elif "SELL" in decision:
-        st.markdown(f"<div style='background-color: #2A1111; padding: 25px; border-radius: 8px; border-left: 8px solid #E74C3C;'>"
-                    f"<h2 style='color: #E74C3C !important; margin: 0; text-align: center; font-weight: bold;'>🎯 {decision}</h2>"
+        st.markdown(f"<div style='background-color: #FADBD8; padding: 25px; border-radius: 8px; border-left: 8px solid #E74C3C;'>"
+                    f"<h2 style='color: #943126 !important; margin: 0; text-align: center; font-weight: bold;'>🎯 {decision}</h2>"
                     f"</div>", unsafe_allow_html=True)
-        st.markdown(f"### 📊 Xác suất thành công của sóng ngày: <span style='color: #E74C3C; font-weight: bold;'>{winrate}%</span>", unsafe_allow_html=True)
+        st.markdown(f"### 📊 Xác suất thành công của sóng ngày: <span style='color: #943126; font-weight: bold;'>{winrate}%</span>", unsafe_allow_html=True)
         st.error("💡 **Chiến lược Quản trị vốn Swing D1:** Kích hoạt vị thế BÁN và giữ vị thế dài hạn. Điểm dừng lỗ (SL) đặt trên đỉnh nến D1 xác nhận (Cách điểm vào lệnh từ 15 - 25 USD). Mục tiêu chốt lời (TP) hướng tới dải hỗ trợ đáy D1 tiếp theo.")
         
     else:
-        st.markdown(f"<div style='background-color: #1A1A0A; padding: 25px; border-radius: 8px; border-left: 8px solid #F1C40F;'>"
-                    f"<h2 style='color: #F1C40F !important; margin: 0; text-align: center; font-weight: bold;'>🎯 {decision}</h2>"
+        st.markdown(f"<div style='background-color: #FCF3CF; padding: 25px; border-radius: 8px; border-left: 8px solid #F1C40F;'>"
+                    f"<h2 style='color: #B7950B !important; margin: 0; text-align: center; font-weight: bold;'>🎯 {decision}</h2>"
                     f"</div>", unsafe_allow_html=True)
         st.warning("⚠️ **Hành động phòng thủ vốn:** ĐỨNG NGOÀI THỊ TRƯỜNG. Khung D1 chưa cho thấy sự đồng thuận tuyệt đối giữa Vĩ mô và Hành động giá Kỹ thuật. Tuyệt đối không mạo hiểm vốn dài hạn khi thị trường mập mờ.")
 
