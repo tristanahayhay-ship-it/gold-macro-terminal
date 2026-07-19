@@ -1249,12 +1249,16 @@ elif menu == "Địa Chính Trị & Chiến Tranh":
 # 6. CÔNG CỤ HỖ TRỢ & DEMO TRADE
 # ===================================================================================================
 elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
+    import streamlit as st
     import streamlit.components.v1 as components
+    import yfinance as yf
+    import pandas_ta as ta
 
     st.title("🛠️ Phân Tích Kỹ Thuật & Tín Hiệu Thực Chiến XAU/USD")
     
     st.subheader("📊 1. Chỉ báo kỹ thuật")
     
+    # Khối hiển thị biểu đồ TradingView Live
     tradingview_chart_html = """
     <div style="height:450px; width:100%;">
         <div id="tv_chart_live" style="height:100%; width:100%;"></div>
@@ -1286,43 +1290,73 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     components.html(tradingview_chart_html, height=460, scrolling=False)
 
     st.markdown("---")
+    st.subheader("🤖 Bot Phân Tích Gợi Ý Tín Hiệu Tự Động")
+    st.caption("Hệ thống đồng bộ dữ liệu Realtime - Không cần nhập thủ công")
 
+    # Tạo nút bấm để người dùng có thể chủ động ép làm mới dữ liệu khi cần
+    refresh_button = st.button("🔄 Làm mới dữ liệu thị trường tức thì")
 
-    st.markdown("---")
-    st.subheader("🤖 Bot Phân Tích Gợi Ý Tín Hiệu")
-    st.caption("Hệ thống chấm điểm tích lũy linh hoạt")
+    # TỰ ĐỘNG QUÉT DỮ LIỆU TỪ YAHOO FINANCE (Khung 1 giờ cho điểm đáy ngắn hạn)
+    with st.spinner("🚀 Đang tự động kết nối API và đồng bộ chỉ số kỹ thuật Live..."):
+        try:
+            # Lấy dữ liệu mã hợp đồng Vàng tương lai (GC=F) tương đương XAU/USD toàn cầu
+            gold_ticker = yf.Ticker("GC=F")
+            df = gold_ticker.history(period="1mo", interval="1h")
 
-    # 1. TẠO CÁC Ô NHỎ ĐỂ ĐIỀN THÔNG SỐ THỦ CÔNG (4 cột thông số kỹ thuật)
-    input_col1, input_col2, input_col3, input_col4 = st.columns(4)
-    
-    with input_col1:
-        user_rsi = st.number_input("📊 Chỉ số RSI (14)", min_value=0.0, max_value=100.0, value=50.0, step=0.1)
-    with input_col2:
-        user_macd = st.number_input("📉 Chỉ số MACD", value=0.00, step=0.01)
-    with input_col3:
-        user_ma20 = st.number_input("📈 Đường MA(20) ($)", min_value=0.0, value=2350.00, step=0.1)
-    with input_col4:
-        user_volume = st.number_input("📊 Số lượng Volume thị trường", min_value=0, value=5000, step=100)
+            if df.empty:
+                st.error("❌ Không thể kết nối tới máy chủ dữ liệu. Vui lòng kiểm tra internet hoặc thử lại.")
+                st.stop()
 
-    # Chia thêm hàng dưới để chọn Giá hiện tại và Màu sắc của cây Volume trên biểu đồ
-    input_col5, input_col6 = st.columns(2)
-    with input_col5:
-        current_gold_price = st.number_input("💵 Giá Vàng (XAU/USD) hiện tại trên biểu đồ ($)", min_value=0.0, value=2354.50, step=0.1)
-    with input_col6:
-        volume_color = st.selectbox("🎨 Màu sắc cột Volume hiện tại", ["🟢 XANH (Lực mua chiếm ưu thế)", "🔴 ĐỎ (Lực bán chiếm ưu thế)"])
+            # Tính toán tự động các chỉ báo thông qua pandas_ta
+            df['RSI'] = ta.rsi(df['Close'], length=14)
+            macd_data = ta.macd(df['Close'])
+            df['MACD'] = macd_data['MACD_12_26_9']
+            df['MA20'] = ta.sma(df['Close'], length=20)
+            df['MA20_Vol'] = ta.sma(df['Volume'], length=20)
 
-    # 2. THUẬT TOÁN TÍNH TOÁN ĐIỂM SỐ TRỌNG SỐ LINH HOẠT CHUYÊN ĐÁY NGẮN HẠN
-    # Khởi tạo điểm số nền tảng (5.0)
+            # Trích xuất dữ liệu của nến đóng cửa gần nhất (Live) và nến trước đó
+            latest_bar = df.iloc[-1]
+            prev_bar = df.iloc[-2]
+
+            # Gán giá trị tự động hoàn toàn cho thuật toán
+            current_gold_price = round(float(latest_bar['Close']), 2)
+            user_rsi = round(float(latest_bar['RSI']), 1)
+            user_macd = round(float(latest_bar['MACD']), 2)
+            user_ma20 = round(float(latest_bar['MA20']), 2)
+            user_volume = int(latest_bar['Volume'])
+            user_avg_vol = int(latest_bar['MA20_Vol'])
+            
+            # Tự động xác định màu sắc dòng tiền dựa trên nến tăng/giảm
+            if latest_bar['Close'] >= prev_bar['Close']:
+                volume_color = "🟢 XANH (Lực mua chiếm ưu thế)"
+            else:
+                volume_color = "🔴 ĐỎ (Lực bán chiếm ưu thế)"
+
+        except Exception as e:
+            st.error(f"⚠️ Đã xảy ra lỗi khi đồng bộ dữ liệu tự động: {e}")
+            st.stop()
+
+    # HIỂN THỊ THÀNH PHẦN THÔNG SỐ ĐÃ ĐƯỢC ĐỒNG BỘ (Chuyển sang dạng read-only để tăng trải nghiệm)
+    st.info("✅ Dữ liệu bên dưới đã được đồng bộ tự động thành công từ thị trường trực tuyến.")
+    view_col1, view_col2, view_col3, view_col4 = st.columns(4)
+    view_col1.metric("💵 Giá Vàng Live", f"${current_gold_price}")
+    view_col2.metric("📊 RSI (14)", f"{user_rsi}")
+    view_col3.metric("📉 MACD", f"{user_macd}")
+    view_col4.metric("📈 Trục MA(20)", f"${user_ma20}")
+
+    # THUẬT TOÁN TÍNH TOÁN ĐIỂM SỐ TRỌNG SỐ TỰ ĐỘNG
     total_score = 5.0
     analysis_logs = []
 
-    # --- TIÊU CHÍ 1: XUNG LỰC RSI ĐẢO CHIỀU (Tăng trọng số lên tối đa +/- 3.5 điểm cho ngắn hạn) ---
+    # --- TIÊU CHÍ 1: XUNG LỰC RSI ĐẢO CHIỀU ---
     if user_rsi <= 35:
         total_score += 3.5
         analysis_logs.append(f"• RSI chạm vùng quá bán ngắn hạn ({user_rsi}): Lực bán cạn kiệt, tỷ lệ hồi phục kỹ thuật cực kỳ cao (+3.5 điểm Mua).")
     elif 35 < user_rsi <= 45:
         total_score += 1.5
         analysis_logs.append(f"• RSI ở vùng biên dưới thấp ({user_rsi}): Giá đang có lực nén tích lũy gần vùng hỗ trợ (+1.5 điểm Mua).")
+    elif 45 < user_rsi < 55:
+        analysis_logs.append(f"• RSI ở vùng trung tính ({user_rsi}): Động lượng cân bằng, chưa rõ xu hướng bứt phá (0 điểm).")
     elif 55 <= user_rsi < 65:
         total_score -= 1.5
         analysis_logs.append(f"• RSI ở vùng biên trên cao ({user_rsi}): Giá đang tiến sát vùng cản kháng cự ngắn hạn (-1.5 điểm Bán).")
@@ -1330,27 +1364,37 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
         total_score -= 3.5
         analysis_logs.append(f"• RSI lọt vào vùng quá mua ngắn hạn ({user_rsi}): Giá tăng quá nóng, rủi ro đảo chiều sập bẫy giá lớn (-3.5 điểm Bán).")
 
-    # --- TIÊU CHÍ 2: ĐỘ DÃN BIÊN ĐỘ GIÁ SO VỚI TRỤC MA20 (Tối đa ảnh hưởng +/- 2.5 điểm) ---
+    # --- TIÊU CHÍ 2: ĐỘ DÃN BIÊN ĐỘ GIÁ SO VỚI TRỤC MA20 ---
     price_deviation = current_gold_price - user_ma20
-    if price_deviation < 0:  # Giá chiết khấu nằm dưới MA20 (Đặc trưng bắt buộc của vùng Đáy)
+    if price_deviation < 0:  
         total_score += 2.0
         analysis_logs.append(f"• Giá chiết khấu sâu dưới MA20: Thỏa mãn điều kiện bắt đáy ngắn hạn khi giá dãn biên độ dưới trục xu hướng (+2.0 điểm Mua).")
     else:
         total_score -= 1.5
         analysis_logs.append(f"• Giá đang neo cao trên đường MA20: Phù hợp thuận xu hướng tăng hoặc canh bán đỉnh, không đạt điều kiện bắt đáy (-1.5 điểm Bán).")
 
-    # --- TIÊU CHÍ 3: MÀU SẮC VOLUME XÁC NHẬN DÒNG TIỀN (Tối đa ảnh hưởng +/- 2.0 điểm) ---
-    if "XANH" in volume_color:
-        total_score += 2.0
-        analysis_logs.append(f"• Cột Volume xuất hiện màu XANH: Xác nhận có lực cầu chủ động lao vào đỡ giá và đẩy giá lên (+2.0 điểm Mua).")
-    else:
-        total_score -= 2.0
-        analysis_logs.append(f"• Cột Volume xuất hiện màu ĐỎ: Áp lực bán xả hàng vẫn đang ép xuống mạnh, chưa có tín hiệu rút chân đỡ giá (-2.0 điểm Bán).")
+    # --- TIÊU CHÍ 3: TỰ ĐỘNG HÓA TỶ LỆ VOLUME ĐỘT BIẾN ---
+    vol_ratio = user_volume / user_avg_vol if user_avg_vol > 0 else 1.0
 
-    # --- TIÊU CHÍ 4: CHỈ BÁO XU HƯỚNG MACD TRỄ (Giảm trọng số xuống chỉ còn +/- 0.5 điểm để tránh nhiễu đáy) ---
-    if user_macd >= -0.5: # MACD bớt âm hoặc dương (Tín hiệu giao cắt hoặc thu hẹp histogram ở đáy)
+    if "XANH" in volume_color:
+        if vol_ratio >= 1.5:
+            total_score += 2.5  
+            analysis_logs.append(f"• Volume XANH ĐỘT BIẾN (Gấp {vol_ratio:.1f} lần trung bình): Xác nhận dòng tiền lớn (Cá mập) quét sạch lực bán, tín hiệu đảo chiều cực kỳ uy tín (+2.5 điểm Mua).")
+        else:
+            total_score += 1.5
+            analysis_logs.append(f"• Volume XANH tiêu chuẩn (Gấp {vol_ratio:.1f} lần trung bình): Lực cầu duy trì ổn định (+1.5 điểm Mua).")
+    else:
+        if vol_ratio >= 1.5:
+            total_score -= 2.5  
+            analysis_logs.append(f"• Volume ĐỎ ĐỘT BIẾN (Gấp {vol_ratio:.1f} lần trung bình): Áp lực bán tháo hoảng loạn cực mạnh, rủi ro thủng đáy sâu (-2.5 điểm Bán).")
+        else:
+            total_score -= 1.5
+            analysis_logs.append(f"• Volume ĐỎ tiêu chuẩn (Gấp {vol_ratio:.1f} lần trung bình): Phe bán vẫn đang ép giá xuống (-1.5 điểm Bán).")
+
+    # --- TIÊU CHÍ 4: CHỈ BÁO XU HƯỚNG MACD TRỄ ---
+    if user_macd >= -0.5: 
         total_score += 0.5
-        analysis_logs.append(f"• Động lượng MACD ổn định ổn định ổn định ({user_macd}): Không gây cản trở cho nhịp hồi phục ngắn hạn (+0.5 điểm Mua).")
+        analysis_logs.append(f"• Động lượng MACD ổn định ({user_macd}): Không gây cản trở cho nhịp hồi phục ngắn hạn (+0.5 điểm Mua).")
     else:
         total_score -= 0.5
         analysis_logs.append(f"• Động lượng MACD lao dốc mạnh ({user_macd}): Áp lực giảm trung hạn còn lớn (-0.5 điểm Bán).")
@@ -1358,50 +1402,51 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     # Giới hạn thang điểm chạy từ 1.0 đến 10.0 chuẩn toán học
     total_score = max(1.0, min(10.0, round(total_score, 1)))
 
-    # --- BIỆN LUẬN PHÁN QUYẾT TÍN HIỆU THEO THANG ĐIỂM MỚI ---
-    if total_score >= 7.0: # Hạ ngưỡng kích hoạt xuống 7.0 điểm để nhạy bén với đáy ngắn hạn
+    # --- BIỆN LUẬN PHÁN QUYẾT TÍN HIỆU ---
+    if total_score >= 7.0: 
         signal = "MUA (BUY)"
-        color = "green"
+        color_status = "success"
         summary_reason = "Hệ thống hội tụ điểm số tích lũy cao. Các điều kiện quá bán và dòng tiền quay lại đỡ giá đã đồng thuận. Đủ điều kiện kích hoạt lệnh mở vị thế."
     elif 5.5 <= total_score < 7.0:
         signal = "THEO DÕI MUA (WATCH BUY)"
-        color = "light_green"
+        color_status = "success"
         summary_reason = "Điểm số chớm tích cực. Phe mua đang nỗ lực gom hàng nhưng cần quan sát thêm nến rút chân xác nhận."
     elif 4.5 < total_score < 5.5:
         signal = "ĐỨNG NGOÀI (WAIT)"
-        color = "orange"
+        color_status = "warning"
         summary_reason = "Điểm số nằm ở vùng cân bằng 50/50. Thị trường đi ngang tích lũy, chưa rõ xu hướng bứt phá tiếp theo."
     elif 3.0 <= total_score <= 4.5:
         signal = "BÁN (SELL)"
-        color = "light_red"
+        color_status = "error"
         summary_reason = "Điểm số nghiêng về lực xả. Cấu trúc ngắn hạn bị bẻ gãy, ưu tiên chiến lược quản trị rủi ro."
     else:
         signal = "BÁN MẠNH (STRONG SELL)"
-        color = "red"
+        color_status = "error"
         summary_reason = "Phe bán kiểm soát hoàn toàn trận địa. Điểm số tiêu cực kích hoạt đà lao dốc mạnh."
 
     # 3. GIAO DIỆN HIỂN THỊ KẾT QUẢ ĐIỂM SỐ LINH HOẠT
     st.markdown("---")
     st.subheader("📢 Đánh giá hệ thống")
-    
+
     score_col1, score_col2 = st.columns(2)
     with score_col1:
         st.metric("Điểm số Hội tụ", f"{total_score} / 10")
     with score_col2:
-        progress_val = int(total_score * 10)
+        progress_val = total_score / 10.0
         st.progress(progress_val)
         st.caption(f"Trạng thái phán quyết hệ thống: **{signal}**")
 
-    # Hiển thị hộp tín hiệu đổi màu thông minh dựa trên tổng điểm
-    if color == "green" or color == "light_green":
+    # Hiển thị hộp tín hiệu đổi màu thông minh dựa trên hàm thông báo chuẩn của Streamlit
+    if color_status == "success":
         st.success(f"🎯 **TÍN HIỆU THUẬT TOÁN ĐỘNG: {signal}**")
-    elif color == "red" or color == "light_red":
-        st.error(f"🎯 **TÍN HIỆU THUẬT TOÁN_ĐỘNG: {signal}**")
+    elif color_status == "error":
+        st.error(f"🎯 **TÍN HIỆU THUẬT TOÁN ĐỘNG: {signal}**")
     else:
         st.warning(f"🎯 **TÍN HIỆU THUẬT TOÁN ĐỘNG: {signal}**")
-        
+            
     st.write(f"📝 **Nhận định tổng quan:** {summary_reason}")
-    
+    st.write(f"📊 **Dòng tiền Volume:** Phiên hiện tại đạt **{user_volume}** đơn vị (Đang bằng **{vol_ratio:.2f} lần** so với mức trung bình MA20 là {user_avg_vol}).")
+
     # In ra toàn bộ nhật ký bóc tách điểm số cho học viên đối chiếu trực quan
     with st.expander("🔍 Xem chi tiết bảng bóc tách trọng số kỹ thuật", expanded=True):
         for log in analysis_logs:
