@@ -1252,7 +1252,7 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     import streamlit as st
     import streamlit.components.v1 as components
     import yfinance as yf
-    import pandas_ta as ta
+    import pandas ta as ta
 
     st.title("🛠️ Phân Tích Kỹ Thuật & Tín Hiệu Thực Chiến XAU/USD")
     
