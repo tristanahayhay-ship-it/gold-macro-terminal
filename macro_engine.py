@@ -1,4 +1,4 @@
-def evaluate_d1_quantum_signal(rsi, macro_trend, fed_policy, major_liquidity, d1_price_action):
+def evaluate_d1_quantum_signal(rsi, macro_trend, fed_policy, major_liquidity, d1_price_action, macro_news):
     """
     HỆ THỐNG PHÂN TÍCH LƯỢNG TỬ D1: KẾT HỢP VĨ MÔ VÀ KỸ THUẬT VỚI TRỌNG SỐ LỚN
     """
@@ -65,9 +65,6 @@ def evaluate_d1_quantum_signal(rsi, macro_trend, fed_policy, major_liquidity, d1
     # ==================================================================================
     # ⚖️ ENGINE PHÁN QUYẾT CHIẾN LƯỢC TỐI CAO ĐA TẦNG
     # ==================================================================================
-    # Hệ thống đòi hỏi tổng điểm phải đạt từ 12 điểm trở lên. 
-    # Nghĩa là DÙ KỸ THUẬT CÓ ĐẸP ĐẾN ĐÂU, nếu VĨ MÔ (FED + Tin tức) quay lưng, tổng điểm KHÔNG BAO GIỜ chạm được mức 12.
-    
     if buy_score >= 12 and buy_score > sell_score:
         calculated_winrate = 65.0 + (buy_score * 1.2)
         calculated_winrate = min(calculated_winrate, 92.5)
