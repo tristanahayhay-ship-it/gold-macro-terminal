@@ -4,30 +4,60 @@ from macro_engine import evaluate_d1_quantum_signal
 # 1. CẤU HÌNH TRANG WEB TOÀN CỤC
 st.set_page_config(page_title="XAUUSD D1 Macro Executive Terminal", layout="wide")
 
-# 2. BỘ MÃ HÓA CSS TỐI ƯU HIỂN THỊ (SỬA LỖI CHỮ MỜ)
+# 2. BỘ MÃ HÓA CSS CAO CẤP: CHUYỂN NỀN ĐEN TUYỀN & CHỮ TRẮNG RỰC (LOẠI BỎ CHỮ MỜ 100%)
 st.markdown("""
     <style>
-    /* Nền tối Bloomberg Terminal */
-    .stApp { background-color: #04060A !important; }
-    .stSelectbox, .stNumberInput { background-color: #0E121A !important; }
+    /* Ép toàn bộ nền trang web sang màu đen tuyền đậm đặc */
+    .stApp, html, body, [data-testid="stAppViewContainer"] { 
+        background-color: #000000 !important; 
+    }
     
-    /* Ép tất cả các văn bản lên màu trắng rõ nét, độ tương phản cao */
-    h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, div, span, li { 
+    /* Ép tất cả các văn bản thông thường, tiêu đề, và markdown lên màu trắng tinh rực rỡ */
+    h1, h2, h3, h4, h5, h6, p, .stMarkdown, li, span, div { 
         color: #FFFFFF !important; 
         font-family: 'Courier New', Courier, monospace !important;
     }
     
-    /* Làm nổi bật nhãn tiêu đề của các ô nhập liệu */
+    /* Cấu hình lại toàn bộ các ô nhập dữ liệu, ô chọn (Dropdown) sang nền đen, viền xanh */
+    div[data-baseweb="select"], .stSelectbox div, input, [data-testid="stNumberInput"] div {
+        background-color: #0F141C !important;
+        border: 1px solid #00FF66 !important;
+        border-radius: 6px !important;
+    }
+
+    /* ÉP CHỮ BÊN TRONG CÁC Ô CHỌN VÀ Ô NHẬP SỐ THÀNH MÀU TRẮNG TINH, TO RÕ */
+    div[data-baseweb="select"] *, 
+    div[role="listbox"] *,
+    .stSelectbox div,
+    input,
+    span[data-baseweb="select"] {
+        color: #FFFFFF !important;
+        font-weight: bold !important;
+        font-size: 16px !important;
+    }
+    
+    /* Làm nổi bật nhãn tiêu đề của các ô nhập liệu (Màu xanh neon rực rỡ) */
     div[data-testid="stWidgetLabel"] p {
         font-size: 16px !important;
         font-weight: bold !important;
-        color: #00FF66 !important; /* Màu xanh neon chuyên nghiệp */
+        color: #00FF66 !important; 
+    }
+
+    /* Định dạng lại nút bấm Kích Hoạt to rõ, nền xanh chữ đen cực kỳ dễ đọc */
+    button[data-testid="stBaseButton-secondaryFormSubmit"], 
+    button[data-testid="stBaseButton-secondary"] {
+        background-color: #00FF66 !important;
+        color: #000000 !important;
+        font-weight: bold !important;
+        font-size: 18px !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 10px 20px !important;
     }
     
-    /* Tăng cỡ chữ trong hộp chọn */
-    div[data-baseweb="select"] span {
-        font-size: 15px !important;
-        color: #FFFFFF !important;
+    /* Giữ màu chữ đen chuẩn cho danh sách lựa chọn khi xổ xuống để không bị chìm nền */
+    ul[role="listbox"] li * {
+        color: #000000 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -52,7 +82,7 @@ with col2:
 
 st.markdown("---")
 
-# 5. KHU VỰC SỬ LÝ VÀ PHÁN QUYẾT CHIẾN LƯỢC TỐI CAO
+# 5. KHU VỰC XỬ LÝ VÀ PHÁN QUYẾT CHIẾN LƯỢC TỐI CAO
 st.markdown("### 🎯 PHÁN QUYẾT CHIẾN LƯỢC TOÀN CỤC KHUNG NGÀY D1")
 
 if st.button("🚀 KÍCH HOẠT THẨM ĐỊNH TOÀN DIỆN KHUNG NGÀY", use_container_width=True):
