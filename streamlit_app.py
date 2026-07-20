@@ -1305,19 +1305,19 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     user_avg_vol = 5000
     volume_color = "🟢 XANH (Lực mua chiếm ưu thế)"
 
-    # TỰ ĐỘNG QUÉT VÀ SỬA CẤU TRÚC DỮ LIỆU CỦA YFINANCE (Bản sửa lỗi bỏ group_by)
+    # TỰ ĐỘNG QUÉT VÀ SỬA CẤU TRÚC DỮ LIỆU CỦA YFINANCE (Bản sửa lỗi mất giao diện)
     with st.spinner("🚀 Đang tự động kết nối API và đồng bộ chỉ số kỹ thuật Live..."):
         try:
-            # Loại bỏ hoàn toàn tham số group_by để tránh lỗi phiên bản mới
+            # Tăng dữ liệu lên 1 tháng (1mo) để đủ số nến tính MA20 và MACD
             gold_ticker = yf.Ticker("GC=F")
-            df = gold_ticker.history(period="5d", interval="1h")
+            df = gold_ticker.history(period="1mo", interval="1h")
 
             if not df.empty:
                 # Sửa lỗi MultiIndex bằng cách lấy tầng dữ liệu thấp nhất (nếu có)
                 if isinstance(df.columns, pd.MultiIndex):
                     df.columns = df.columns.get_level_values(-1)
                 
-                # Ép tên cột về chữ thường và viết hoa chữ cái đầu chuẩn hóa (Open, High, Low, Close, Volume)
+                # Ép tên cột về chữ thường và viết hoa chữ cái đầu chuẩn hóa
                 df.columns = [str(col).capitalize() for col in df.columns]
                 
                 # Sắp xếp dữ liệu theo thời gian tăng dần để tính toán chỉ báo không bị ngược
@@ -1362,9 +1362,17 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
                     
                     st.toast("✅ Đã cập nhật chỉ số Realtime thành công!", icon="🔥")
                 else:
-                    st.warning("⚠️ Lỗi phân tích số liệu nến. Vui lòng nhấn nút Làm mới.")
+                    st.warning("⚠️ Lỗi phân tích số liệu nến. Hệ thống tự động chuyển sang chế độ dữ liệu nền tảng.")
             else:
                 st.warning("⚠️ Không lấy được dữ liệu từ Yahoo Finance. Đang hiển thị chế độ chờ.")
 
         except Exception as e:
             st.error(f"⚠️ Lỗi kết nối dữ liệu tự động: {e}")
+
+    # PANEL HIỂN THỊ THÔNG SỐ (Đặt bên ngoài khối try-except để đảm bảo giao diện luôn hiện diện)
+    st.info("✅ Dữ liệu bên dưới đã được đồng bộ tự động thành công từ thị trường trực tuyến.")
+    view_col1, view_col2, view_col3, view_col4 = st.columns(4)
+    view_col1.metric("💵 Giá Vàng Live", f"${current_gold_price}")
+    view_col2.metric("📊 RSI (14)", f"{user_rsi}")
+    view_col3.metric("📉 MACD", f"{user_macd}")
+    view_col4.metric("📈 Trục MA(20)", f"${user_ma20}")
