@@ -1305,24 +1305,27 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     user_avg_vol = 5000
     volume_color = "🟢 XANH (Lực mua chiếm ưu thế)"
 
-    # TỰ ĐỘNG QUÉT VÀ SỬA CẤU TRÚC DỮ LIỆU CỦA YFINANCE
+    # TỰ ĐỘNG QUÉT VÀ SỬA CẤU TRÚC DỮ LIỆU CỦA YFINANCE (Bản vá lỗi đóng băng dữ liệu)
     with st.spinner("🚀 Đang tự động kết nối API và đồng bộ chỉ số kỹ thuật Live..."):
         try:
-            # Tải dữ liệu Vàng thế giới trực tiếp từ Yahoo Finance
+            # Sử dụng tham số group_by="ticker" để bẻ gãy cấu trúc đa tầng của yfinance phiên bản mới
             gold_ticker = yf.Ticker("GC=F")
-            df = gold_ticker.history(period="1mo", interval="1h")
+            df = gold_ticker.history(period="5d", interval="1h", group_by="ticker")
 
             if not df.empty:
-                # SỬA LỖI MỚI: Ép phẳng cấu trúc bảng nếu yfinance trả về Multi-index
+                # BƯỚC VÀNG: Loại bỏ triệt để cấu trúc MultiIndex nếu có
                 if isinstance(df.columns, pd.MultiIndex):
-                    df.columns = [col[0] for col in df.columns]
+                    df.columns = df.columns.get_level_values(-1)
+                
+                # Sắp xếp dữ liệu theo thời gian tăng dần để tính toán chỉ báo không bị ngược
+                df = df.sort_index(ascending=True)
 
-                # TỰ TÍNH TOÁN CHỈ BÁO GỐC (Bỏ hoàn toàn thư viện pandas_ta để tránh xung đột Cloud)
+                # TỰ TÍNH TOÁN CHỈ BÁO GỐC CHUẨN TOÁN HỌC
                 # 1. Tính toán MA20 Giá và MA20 Volume
                 df['MA20'] = df['Close'].rolling(window=20).mean()
                 df['MA20_Vol'] = df['Volume'].rolling(window=20).mean()
 
-                # 2. Tính toán RSI (14) nguyên bản toán học
+                # 2. Tính toán RSI (14) nguyên bản
                 delta = df['Close'].diff()
                 gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
                 loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
@@ -1334,12 +1337,12 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
                 exp2 = df['Close'].ewm(span=26, adjust=False).mean()
                 df['MACD'] = exp1 - exp2
 
-                # Trích xuất dòng dữ liệu nến cuối cùng đã được tính toán chỉ báo
-                df = df.dropna(subset=['MA20', 'RSI', 'MACD'])
+                # Loại bỏ các dòng trống do tính toán rolling
+                df_cleaned = df.dropna(subset=['MA20', 'RSI', 'MACD'])
                 
-                if not df.empty:
-                    latest_bar = df.iloc[-1]
-                    prev_bar = df.iloc[-2]
+                if not df_cleaned.empty:
+                    latest_bar = df_cleaned.iloc[-1]
+                    prev_bar = df_cleaned.iloc[-2]
 
                     # Gán thông số thực tế vào thuật toán chấm điểm
                     current_gold_price = round(float(latest_bar['Close']), 2)
@@ -1354,108 +1357,11 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
                     else:
                         volume_color = "🔴 ĐỎ (Lực bán chiếm ưu thế)"
                     
-                    st.success("✅ Đã kết nối dữ liệu máy chủ trực tuyến thành công!")
+                    st.toast("✅ Đã cập nhật chỉ số Realtime thành công!", icon="🔥")
                 else:
-                    st.warning("⚠️ Dữ liệu tải về chưa đủ số phiên để tính toán chỉ báo. Đang dùng dữ liệu giả lập.")
+                    st.warning("⚠️ Lỗi phân tích số liệu nến. Vui lòng nhấn nút Làm mới.")
             else:
-                st.warning("⚠️ Máy chủ Yahoo Finance không phản hồi. Hệ thống chuyển sang chế độ giả lập an toàn.")
+                st.warning("⚠️ Không lấy được dữ liệu từ Yahoo Finance. Đang hiển thị chế độ chờ.")
 
         except Exception as e:
-            st.warning(f"⚠️ Đang chạy chế độ an toàn (Tránh crash do nghẽn mạng): {e}")
-
-    # PANEL HIỂN THỊ THÔNG SỐ SAU KHI ĐỒNG BỘ TỰ ĐỘNG
-    view_col1, view_col2, view_col3, view_col4 = st.columns(4)
-    view_col1.metric("💵 Giá Vàng Live", f"${current_gold_price}")
-    view_col2.metric("📊 RSI (14)", f"{user_rsi}")
-    view_col3.metric("📉 MACD", f"{user_macd}")
-    view_col4.metric("📈 Trục MA(20)", f"${user_ma20}")
-
-    # 2. THUẬT TOÁN TÍNH TOÁN ĐIỂM SỐ TRỌNG SỐ TỰ ĐỘNG
-    total_score = 5.0
-    analysis_logs = []
-
-    # --- TIÊU CHÍ 1: XUNG LỰC RSI ĐẢO CHIỀU ---
-    if user_rsi <= 35:
-        total_score += 3.5
-        analysis_logs.append(f"• RSI chạm vùng quá bán ngắn hạn ({user_rsi}): Lực bán cạn kiệt, tỷ lệ hồi phục kỹ thuật cực kỳ cao (+3.5 điểm Mua).")
-    elif 35 < user_rsi <= 45:
-        total_score += 1.5
-        analysis_logs.append(f"• RSI ở vùng biên dưới thấp ({user_rsi}): Giá đang có lực nén tích lũy gần vùng hỗ trợ (+1.5 điểm Mua).")
-    elif 45 < user_rsi < 55:
-        analysis_logs.append(f"• RSI ở vùng trung tính ({user_rsi}): Động lượng cân bằng, chưa rõ xu hướng bứt phá (0 điểm).")
-    elif 55 <= user_rsi < 65:
-        total_score -= 1.5
-        analysis_logs.append(f"• RSI ở vùng biên trên cao ({user_rsi}): Giá đang tiến sát vùng cản kháng cự ngắn hạn (-1.5 điểm Bán).")
-    elif user_rsi >= 65:
-        total_score -= 3.5
-        analysis_logs.append(f"• RSI lọt vào vùng quá mua ngắn hạn ({user_rsi}): Giá tăng quá nóng, rủi ro đảo chiều sập bẫy giá lớn (-3.5 điểm Bán).")
-
-    # --- TIÊU CHÍ 2: ĐỘ DÃN BIÊN ĐỘ GIÁ SO VỚI TRỤC MA20 ---
-    price_deviation = current_gold_price - user_ma20
-    if price_deviation < 0:  
-        total_score += 2.0
-        analysis_logs.append(f"• Giá chiết khấu sâu dưới MA20: Thỏa mãn điều kiện bắt đáy ngắn hạn khi giá dãn biên độ dưới trục xu hướng (+2.0 điểm Mua).")
-    else:
-        total_score -= 1.5
-        analysis_logs.append(f"• Giá đang neo cao trên đường MA20: Phù hợp thuận xu hướng tăng hoặc canh bán đỉnh, không đạt điều kiện bắt đáy (-1.5 điểm Bán).")
-
-    # --- TIÊU CHÍ 3: TỰ ĐỘNG HÓA TỶ LỆ VOLUME ĐỘT BIẾN ---
-    vol_ratio = user_volume / user_avg_vol if user_avg_vol > 0 else 1.0
-
-    if "XANH" in volume_color:
-        if vol_ratio >= 1.5:
-            total_score += 2.5  
-            analysis_logs.append(f"• Volume XANH ĐỘT BIẾN (Gấp {vol_ratio:.1f} lần trung bình): Xác nhận dòng tiền lớn (Cá mập) quét sạch lực bán, tín hiệu đảo chiều cực kỳ uy tín (+2.5 điểm Mua).")
-        else:
-            total_score += 1.5
-            analysis_logs.append(f"• Volume XANH tiêu chuẩn (Gấp {vol_ratio:.1f} lần trung bình): Lực cầu duy trì ổn định (+1.5 điểm Mua).")
-    else:
-        if vol_ratio >= 1.5:
-            total_score -= 2.5  
-            analysis_logs.append(f"• Volume ĐỎ ĐỘT BIẾN (Gấp {vol_ratio:.1f} lần trung bình): Áp lực bán tháo hoảng loạn cực mạnh, rủi ro thủng đáy sâu (-2.5 điểm Bán).")
-        else:
-            total_score -= 1.5
-            analysis_logs.append(f"• Volume ĐỎ tiêu chuẩn (Gấp {vol_ratio:.1f} lần trung bình): Phe bán vẫn đang ép giá xuống (-1.5 điểm Bán).")
-
-    # --- TIÊU CHÍ 4: CHỈ BÁO XU HƯỚNG MACD TRỄ ---
-    if user_macd >= -0.5: 
-        total_score += 0.5
-        analysis_logs.append(f"• Động lượng MACD ổn định ({user_macd}): Không gây cản trở cho nhịp hồi phục ngắn hạn (+0.5 điểm Mua).")
-    else:
-        total_score -= 0.5
-        analysis_logs.append(f"• Động lượng MACD lao dốc mạnh ({user_macd}): Áp lực giảm trung hạn còn lớn (-0.5 điểm Bán).")
-
-    # Giới hạn thang điểm chạy từ 1.0 đến 10.0 chuẩn toán học
-    total_score = max(1.0, min(10.0, round(total_score, 1)))
-
-    # --- BIỆN LUẬN PHÁN QUYẾT TÍN HIỆU ---
-    if total_score >= 7.0: 
-        signal = "MUA (BUY)"
-        color_status = "success"
-        summary_reason = "Hệ thống hội tụ điểm số tích lũy cao. Các điều kiện quá bán và dòng tiền quay lại đỡ giá đã đồng thuận. Đủ điều kiện kích hoạt lệnh mở vị thế."
-    elif 5.5 <= total_score < 7.0:
-        signal = "THEO DÕI MUA (WATCH BUY)"
-        color_status = "success"
-        summary_reason = "Điểm số chớm tích cực. Phe mua đang nỗ lực gom hàng nhưng cần quan sát thêm nến rút chân xác nhận."
-    elif 4.5 < total_score < 5.5:
-        signal = "ĐỨNG NGOÀI (WAIT)"
-        color_status = "warning"
-        summary_reason = "Điểm số nằm ở vùng cân bằng 50/50. Thị trường đi ngang tích lũy, chưa rõ xu hướng bứt phá tiếp theo."
-    elif 3.0 <= total_score <= 4.5:
-        signal = "BÁN (SELL)"
-        color_status = "error"
-        summary_reason = "Điểm số nghiêng về lực xả. Cấu trúc ngắn hạn bị bẻ gãy, ưu tiên chiến lược quản trị rủi ro."
-    else:
-        signal = "BÁN MẠNH (STRONG SELL)"
-        color_status = "error"
-        summary_reason = "Phe bán kiểm soát hoàn toàn trận địa. Điểm số tiêu cực kích hoạt đà lao dốc mạnh."
-
-    # 3. GIAO DIỆN HIỂN THỊ KẾT QUẢ ĐIỂM SỐ LINH HOẠT
-    st.markdown("---")
-    st.subheader("📢 Đánh giá hệ thống")
-
-    score_col1, score_col2 = st.columns(2)
-    with score_col1:
-        st.metric("Điểm số Hội tụ", f"{total_score} / 10")
-    with score_col2:
-        progress_val = total_score / 10.0
+            st.error(f"⚠️ Lỗi kết nối dữ liệu tự động: {e}")
