@@ -1305,17 +1305,20 @@ elif menu == "Công Cụ Hỗ Trợ & Demo Trade":
     user_avg_vol = 5000
     volume_color = "🟢 XANH (Lực mua chiếm ưu thế)"
 
-    # TỰ ĐỘNG QUÉT VÀ SỬA CẤU TRÚC DỮ LIỆU CỦA YFINANCE (Bản vá lỗi đóng băng dữ liệu)
+    # TỰ ĐỘNG QUÉT VÀ SỬA CẤU TRÚC DỮ LIỆU CỦA YFINANCE (Bản sửa lỗi bỏ group_by)
     with st.spinner("🚀 Đang tự động kết nối API và đồng bộ chỉ số kỹ thuật Live..."):
         try:
-            # Sử dụng tham số group_by="ticker" để bẻ gãy cấu trúc đa tầng của yfinance phiên bản mới
+            # Loại bỏ hoàn toàn tham số group_by để tránh lỗi phiên bản mới
             gold_ticker = yf.Ticker("GC=F")
-            df = gold_ticker.history(period="5d", interval="1h", group_by="ticker")
+            df = gold_ticker.history(period="5d", interval="1h")
 
             if not df.empty:
-                # BƯỚC VÀNG: Loại bỏ triệt để cấu trúc MultiIndex nếu có
+                # Sửa lỗi MultiIndex bằng cách lấy tầng dữ liệu thấp nhất (nếu có)
                 if isinstance(df.columns, pd.MultiIndex):
                     df.columns = df.columns.get_level_values(-1)
+                
+                # Ép tên cột về chữ thường và viết hoa chữ cái đầu chuẩn hóa (Open, High, Low, Close, Volume)
+                df.columns = [str(col).capitalize() for col in df.columns]
                 
                 # Sắp xếp dữ liệu theo thời gian tăng dần để tính toán chỉ báo không bị ngược
                 df = df.sort_index(ascending=True)
