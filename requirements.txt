@@ -1,9 +1,3 @@
-pandas
-numpy
-plotly
 streamlit
-yfinance
-requests
-google-genai
-ccxt
-streamlit-autorefresh
+pydeck
+pandas
