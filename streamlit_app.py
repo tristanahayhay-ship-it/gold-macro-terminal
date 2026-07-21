@@ -74,7 +74,7 @@ view_state = pdk.ViewState(
 r = pdk.Deck(
     layers=[arc_layer, nodes_layer],
     initial_view_state=view_state,
-    map_style="mapbox://styles/mapbox/dark-v10", # Giao diện tối giúp mạng lưới phát sáng rõ hơn
+    map_style="https://cartocdn.com", # Giao diện tối giúp mạng lưới phát sáng rõ hơn
     tooltip={"text": "Dòng chảy từ: {from_name} -> Đến: {to_name}"}
 )
 
