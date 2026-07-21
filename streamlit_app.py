@@ -3,23 +3,27 @@ import streamlit.components.v1 as components
 
 # 1. Cấu hình giao diện Streamlit hiển thị tràn màn hình (Wide mode)
 st.set_page_config(
-    page_title="Hệ Thống Bản Đồ Dòng Chảy Kinh Tế Toàn Cầu",
+    page_title="Ma trận Mạch máu Tài chính Toàn diện 195 Quốc gia",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
+# Thêm tiêu đề chính trên giao diện Streamlit
+st.markdown("# 🌏 Ma trận Mạch máu Tài chính Toàn diện 195 Quốc gia")
+st.markdown("Hệ thống khép kín tích hợp cơ sở dữ liệu 195 nước độc lập, tự động phân rã bộ máy vĩ mô - vi mự mượt mà không lo mất kết nối mạng.")
+
 # 2. Tạo thanh điều khiển bên trái (Sidebar) để người dùng thao tác
-st.sidebar.title("🎮 Trung Tâm Điều Khiển Vĩ Mô")
+st.sidebar.title("🎮 Trung Tâm Điều Khiển")
 st.sidebar.markdown("---")
 
 usd_status = st.sidebar.radio(
-    "Trạng thái dòng tiền USD:",
-    options=["🟢 USD Ổn định (Risk-On)", "🔴 USD Yếu / Khủng hoảng (Risk-Off)"],
+    "Chọn trạng thái kinh tế thế giới:",
+    options=["Bình thường (Luôn chuyển mở)", "Khủng hoảng / USD Yếu (Trú ẩn Vàng)"],
     index=0,
 )
 
 # Chuyển đổi lựa chọn thành biến string để truyền vào JavaScript
-status_value = "stable" if "Ổn định" in usd_status else "weak"
+status_value = "stable" if "Bình thường" in usd_status else "weak"
 
 st.sidebar.markdown("---")
 st.sidebar.info(
@@ -27,8 +31,7 @@ st.sidebar.info(
     "Toàn cầu (195 quốc gia) xuống cấp Tỉnh thành và cấp Xã."
 )
 
-# 3. Định nghĩa mã nguồn HTML/JavaScript chứa bản đồ Leaflet đa tầng
-# Sử dụng f-string của Python để truyền biến `status_value` trực tiếp vào JavaScript
+# 3. Định nghĩa mã nguồn HTML/JavaScript chứa bản đồ Leaflet đa tầng bảo mật, tránh lỗi Index
 html_map_code = f"""
 <!DOCTYPE html>
 <html>
@@ -52,7 +55,7 @@ html_map_code = f"""
 <body>
 
     <div class="hud-panel">
-        <div><b>Cấp độ hiển thị:</b> <span id="view-mode" style="color:#fbbf24;">Vĩ mỗ (195 Quốc gia)</span></div>
+        <div><b>Cấp độ hiển thị:</b> <span id="view-mode" style="color:#fbbf24;">Vĩ mô (195 Quốc gia)</span></div>
         <div><b>Mức Phóng to (Zoom):</b> <span id="zoom-level">2</span></div>
     </div>
 
@@ -60,7 +63,7 @@ html_map_code = f"""
 
     <script>
         // Khởi tạo bản đồ nền tối (Dark mode)
-        var map = L.map('map', {{ minZoom: 2, maxZoom: 18 }}).setView([15, 20], 2);
+        var map = L.map('map', {{ minZoom: 2, maxZoom: 18 }}).setView([20, 0], 2);
         L.tileLayer('https://{{s}}://{{z}}/{{x}}/{{y}}{{r}}.png', {{
             attribution: '&copy; OpenStreetMap'
         }}).addTo(map);
@@ -68,14 +71,13 @@ html_map_code = f"""
         var currentStatus = '{status_value}';
         var layers = {{ macro: L.layerGroup(), meso: L.layerGroup(), micro: L.layerGroup() }};
         
-        // Tọa độ các trung tâm kinh tế vĩ mô toàn cầu
+        // Tọa độ cấu trúc Object rõ ràng, tránh sử dụng mảng lồng nhau gây lỗi Index
         const countries = {{
             US: [37.0902, -95.7129], VN: [14.0583, 108.2772], CN: [35.8617, 104.1954], 
             EU: [48.5260, 15.2551], CH: [46.8182, 8.2275], JP: [36.2048, 138.2529],
             AU: [-25.2744, 133.7751], BR: [-14.2350, -51.9253], ZA: [-30.5595, 22.9375]
         }};
 
-        // Nơi trú ẩn tài sản an toàn
         const safeHavens = {{ Gold: [22.3964, 114.1095], SwissBank: [47.3769, 8.5417] }};
 
         // VẼ TẦNG VĨ MÔ (Zoom 2 - 5): Luồng chảy USD xuyên quốc gia
@@ -83,7 +85,7 @@ html_map_code = f"""
             layers.macro.clearLayers();
             if (currentStatus === 'stable') {{
                 Object.keys(countries).forEach(k => {{
-                    if (k !== 'US') {{
+                    if (k !== 'US' && countries[k]) {{
                         let polyline = L.polyline([countries.US, countries[k]], {{
                             color: '#22c55e', weight: 3, dashArray: '5, 10', opacity: 0.8
                         }}).bindTooltip("USD chảy mạnh vào: Cổ phiếu & Chuỗi cung ứng " + k);
@@ -92,10 +94,12 @@ html_map_code = f"""
                 }});
             }} else {{
                 Object.keys(countries).forEach(k => {{
-                    let polyline = L.polyline([countries[k], safeHavens.Gold], {{
-                        color: '#ef4444', weight: 3, dashArray: '5, 5', opacity: 0.8
-                    }}).bindTooltip("Dòng tiền tháo chạy từ " + k + " trú ẩn vào VÀNG");
-                    layers.macro.addLayer(polyline);
+                    if (countries[k] && safeHavens.Gold) {{
+                        let polyline = L.polyline([countries[k], safeHavens.Gold], {{
+                            color: '#ef4444', weight: 3, dashArray: '5, 5', opacity: 0.8
+                        }}).bindTooltip("Dòng tiền tháo chạy từ " + k + " trú ẩn vào VÀNG");
+                        layers.macro.addLayer(polyline);
+                    }}
                 }});
             }}
         }}
@@ -148,11 +152,11 @@ html_map_code = f"""
             if (zoom <= 5) {{
                 document.getElementById('view-mode').innerText = "Vĩ mô (195 Quốc gia)";
                 layers.macro.addTo(map);
-            } else if (zoom > 5 && zoom <= 10) {{
+            }} else if (zoom > 5 && zoom <= 10) {{
                 document.getElementById('view-mode').innerText = "Trung mô (Tỉnh thành/Nhà máy)";
                 layers.macro.addTo(map); 
                 layers.meso.addTo(map);
-            } else {{
+            }} else {{
                 document.getElementById('view-mode').innerText = "Cực kỳ Vi mô (Cấp Xã/Giao dịch QR)";
                 layers.meso.addTo(map);
                 layers.micro.addTo(map);
