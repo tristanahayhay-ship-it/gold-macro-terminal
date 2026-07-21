@@ -4,10 +4,10 @@ import pandas as pd
 import numpy as np
 
 # Cấu hình giao diện rộng toàn màn hình
-st.set_page_config(layout="wide", page_title="Bản Đồ Thế Giới 4D")
+st.set_page_config(layout="wide", page_title="Mô phỏng Vũ Trụ 4D")
 
-st.title("🌐 Quả Cầu Thế Giới 4D Tương Tác Cao Cấp")
-st.write("Di chuột để xoay 3D, phóng to thu nhỏ và kéo thanh trượt bên dưới để thay đổi thời gian (Trục 4D).")
+st.title("🌌 Quả Cầu Trái Đất Nhìn Từ Không Gian Vũ Trụ")
+st.write("Mô phỏng hiệu ứng bầu trời sao, khí quyển và dữ liệu năng lượng 4D.")
 
 # 1. Tạo dữ liệu giả lập theo thời gian (4D) cho các quốc gia lớn
 @st.cache_data
@@ -18,72 +18,88 @@ def generate_4d_data():
     names = ['Việt Nam', 'Mỹ', 'Trung Quốc', 'Nga', 'Brazil', 'Úc', 'Ấn Độ', 'Anh', 'Pháp', 'Nam Phi', 'Canada', 'Nhật Bản']
     
     data_list = []
-    # Tạo dữ liệu chạy từ năm 2021 đến năm 2026 (Trục thời gian thứ 4)
     for year in range(2021, 2027):
         for i in range(len(countries)):
-            # Giá trị phát sáng ngẫu nhiên tăng dần theo năm
-            value = np.random.randint(10, 100) + (year - 2021) * 15
+            value = np.random.randint(20, 100) + (year - 2021) * 12
             data_list.append({
-                'Năm': year,
-                'Mã quốc gia': countries[i],
-                'Tên': names[i],
-                'Vĩ độ': lats[i],
-                'Kinh độ': lons[i],
-                'Chỉ số phát sáng': value
+                'Năm': year, 'Mã quốc gia': countries[i], 'Tên': names[i],
+                'Vĩ độ': lats[i], 'Kinh độ': lons[i], 'Chỉ số phát sáng': value
             })
     return pd.DataFrame(data_list)
 
 df_4d = generate_4d_data()
 
-# 2. Tạo bộ lọc thời gian trực quan (Thanh trượt 4D)
-selected_year = st.slider("📅 Chọn mốc thời gian (Trục 4D):", min_value=2021, max_value=2026, value=2026, step=1)
-
-# Lọc dữ liệu theo năm đã chọn
+# Bộ lọc thời gian trực quan (Thanh trượt 4D)
+selected_year = st.slider("📅 Trục thời gian vũ trụ (4D):", min_value=2021, max_value=2026, value=2026, step=1)
 df_filtered = df_4d[df_4d['Năm'] == selected_year]
 
-# 3. Dựng đồ họa quả cầu Trái Đất 3D rực rỡ trên nền tối
+# 2. Khởi tạo biểu đồ đồ họa 3D
 fig = go.Figure()
 
-# Thêm lớp dữ liệu các điểm phát sáng dạng bong bóng 3D (Scattergeo)
+# --- TÍNH NĂNG MỚI 1: TẠO HIỆU ỨNG KHÍ QUYỂN PHÁT SÁNG BAO QUANH TRÁI ĐẤT ---
+# Vẽ một đường viền tròn dạ quang (Cyan/Blue) bao quanh rìa quả địa cầu làm tầng khí quyển
+theta = np.linspace(0, 2*np.pi, 100)
+fig.add_trace(go.Scattergeo(
+    lon = 100 * np.cos(theta), # Định vị vòng tròn bao quanh trục quả cầu
+    lat = 40 * np.sin(theta),
+    mode = 'lines',
+    line = dict(width=3, color='rgba(0, 238, 255, 0.4)'), # Màu xanh khí quyển phát sáng nhẹ
+    hoverinfo = 'none'
+))
+
+# 3. Thêm lớp dữ liệu các điểm hạt năng lượng rực rỡ (Dải màu Plasma từ Xanh - Tím - Vàng chanh)
 fig.add_trace(go.Scattergeo(
     lon = df_filtered['Kinh độ'],
     lat = df_filtered['Vĩ độ'],
-    text = df_filtered['Tên'] + "<br>Chỉ số: " + df_filtered['Chỉ số phát sáng'].astype(str),
+    text = df_filtered['Tên'] + "<br>Cường độ: " + df_filtered['Chỉ số phát sáng'].astype(str) + " GW",
     mode = 'markers',
     marker = dict(
-        size = df_filtered['Chỉ số phát sáng'] / 4, # Kích thước hạt phát sáng
-        opacity = 0.85,
+        size = df_filtered['Chỉ số phát sáng'] / 3.2, 
+        opacity = 0.9,
         reversescale = False,
         autocolorscale = False,
         symbol = 'circle',
-        line = dict(width=1, color='rgba(255, 255, 255, 0.5)'),
-        colorscale = 'Viridis', # Dải màu dạ quang rực rỡ (Tím - Xanh - Vàng)
+        line = dict(width=1.5, color='rgba(255, 255, 255, 0.8)'),
+        colorscale = 'Plasma', # Đổi sang hệ màu Plasma mang hơi hướng năng lượng vũ trụ
         cmin = df_4d['Chỉ số phát sáng'].min(),
         cmax = df_4d['Chỉ số phát sáng'].max(),
         color = df_filtered['Chỉ số phát sáng'],
-        colorbar = dict(title="Cường độ 4D", thickness=15)
+        showscale = False
     )
 ))
 
-# 4. Thiết lập giao diện tối và hiệu ứng hiển thị quả cầu
+# --- TÍNH NĂNG MỚI 2: MÔ PHỎNG NỀN KHÔNG GIAN VŨ TRỤ THỰC TẾ ---
 fig.update_layout(
     geo = dict(
         showland = True,
         showcountries = True,
         showocean = True,
-        countrywidth = 0.5,
-        landcolor = '#11151c',      # Màu lục địa đen sâu cực đẹp
-        oceancolor = '#0b0c10',     # Màu đại dương đen tuyền
-        countrycolor = '#1f2833',   # Đường biên giới các nước màu xám công nghệ
-        lakecolor = '#0b0c10',
-        projection_type = 'orthographic', # Ép bản đồ phẳng thành quả cầu Trái Đất 3D quay được
-        lonaxis = dict(showgrid=True, gridcolor='#1f2833'),
-        lataxis = dict(showgrid=True, gridcolor='#1f2833')
+        countrywidth = 0.8,
+        landcolor = '#0d1117',      # Màu lục địa đổi sang Đen Xám góc cạnh vệ tinh
+        oceancolor = '#020408',     # Màu đại dương Đen Huyền Bí sâu thẳm
+        countrycolor = '#1f2937',   # Biên giới các nước màu xám đen mờ
+        lakecolor = '#020408',
+        projection_type = 'orthographic', 
+        # Cấu hình lưới Kinh - Vĩ độ mảnh phát sáng xanh mờ như màn hình rada vũ trụ
+        lonaxis = dict(showgrid=True, gridcolor='rgba(0, 238, 255, 0.08)', gridwidth=0.5),
+        lataxis = dict(showgrid=True, gridcolor='rgba(0, 238, 255, 0.08)', gridwidth=0.5)
     ),
-    paper_bgcolor = '#0b0c10', # Nền bao quanh màu đen đồng bộ
+    # Dùng ảnh nền mô phỏng các vì sao lấp lánh (Starfield) làm background bao quanh quả cầu
+    images=[dict(
+        source="https://unsplash.com", # Ảnh vũ trụ nhiều sao mịn nền tối
+        xref="paper", yref="paper",
+        x=0, y=1,
+        sizex=1, sizey=1,
+        xanchor="left", yanchor="top",
+        sizing="stretch",
+        opacity=0.6, # Độ mờ của nền sao để giữ bản đồ sắc nét
+        layer="below" # Đẩy nền sao xuống dưới cùng bản đồ
+    )],
+    paper_bgcolor = '#020408', # Nền bao quanh tổng thể tiệp màu với không gian
+    showlegend = False,
     margin = dict(l=0, r=0, t=0, b=0),
-    height = 700
+    height = 850
 )
 
-# Render đồ họa lên Streamlit
+# Render đồ họa lên giao diện Streamlit
 st.plotly_chart(fig, use_container_width=True)
