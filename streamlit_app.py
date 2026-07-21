@@ -1,141 +1,134 @@
 import streamlit as st
-import plotly.graph_objects as go
-import numpy as np
+import networkx as nx
+import matplotlib.pyplot as plt
 
-# Cấu hình giao diện rộng toàn màn hình
-st.set_page_config(layout="wide", page_title="Hệ Thống Kinh Tế Toàn Quốc")
-
-# Ép giao diện tối toàn diện cho nền trang web màu xám đồng bộ với app của bạn
-st.markdown(
-    """
-    <style>
-    .stApp {
-        background-color: #1e1e24;
-    }
-    h1, p, span, div, label {
-        color: #ffffff !important;
-    }
-    .stTabs [data-baseweb="tab"] {
-        color: #b794f4 !important;
-        font-size: 16px;
-        font-weight: bold;
-    }
-    .stTabs [aria-selected="true"] {
-        color: #00eeff !important;
-        border-bottom-color: #00eeff !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
+# 1. Cấu hình trang giao diện Web (Đặt ở đầu file)
+st.set_page_config(
+    page_title="Mô phỏng Dòng chảy Tiền tệ 3 Tầng",
+    page_icon="📊",
+    layout="wide"
 )
 
-st.title("🇻🇳 Hệ Thống Đồ Họa Kinh Tế Tích Hợp Toàn Quốc Việt Nam")
-st.write("Mối liên hệ chặt chẽ từ vĩ mô Quốc gia đến các động lực phát triển Cấp Tỉnh và Cấp Xã.")
+# Tiêu đề chính ứng dụng
+st.title("📊 Mô phỏng Dòng chảy Tiền tệ từ Vi mô đến Vĩ mô")
+st.markdown("Ứng dụng hiển thị trực quan cách dòng tiền luân chuyển giữa các tầng kinh tế.")
 
-# Khởi tạo hệ thống Tab điều hướng liên kết tầng dữ liệu
-tab_quoc_gia, tab_tinh, tab_xa = st.tabs(["🌐 1. Cấp Quốc Gia (Tổng GDP)", "🏢 2. Cấp Tỉnh (GRDP Địa Phương)", "🏡 3. Cấp Xã (Cơ Cấu Ngành)"])
+# 2. Thanh bên (Sidebar) để cấu hình kịch bản nền kinh tế
+st.sidebar.header("⚙️ Cấu hình kịch bản")
+scenario = st.sidebar.selectbox(
+    "Chọn trạng thái hệ thống:",
+    options=["Bình thường", "Khi có BIẾN (Khủng hoảng)"]
+)
 
-# ==============================================================================
-# TAB 1: CẤP QUỐC GIA (SƠ ĐỒ HƯỚNG TÂM ĐA TẦNG - SUNBURST)
-# ==============================================================================
-with tab_quoc_gia:
-    st.subheader("Cơ Cấu Tổng Sản Phẩm Quốc Nội Việt Nam (GDP)")
-    st.write("Bấm vào các phân khúc vòng tròn để phóng to, phân rã sâu vào các khối ngành chiến lược.")
+# 3. Khởi tạo đồ thị NetworkX
+G = nx.DiGraph()
+
+# Khai báo các nút hệ thống
+nodes = {
+    "QUOC_TE": "🌐 QUỐC TẾ\n(FDI, FII, IMF)",
+    "QUOC_GIA": "🏛️ QUỐC GIA\n(NHTW & Chính phủ)",
+    "TINH_CHINH_QUYEN": "🏢 CẤP TỈNH\n(Chính quyền & Kho bạc)",
+    "TINH_DOANH_NGHIEP": "🏭 DN LỚN / KCN\n(Sản xuất, Xuất khẩu)",
+    "XA_CHINH_QUYEN": "🔰 CHÍNH QUYỀN XÃ\n(Ngân sách xã)",
+    "XA_DAN_CU": "🏡 HỘ GIA ĐÌNH\n(Lao động, Tiêu dùng)"
+}
+
+for key, label in nodes.items():
+    G.add_node(key, label=label)
+
+# Cố định tọa độ phân tầng Y-axis từ Vĩ mô xuống Vi mô
+pos = {
+    "QUOC_TE":           (0, 4),
+    "QUOC_GIA":          (0, 3),
+    "TINH_CHINH_QUYEN":  (-2, 2),
+    "TINH_DOANH_NGHIEP": (2, 2),
+    "XA_CHINH_QUYEN":    (-2, 1),
+    "XA_DAN_CU":         (2, 1)
+}
+
+# 4. Thiết lập luồng dữ liệu dòng tiền theo kịch bản người dùng chọn
+edges = []
+description_text = ""
+
+if scenario == "Bình thường":
+    description_text = """
+    **Bản chất luân chuyển**: Dòng tiền vận hành thông suốt hai chiều. Tiền thuế/phí thu từ vi mô chuyển dần 
+    lên trên để tái đầu tư vĩ mô. Thu nhập từ xuất khẩu và dòng vốn FDI chảy mạnh vào doanh nghiệp, sau đó 
+    luân chuyển qua tiền lương để thúc đẩy tiêu dùng nội địa tại các hộ gia đình ở xã.
+    """
+    edges = [
+        ("QUOC_TE", "TINH_DOANH_NGHIEP", "Bơm vốn đầu tư FDI", "NORMAL"),
+        ("TINH_DOANH_NGHIEP", "QUOC_GIA", "Nộp Thuế xuất nhập khẩu", "NORMAL"),
+        ("QUOC_GIA", "TINH_CHINH_QUYEN", "Phân bổ ngân sách tỉnh", "NORMAL"),
+        ("TINH_CHINH_QUYEN", "XA_CHINH_QUYEN", "Hỗ trợ phát triển nông thôn", "NORMAL"),
+        ("TINH_DOANH_NGHIEP", "XA_DAN_CU", "Trả lương công nhân & Thu mua", "NORMAL"),
+        ("XA_DAN_CU", "TINH_DOANH_NGHIEP", "Tiêu dùng hàng hóa dịch vụ", "NORMAL"),
+        ("XA_DAN_CU", "XA_CHINH_QUYEN", "Nộp phí, thuế địa phương", "NORMAL"),
+        ("XA_CHINH_QUYEN", "TINH_CHINH_QUYEN", "Nộp nghĩa vụ ngân sách trên", "NORMAL")
+    ]
+else:
+    description_text = """
+    **Bản chất luân chuyển**: Kích hoạt cơ chế phòng thủ. Dòng tiền tháo chạy từ dưới lên trên và ra ngoài biên giới. 
+    Các kênh đầu tư rủi ro (BĐS, dịch vụ phi thiết yếu) bị rút rỗng. Tiền mặt cô đọng trong két sắt hộ gia đình 
+    hoặc chảy vào hệ thống an toàn cấp quốc gia (USD, Vàng, Trái phiếu chính phủ).
+    """
+    edges = [
+        ("QUOC_GIA", "QUOC_TE", "💸 Vốn ngoại tháo chạy\n(Capital Flight)", "XA_RA"),
+        ("QUOC_TE", "QUOC_GIA", "📊 Hỗ trợ tài chính vĩ mô", "DO_VAO"),
+        ("TINH_DOANH_NGHIEP", "QUOC_GIA", "📊 Đổi lấy USD / Vàng\n(Trú ẩn an toàn)", "DO_VAO"),
+        ("QUOC_GIA", "TINH_CHINH_QUYEN", "📊 Bơm vốn Đầu tư công vĩ mô", "DO_VAO"),
+        ("TINH_DOANH_NGHIEP", "TINH_CHINH_QUYEN", "💸 Thất thu thuế DN\n(Đóng băng sản xuất)", "XA_RA"),
+        ("TINH_CHINH_QUYEN", "XA_CHINH_QUYEN", "📊 Ngân sách cứu trợ khẩn cấp", "DO_VAO"),
+        ("XA_DAN_CU", "QUOC_GIA", "📊 Gửi tiết kiệm Ngân hàng lớn\n/ Trú ẩn tài sản", "DO_VAO"),
+        ("XA_DAN_CU", "TINH_DOANH_NGHIEP", "💸 Cắt giảm tối đa chi tiêu", "XA_RA")
+    ]
+
+# Áp dụng các cạnh (dòng tiền) vào đồ thị
+for u, v, label, flow_type in edges:
+    G.add_edge(u, v, label=label, type=flow_type)
+
+# 5. Khởi tạo không gian vẽ Matplotlib
+fig, ax = plt.subplots(figsize=(15, 10))
+
+# Thiết lập màu sắc đồ thị dựa trên kịch bản
+if scenario == "Bình thường":
+    edge_colors = ['#1f77b4' for u, v in G.edges()] # Tất cả màu xanh dương ổn định
+else:
+    edge_colors = ['#2ca02c' if G[u][v]['type'] == 'DO_VAO' else '#d62728' for u, v in G.edges()] # Xanh lá (Đổ vào) / Đỏ (Xả ra)
+
+# Tiến hành vẽ các khối chức năng (Nodes)
+nx.draw_networkx_nodes(G, pos, ax=ax, node_size=3800, node_color="#f8f9fa", edgecolors="#495057", linewidths=1.5)
+
+# Đóng nhãn văn bản cho các khối
+node_labels = nx.get_node_attributes(G, 'label')
+nx.draw_networkx_labels(G, pos, ax=ax, labels=node_labels, font_size=10, font_weight="bold")
+
+# Vẽ các mũi tên luân chuyển tiền tệ (Edges)
+nx.draw_networkx_edges(G, pos, ax=ax, arrowstyle="->", arrowsize=22, edge_color=edge_colors, 
+                       width=2.5, connectionstyle="arc3,rad=0.15")
+
+# Đóng nhãn mô tả trên từng mũi tên
+edge_labels = nx.get_edge_attributes(G, 'label')
+nx.draw_networkx_edge_labels(G, pos, ax=ax, edge_labels=edge_labels, font_size=9, label_pos=0.5, rotate=False)
+
+# Tối ưu hóa vùng hiển thị đồ thị
+ax.axis('off')
+plt.tight_layout()
+
+# 6. Đưa dữ liệu hiển thị lên giao diện Web Streamlit
+col1, col2 = st.columns([1, 3])
+
+with col1:
+    st.subheader("📝 Phân tích kịch bản")
+    st.info(description_text)
     
-    labels_qg = [
-        "TỔNG GDP VIỆT NAM",
-        "Khu vực III: Dịch Vụ", "Khu vực II: Công Nghiệp & Xây Dựng", "Khu vực I: Nông, Lâm & Thủy Sản", "Thuế Sản Phẩm Trừ Trợ Cấp",
-        "Tài chính, Ngân hàng & Bảo hiểm", "Thương mại & Bán lẻ", "Du lịch & Lưu trú", "CNTT & Viễn thông",
-        "Công nghiệp Chế biến, Chế tạo", "Sản xuất & Phân phối năng lượng", "Xây dựng hạ tầng quốc gia",
-        "Nông nghiệp công nghệ cao", "Thủy hải sản xuất khẩu",
-        "Khối Doanh nghiệp FDI", "Khối Tư nhân trong nước"
-    ]
-    parents_qg = [
-        "",
-        "TỔNG GDP VIỆT NAM", "TỔNG GDP VIỆT NAM", "TỔNG GDP VIỆT NAM", "TỔNG GDP VIỆT NAM",
-        "Khu vực III: Dịch Vụ", "Khu vực III: Dịch Vụ", "Khu vực III: Dịch Vụ", "Khu vực III: Dịch Vụ",
-        "Khu vực II: Công Nghiệp & Xây Dựng", "Khu vực II: Công Nghiệp & Xây Dựng", "Khu vực II: Công Nghiệp & Xây Dựng",
-        "Khu vực I: Nông, Lâm & Thủy Sản", "Khu vực I: Nông, Lâm & Thủy Sản",
-        "Công nghiệp Chế biến, Chế tạo", "Công nghiệp Chế biến, Chế tạo"
-    ]
-    values_qg = [430, 185, 160, 50, 35, 60, 55, 40, 30, 80, 40, 40, 30, 20, 50, 30]
+    st.subheader("💡 Chú giải ký hiệu")
+    if scenario == "Bình thường":
+        st.write("🔵 **Mũi tên Xanh dương**: Luồng vận hành kinh tế thông suốt hai chiều.")
+    else:
+        st.write("🟢 **Mũi tên Xanh lá (Đổ vào)**: Dòng tiền co cụm phòng thủ vào kênh an toàn.")
+        st.write("🔴 **Mũi tên Đỏ (Xả ra)**: Khu vực bị tháo chạy vốn hoặc đóng băng thanh khoản.")
 
-    fig_qg = go.Figure(go.Sunburst(
-        labels = labels_qg, parents = parents_qg, values = values_qg,
-        branchvalues = "total", textinfo = "label+value+percent entry",
-        marker = dict(colorscale = 'Thermal', line = dict(width = 1.5, color = '#1e1e24')),
-        hovertemplate = '<b>%{label}</b><br>Quy mô: %{value} Tỷ USD<br>Tỷ trọng: %{percentEntry:.2%}<extra></extra>'
-    ))
-    fig_qg.update_layout(paper_bgcolor='#1e1e24', plot_bgcolor='#1e1e24', font=dict(color="#ffffff"), margin=dict(l=10, r=10, t=20, b=10), height=600)
-    st.plotly_chart(fig_qg, use_container_width=True)
-
-# ==============================================================================
-# TAB 2: CẤP TỈNH (SƠ ĐỒ KHỐI PHÂN CẤP TỶ TRỌNG - TREEMAP)
-# ==============================================================================
-with tab_tinh:
-    st.subheader("Tổng Sản Phẩm Trên Địa Bàn Cấp Tỉnh (GRDP)")
-    st.write("Mô phỏng cấu trúc kinh tế của một tỉnh/thành phố động lực đóng góp vào ngân sách Trung ương.")
-    
-    labels_tinh = [
-        "GRDP ĐỊA PHƯƠNG",
-        "Công Nghiệp & Xây Dựng Tỉnh", "Dịch Vụ & Thương Mại Tỉnh", "Nông, Lâm & Thủy Sản Tỉnh", "Thuế Sản Phẩm Địa Phương",
-        "Khu Công Nghiệp & Chế Xuất", "Sản xuất năng lượng tái tạo", "Xây dựng khu đô thị",
-        "Du lịch lữ hành & Lưu trú", "Dịch vụ Vận tải, Logistics", "Hệ thống Bán lẻ & Siêu thị",
-        "Trồng trọt đặc sản xuất khẩu", "Nuôi trồng thủy sản công nghiệp"
-    ]
-    parents_tinh = [
-        "",
-        "GRDP ĐỊA PHƯƠNG", "GRDP ĐỊA PHƯƠNG", "GRDP ĐỊA PHƯƠNG", "GRDP ĐỊA PHƯƠNG",
-        "Công Nghiệp & Xây Dựng Tỉnh", "Công Nghiệp & Xây Dựng Tỉnh", "Công Nghiệp & Xây Dựng Tỉnh",
-        "Dịch Vụ & Thương Mại Tỉnh", "Dịch Vụ & Thương Mại Tỉnh", "Dịch Vụ & Thương Mại Tỉnh",
-        "Nông, Lâm & Thủy Sản Tỉnh", "Nông, Lâm & Thủy Sản Tỉnh"
-    ]
-    values_tinh = [10000, 4500, 3800, 1100, 600, 2500, 1000, 1000, 1500, 1300, 1000, 600, 500]
-
-    fig_tinh = go.Figure(go.Treemap(
-        labels = labels_tinh, parents = parents_tinh, values = values_tinh,
-        textinfo = "label+value+percent parent",
-        marker = dict(colorscale = 'Electric', line = dict(width = 1.5, color = '#1e1e24')),
-        hovertemplate = '<b>%{label}</b><br>Giá trị: %{value} Tỷ Đồng<br>Tỷ trọng nhóm: %{percentParent:.2%}<extra></extra>'
-    ))
-    fig_tinh.update_layout(paper_bgcolor='#1e1e24', plot_bgcolor='#1e1e24', font=dict(color="#ffffff"), margin=dict(l=10, r=10, t=20, b=10), height=600)
-    st.plotly_chart(fig_tinh, use_container_width=True)
-
-# ==============================================================================
-# TAB 3: CẤP XÃ (SƠ ĐỒ DÒNG CHẢY KINH TẾ TẾ BÀO - SANKEY DIAGRAM)
-# ==============================================================================
-with tab_xa:
-    st.subheader("Dòng Chảy Kinh Tế Cơ Sở Cấp Xã")
-    st.write("Mô hình phân rã chi tiết đến từng ngành nghề sinh kế thực tế của người dân vùng nông thôn/đô thị.")
-    
-    nodes_xa = [
-        "Tổng Kinh Tế Xã",          # 0
-        "Nông - Lâm - Thủy Sản",    # 1
-        "Công Nghiệp - Xây Dựng",   # 2
-        "Thương Mại - Dịch Vụ",     # 3
-        "Trồng Trọt",               # 4
-        "Chăn Nuôi",                # 5
-        "Sản Xuất Tiểu Thủ Công",   # 6
-        "Xây Dựng Dân Dụng",        # 7
-        "Chợ Lẻ & Tạp Hóa",         # 8
-        "Dịch Vụ Vận Tải/Mạng"      # 9
-    ]
-    source_xa = 
-    target_xa = 
-    value_xa = 
-    
-    node_colors = ["#7e57c2", "#2d6a4f", "#e65100", "#0288d1", "#52b788", "#74c69d", "#f57c00", "#ffb74d", "#29b6f6", "#b3e5fc"]
-
-    fig_xa = go.Figure(data=[go.Sankey(
-        node = dict(pad = 20, thickness = 30, line = dict(color = "#ffffff", width = 0.5), label = nodes_xa, color = node_colors),
-        link = dict(
-            source = source_xa, target = target_xa, value = value_xa,
-            color = [
-                "rgba(45, 106, 79, 0.4)", "rgba(230, 81, 0, 0.4)", "rgba(2, 136, 209, 0.4)",
-                "rgba(82, 183, 136, 0.3)", "rgba(116, 198, 157, 0.3)", "rgba(245, 124, 0, 0.3)",
-                "rgba(255, 183, 77, 0.3)", "rgba(41, 182, 246, 0.3)", "rgba(179, 229, 252, 0.3)"
-            ]
-        )
-    )])
-    fig_xa.update_layout(paper_bgcolor='#1e1e24', plot_bgcolor='#1e1e24', font=dict(color="#ffffff"), margin=dict(l=20, r=20, t=20, b=20), height=600)
-    st.plotly_chart(fig_xa, use_container_width=True)
+with col2:
+    st.subheader("🗺️ Sơ đồ dòng chảy tiền tệ trực quan")
+    st.pyplot(fig, clear_figure=True) # Render hình ảnh đồ thị động lên web
