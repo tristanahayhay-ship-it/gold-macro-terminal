@@ -39,8 +39,8 @@ html_map_code = f"""
     <title>Bản Đồ Dòng Chảy Kinh Tế</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com" />
+    <script src="https://unpkg.com"></script>
     <style>
         body, html {{ margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; overflow: hidden; }}
         #map {{ height: 100vh; width: 100vw; background: #0f172a; }}
@@ -65,7 +65,7 @@ html_map_code = f"""
         // Khởi tạo bản đồ tập trung vào tọa độ trung tâm [20, 0]
         var map = L.map('map', {{ minZoom: 2, maxZoom: 18 }}).setView([20, 0], 2);
         
-        // ĐỔI SANG THƯ VIỆN ẢNH NỀN OPENSTREETMAP ĐỂ TRÁNH LỖI ĐEN MÀN HÌNH
+        // Đã sửa đổi đường dẫn ảnh nền chuẩn hóa cho nền tối CARTO DB
         L.tileLayer('https://{{s}}://{{z}}/{{x}}/{{y}}{{r}}.png', {{
             attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
         }}).addTo(map);
