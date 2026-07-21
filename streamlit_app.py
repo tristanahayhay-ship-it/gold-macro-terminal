@@ -1,134 +1,110 @@
 import streamlit as st
-import networkx as nx
-import matplotlib.pyplot as plt
+import folium
+from streamlit_folium import st_folium
 
 # 1. Cấu hình trang giao diện Web (Đặt ở đầu file)
 st.set_page_config(
-    page_title="Mô phỏng Dòng chảy Tiền tệ 3 Tầng",
-    page_icon="📊",
+    page_title="Bản đồ Dòng chảy Tiền tệ Việt Nam",
+    page_icon="🇻🇳",
     layout="wide"
 )
 
-# Tiêu đề chính ứng dụng
-st.title("📊 Mô phỏng Dòng chảy Tiền tệ từ Vi mô đến Vĩ mô")
-st.markdown("Ứng dụng hiển thị trực quan cách dòng tiền luân chuyển giữa các tầng kinh tế.")
+st.title("🇻🇳 Mô phỏng Bản đồ Dòng chảy Tiền tệ 3 Tầng")
+st.markdown("Hệ thống hiển thị luồng dịch chuyển tiền tệ dựa trên tọa độ địa lý thực tế tại Việt Nam.")
 
-# 2. Thanh bên (Sidebar) để cấu hình kịch bản nền kinh tế
-st.sidebar.header("⚙️ Cấu hình kịch bản")
+# 2. Thanh điều khiển kịch bản kinh tế
+st.sidebar.header("⚙️ Kịch bản Hệ thống")
 scenario = st.sidebar.selectbox(
     "Chọn trạng thái hệ thống:",
     options=["Bình thường", "Khi có BIẾN (Khủng hoảng)"]
 )
 
-# 3. Khởi tạo đồ thị NetworkX
-G = nx.DiGraph()
-
-# Khai báo các nút hệ thống
-nodes = {
-    "QUOC_TE": "🌐 QUỐC TẾ\n(FDI, FII, IMF)",
-    "QUOC_GIA": "🏛️ QUỐC GIA\n(NHTW & Chính phủ)",
-    "TINH_CHINH_QUYEN": "🏢 CẤP TỈNH\n(Chính quyền & Kho bạc)",
-    "TINH_DOANH_NGHIEP": "🏭 DN LỚN / KCN\n(Sản xuất, Xuất khẩu)",
-    "XA_CHINH_QUYEN": "🔰 CHÍNH QUYỀN XÃ\n(Ngân sách xã)",
-    "XA_DAN_CU": "🏡 HỘ GIA ĐÌNH\n(Lao động, Tiêu dùng)"
+# 3. Định nghĩa tọa độ địa lý các chủ thể tại Việt Nam
+# [Vĩ độ (Latitude), Kinh độ (Longitude)]
+locations = {
+    "QUOC_TE": {"coords": [22.0, 110.0], "name": "🌐 Thị trường Quốc tế (FDI, FII, IMF)", "color": "purple"},
+    "QUOC_GIA": {"coords": [21.0285, 105.8542], "name": "🏛️ Trung ương / Cấp Quốc gia (Hà Nội - NHTW)", "color": "blue"},
+    "TINH_CHINH_QUYEN": {"coords": [16.0544, 108.2022], "name": "🏢 Cấp Tỉnh (Chính quyền & Kho bạc Tỉnh)", "color": "orange"},
+    "TINH_DOANH_NGHIEP": {"coords": [16.4637, 107.5909], "name": "🏭 Khu Công nghiệp / DN lớn cấp Tỉnh", "color": "darkblue"},
+    "XA_CHINH_QUYEN": {"coords": [15.5673, 108.4812], "name": "🔰 Cấp Xã (Ủy ban Nhân dân xã vùng nông thôn)", "color": "cadetblue"},
+    "XA_DAN_CU": {"coords": [15.4573, 108.5512], "name": "🏡 Hộ Gia đình / Nông dân (Kinh tế vi mô)", "color": "green"}
 }
 
-for key, label in nodes.items():
-    G.add_node(key, label=label)
-
-# Cố định tọa độ phân tầng Y-axis từ Vĩ mô xuống Vi mô
-pos = {
-    "QUOC_TE":           (0, 4),
-    "QUOC_GIA":          (0, 3),
-    "TINH_CHINH_QUYEN":  (-2, 2),
-    "TINH_DOANH_NGHIEP": (2, 2),
-    "XA_CHINH_QUYEN":    (-2, 1),
-    "XA_DAN_CU":         (2, 1)
-}
-
-# 4. Thiết lập luồng dữ liệu dòng tiền theo kịch bản người dùng chọn
-edges = []
-description_text = ""
+# 4. Cấu hình dữ liệu luồng tiền tệ dựa trên kịch bản chọn
+flows = []
+description = ""
 
 if scenario == "Bình thường":
-    description_text = """
-    **Bản chất luân chuyển**: Dòng tiền vận hành thông suốt hai chiều. Tiền thuế/phí thu từ vi mô chuyển dần 
-    lên trên để tái đầu tư vĩ mô. Thu nhập từ xuất khẩu và dòng vốn FDI chảy mạnh vào doanh nghiệp, sau đó 
-    luân chuyển qua tiền lương để thúc đẩy tiêu dùng nội địa tại các hộ gia đình ở xã.
-    """
-    edges = [
-        ("QUOC_TE", "TINH_DOANH_NGHIEP", "Bơm vốn đầu tư FDI", "NORMAL"),
-        ("TINH_DOANH_NGHIEP", "QUOC_GIA", "Nộp Thuế xuất nhập khẩu", "NORMAL"),
-        ("QUOC_GIA", "TINH_CHINH_QUYEN", "Phân bổ ngân sách tỉnh", "NORMAL"),
-        ("TINH_CHINH_QUYEN", "XA_CHINH_QUYEN", "Hỗ trợ phát triển nông thôn", "NORMAL"),
-        ("TINH_DOANH_NGHIEP", "XA_DAN_CU", "Trả lương công nhân & Thu mua", "NORMAL"),
-        ("XA_DAN_CU", "TINH_DOANH_NGHIEP", "Tiêu dùng hàng hóa dịch vụ", "NORMAL"),
-        ("XA_DAN_CU", "XA_CHINH_QUYEN", "Nộp phí, thuế địa phương", "NORMAL"),
-        ("XA_CHINH_QUYEN", "TINH_CHINH_QUYEN", "Nộp nghĩa vụ ngân sách trên", "NORMAL")
+    description = "🔵 **Trạng thái ổn định**: Tiền thuế luân chuyển nhịp nhàng từ xã lên tỉnh, lên trung ương. Dòng vốn FDI và đơn hàng quốc tế liên tục đổ về doanh nghiệp lớn tạo công ăn việc làm, trả lương đều đặn kích cầu tiêu dùng nông thôn."
+    flows = [
+        {"from": "QUOC_TE", "to": "TINH_DOANH_NGHIEP", "label": "Bơm vốn đầu tư FDI", "color": "#1f77b4"},
+        {"from": "TINH_DOANH_NGHIEP", "to": "QUOC_GIA", "label": "Nộp thuế xuất nhập khẩu", "color": "#1f77b4"},
+        {"from": "QUOC_GIA", "to": "TINH_CHINH_QUYEN", "label": "Phân bổ ngân sách điều tiết", "color": "#1f77b4"},
+        {"from": "TINH_CHINH_QUYEN", "to": "XA_CHINH_QUYEN", "label": "Hỗ trợ hạ tầng phát triển nông thôn", "color": "#1f77b4"},
+        {"from": "TINH_DOANH_NGHIEP", "to": "XA_DAN_CU", "label": "Trả lương công nhân & Thu mua sản phẩm", "color": "#1f77b4"},
+        {"from": "XA_DAN_CU", "to": "TINH_DOANH_NGHIEP", "label": "Tiêu dùng hàng hóa dịch vụ sản xuất", "color": "#1f77b4"},
+        {"from": "XA_DAN_CU", "to": "XA_CHINH_QUYEN", "label": "Nộp phí, thuế địa phương", "color": "#1f77b4"},
+        {"from": "XA_CHINH_QUYEN", "to": "TINH_CHINH_QUYEN", "label": "Nộp nghĩa vụ ngân sách tuyến trên", "color": "#1f77b4"}
     ]
 else:
-    description_text = """
-    **Bản chất luân chuyển**: Kích hoạt cơ chế phòng thủ. Dòng tiền tháo chạy từ dưới lên trên và ra ngoài biên giới. 
-    Các kênh đầu tư rủi ro (BĐS, dịch vụ phi thiết yếu) bị rút rỗng. Tiền mặt cô đọng trong két sắt hộ gia đình 
-    hoặc chảy vào hệ thống an toàn cấp quốc gia (USD, Vàng, Trái phiếu chính phủ).
-    """
-    edges = [
-        ("QUOC_GIA", "QUOC_TE", "💸 Vốn ngoại tháo chạy\n(Capital Flight)", "XA_RA"),
-        ("QUOC_TE", "QUOC_GIA", "📊 Hỗ trợ tài chính vĩ mô", "DO_VAO"),
-        ("TINH_DOANH_NGHIEP", "QUOC_GIA", "📊 Đổi lấy USD / Vàng\n(Trú ẩn an toàn)", "DO_VAO"),
-        ("QUOC_GIA", "TINH_CHINH_QUYEN", "📊 Bơm vốn Đầu tư công vĩ mô", "DO_VAO"),
-        ("TINH_DOANH_NGHIEP", "TINH_CHINH_QUYEN", "💸 Thất thu thuế DN\n(Đóng băng sản xuất)", "XA_RA"),
-        ("TINH_CHINH_QUYEN", "XA_CHINH_QUYEN", "📊 Ngân sách cứu trợ khẩn cấp", "DO_VAO"),
-        ("XA_DAN_CU", "QUOC_GIA", "📊 Gửi tiết kiệm Ngân hàng lớn\n/ Trú ẩn tài sản", "DO_VAO"),
-        ("XA_DAN_CU", "TINH_DOANH_NGHIEP", "💸 Cắt giảm tối đa chi tiêu", "XA_RA")
+    description = "⚠️ **Kịch bản Khủng hoảng (Có BIẾN)**: Kích hoạt dòng tiền phòng thủ. Tiền mặt tháo chạy khỏi sản xuất và dịch vụ rủi ro để quay ngược dòng về trú ẩn tại két sắt nhà dân hoặc hệ thống tài sản quốc gia an toàn (Ngân hàng quốc doanh, Vàng, USD). Vốn ngoại rút rỗng khỏi biên giới."
+    flows = [
+        {"from": "QUOC_GIA", "to": "QUOC_TE", "label": "💸 Vốn ngoại tháo chạy (Capital Flight)", "color": "#d62728"}, # Đỏ: Xả ra
+        {"from": "QUOC_TE", "to": "QUOC_GIA", "label": "🟢 Tiếp cận cứu trợ tài chính vĩ mô quốc tế", "color": "#2ca02c"}, # Xanh: Đổ vào
+        {"from": "TINH_DOANH_NGHIEP", "to": "QUOC_GIA", "label": "🟢 Đổi nội tệ lấy USD / Vàng bảo toàn vốn", "color": "#2ca02c"},
+        {"from": "QUOC_GIA", "to": "TINH_CHINH_QUYEN", "label": "🟢 Giải ngân Đầu tư công khẩn cấp", "color": "#2ca02c"},
+        {"from": "TINH_DOANH_NGHIEP", "to": "TINH_CHINH_QUYEN", "label": "💸 Thất thu thuế (Đóng băng nhà máy)", "color": "#d62728"},
+        {"from": "TINH_CHINH_QUYEN", "to": "XA_CHINH_QUYEN", "label": "🟢 Bơm ngân sách cứu trợ an sinh xã hội", "color": "#2ca02c"},
+        {"from": "XA_DAN_CU", "to": "QUOC_GIA", "label": "🟢 Gửi tiết kiệm Ngân hàng quốc doanh lớn", "color": "#2ca02c"},
+        {"from": "XA_DAN_CU", "to": "TINH_DOANH_NGHIEP", "label": "💸 Thắt lưng buộc bụng, ngừng tiêu dùng", "color": "#d62728"}
     ]
 
-# Áp dụng các cạnh (dòng tiền) vào đồ thị
-for u, v, label, flow_type in edges:
-    G.add_edge(u, v, label=label, type=flow_type)
+# 5. Khởi tạo bản đồ Folium, đặt trung tâm ở khu vực miền trung Việt Nam
+m = folium.Map(location=[16.5, 107.5], zoom_start=6, tiles="CartoDB positron")
 
-# 5. Khởi tạo không gian vẽ Matplotlib
-fig, ax = plt.subplots(figsize=(15, 10))
+# Thêm các điểm mốc (Markers) đại diện cho các chủ thể
+for key, info in locations.items():
+    folium.Marker(
+        location=info["coords"],
+        popup=info["name"],
+        tooltip=info["name"],
+        icon=folium.Icon(color=info["color"], icon="info-sign")
+    ).add_to(m)
 
-# Thiết lập màu sắc đồ thị dựa trên kịch bản
-if scenario == "Bình thường":
-    edge_colors = ['#1f77b4' for u, v in G.edges()] # Tất cả màu xanh dương ổn định
-else:
-    edge_colors = ['#2ca02c' if G[u][v]['type'] == 'DO_VAO' else '#d62728' for u, v in G.edges()] # Xanh lá (Đổ vào) / Đỏ (Xả ra)
+# Vẽ các đường dòng chảy tiền tệ (AntPath để tạo hiệu ứng chuyển động dòng nước)
+for flow in flows:
+    start_coords = locations[flow["from"]]["coords"]
+    end_coords = locations[flow["to"]]["coords"]
+    
+    # Tạo đường di chuyển có hướng trên nền bản đồ
+    folium.PolyLine(
+        locations=[start_coords, end_coords],
+        color=flow["color"],
+        weight=4,
+        opacity=0.8,
+        tooltip=flow["label"],
+        popup=flow["label"]
+    ).add_to(m)
 
-# Tiến hành vẽ các khối chức năng (Nodes)
-nx.draw_networkx_nodes(G, pos, ax=ax, node_size=3800, node_color="#f8f9fa", edgecolors="#495057", linewidths=1.5)
-
-# Đóng nhãn văn bản cho các khối
-node_labels = nx.get_node_attributes(G, 'label')
-nx.draw_networkx_labels(G, pos, ax=ax, labels=node_labels, font_size=10, font_weight="bold")
-
-# Vẽ các mũi tên luân chuyển tiền tệ (Edges)
-nx.draw_networkx_edges(G, pos, ax=ax, arrowstyle="->", arrowsize=22, edge_color=edge_colors, 
-                       width=2.5, connectionstyle="arc3,rad=0.15")
-
-# Đóng nhãn mô tả trên từng mũi tên
-edge_labels = nx.get_edge_attributes(G, 'label')
-nx.draw_networkx_edge_labels(G, pos, ax=ax, edge_labels=edge_labels, font_size=9, label_pos=0.5, rotate=False)
-
-# Tối ưu hóa vùng hiển thị đồ thị
-ax.axis('off')
-plt.tight_layout()
-
-# 6. Đưa dữ liệu hiển thị lên giao diện Web Streamlit
-col1, col2 = st.columns([1, 3])
+# 6. Hiển thị bố cục trên Streamlit Web
+col1, col2 = st.columns([1, 2])
 
 with col1:
-    st.subheader("📝 Phân tích kịch bản")
-    st.info(description_text)
+    st.subheader("📝 Tổng quan Kịch bản")
+    st.info(description)
     
-    st.subheader("💡 Chú giải ký hiệu")
-    if scenario == "Bình thường":
-        st.write("🔵 **Mũi tên Xanh dương**: Luồng vận hành kinh tế thông suốt hai chiều.")
+    st.subheader("💡 Hướng dẫn xem bản đồ")
+    st.markdown("""
+    *   **Di chuột vào các bong bóng định vị** để xem tên chủ thể kinh tế (Xã, Tỉnh, Quốc gia).
+    *   **Di chuột trực tiếp vào các đường liên kết** để đọc nội dung dòng tiền luân chuyển tương ứng.
+    """)
+    if scenario == "Khi có BIẾN (Khủng hoảng)":
+        st.error("🔴 Đường Đỏ: Luồng tháo chạy vốn / Đóng băng suy thoái.")
+        st.success("🟢 Đường Xanh Lá: Luồng dòng tiền co cụm phòng thủ an toàn.")
     else:
-        st.write("🟢 **Mũi tên Xanh lá (Đổ vào)**: Dòng tiền co cụm phòng thủ vào kênh an toàn.")
-        st.write("🔴 **Mũi tên Đỏ (Xả ra)**: Khu vực bị tháo chạy vốn hoặc đóng băng thanh khoản.")
+        st.info("🔵 Đường Xanh Dương: Luồng tiền tệ thông suốt bình thường.")
 
 with col2:
-    st.subheader("🗺️ Sơ đồ dòng chảy tiền tệ trực quan")
-    st.pyplot(fig, clear_figure=True) # Render hình ảnh đồ thị động lên web
+    st.subheader("🗺️ Bản đồ Số hóa Hệ thống Kinh tế")
+    # Render bản đồ tương tác trực tiếp lên trang web
+    st_folium(m, width=900, height=650)
