@@ -54,11 +54,12 @@ view_state = pdk.ViewState(
     bearing=30
 )
 
-# Render bản đồ lên giao diện Streamlit với nền bản đồ tối của CartoDB
+# Sửa lại đoạn cấu hình render bản đồ này trong code của bạn:
 r = pdk.Deck(
     layers=[layer],
     initial_view_state=view_state,
-    map_style="mapbox://styles/mapbox/dark-v10", # Hoặc dùng chuỗi không cần token: "https://cartocdn.com"
+    # Thay thế dòng map_style cũ bằng dòng dưới đây để lấy nền tối miễn phí:
+    map_style="https://cartocdn.com",
     tooltip={"text": "Mật độ: {count}\nĐộ cao đồ họa: {elevation}m"}
 )
 
