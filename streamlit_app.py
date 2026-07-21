@@ -9,7 +9,7 @@ st.title("🌐 Hệ Thống Dòng Chảy Tiền Tệ & Tài Sản Toàn Cầu Xu
 st.caption("Mô phỏng mạng lưới kinh tế tuần hoàn liên kết từ cấp cơ sở (Xã/Huyện) của từng quốc gia ra toàn thế giới.")
 
 # 2. Định nghĩa tọa độ địa lý thực tế của các thực thể từ Vi mô đến Toàn cầu
-# Định dạng: [Kinh độ (Longitude), Vĩ độ (Latitude)] - Lưu ý Pydeck nhận [Lon, Lat]
+# Định dạng: [Kinh độ (Longitude), Vĩ độ (Latitude)]
 global_locations = {
     # === CỤM VIỆT NAM (CHÂU Á) ===
     "VN_Xa_CoSo": [106.2400, 20.9400],         # Cấp Xã (Nông thôn VN)
@@ -32,7 +32,6 @@ global_locations = {
 }
 
 # 3. Định nghĩa mạng lưới sợi dây liên kết xuyên lục địa
-# status: strong_in (Xanh lá), strong_out (Đỏ), neutral (Vàng)
 global_flows = [
     # ================= MẠCH NỘI ĐỊA VIỆT NAM =================
     {"from": "VN_Xa_CoSo", "to": "VN_Huyen_Hub", "status": "neutral", "desc": "Dân gửi tiền tích lũy lên quỹ tín dụng Huyện"},
@@ -46,32 +45,29 @@ global_flows = [
     # ================= MẠCH NỘI ĐỊA CHÂU ÂU =================
     {"from": "EU_Local_Production", "to": "EU_Frankfurt_Central", "status": "neutral", "desc": "Dòng tiền tiết kiệm Euro luân chuyển về ECB"},
 
-    # ================= MẠCH XUYÊN LỤC ĐỊA (LIÊN KẾT TOÀN THẾ GIỚI) =================
-    # Dòng tiền FDI/FII từ các trung tâm lớn phóng về vùng cơ sở sản xuất toàn cầu
+    # ================= MẠCH XUYÊN LỤC ĐỊA =================
     {"from": "US_NewYork_WallStreet", "to": "Singapore_Global_Hub", "status": "strong_in", "desc": "Dòng vốn đầu tư Mỹ phóng sang trung tâm tài chính Châu Á"},
     {"from": "Singapore_Global_Hub", "to": "VN_Huyen_Hub", "status": "strong_in", "desc": "Vốn ngoại FDI bơm thẳng vào xây nhà máy ở cụm công nghiệp Huyện tại Việt Nam"},
-    
-    # Giao thương hàng hóa & Rút ròng tài sản
     {"from": "VN_HaNoi_Central", "to": "Japan_Tokyo_Central", "status": "strong_in", "desc": "Việt Nam xuất khẩu linh kiện sang Nhật Bản thu ngoại tệ mạnh"},
-    {"from": "EU_Frankfurt_Central", "to": "US_NewYork_WallStreet", "status": "strong_out", "desc": "Giới đầu tư Châu Âu bán tháo tài sản Euro, chuyển dịch dòng vốn sang đô-la Mỹ an toàn"},
+    {"from": "EU_Frankfurt_Central", "to": "US_NewYork_WallStreet", "status": "strong_out", "desc": "Giới đầu tư Châu Âu bán tháo tài sản Euro, chuyển dịch dòng vốn sang đô-la Mỹ"},
     {"from": "Japan_Tokyo_Central", "to": "US_NewYork_WallStreet", "status": "neutral", "desc": "Nhật Bản mua Trái phiếu Chính phủ Mỹ để giữ thế cân bằng tỷ giá"}
 ]
 
-# 4. Định nghĩa mã màu RGBA theo đúng yêu cầu thiết kế của bạn
+# 4. Sửa lỗi cú pháp: Định nghĩa mã màu dạng danh sách RGBA [R, G, B, Alpha] hợp lệ
 color_map = {
     "strong_in":,    # 🟢 Xanh lá: Dòng tiền vào mạnh / Mua mạnh
     "strong_out":,   # 🔴 Đỏ: Dòng tiền rút mạnh / Bán mạnh
     "neutral": [255, 255, 0, 200]     # 🟡 Vàng: Lưỡng lự / Đi ngang
 }
 
-# 5. Xây dựng bộ lọc tương tác trên Sidebar để quản lý mạng lưới khổng lồ
+# 5. Xây dựng bộ lọc tương tác trên Sidebar
 st.sidebar.header("🕹️ BẢNG ĐIỀU KHIỂN TOÀN CẦU")
 show_level = st.sidebar.radio(
     "Góc nhìn mạng lưới:",
     ["Hiển thị toàn bộ thế giới", "Chỉ xem dòng chảy Xuyên Lục Địa", "Chỉ xem dòng chảy Nội địa các nước"]
 )
 
-# 6. Xử lý dữ liệu nạp vào Pydeck dựa trên bộ lọc của người dùng
+# 6. Xử lý dữ liệu nạp vào Pydeck dựa trên bộ lọc
 processed_data = []
 for flow in global_flows:
     is_cross_border = ("VN_" in flow["from"] and "VN_" not in flow["to"]) or \
@@ -96,7 +92,7 @@ for flow in global_flows:
 
 df = pd.DataFrame(processed_data)
 
-# 7. Khởi tạo lớp xử lý đồ họa ArcLayer của Pydeck (Tạo hiệu ứng đường vòm cong 3D)
+# 7. Khởi tạo lớp xử lý đồ họa ArcLayer
 network_layer = pdk.Layer(
     "ArcLayer",
     data=df,
@@ -109,20 +105,20 @@ network_layer = pdk.Layer(
     auto_highlight=True
 )
 
-# 8. Cấu hình góc nhìn camera (Mặc định nhìn bao quát toàn bộ Trái Đất từ không gian)
+# 8. Cấu hình góc nhìn camera vĩ mô toàn cầu
 view_state = pdk.ViewState(
-    latitude=30.0,
-    longitude=10.0,
-    zoom=1.5,      # Thu nhỏ góc nhìn để thấy toàn bộ các lục địa kết nối với nhau
-    pitch=45,      # Nghiêng góc nhìn 45 độ để thấy rõ độ cong 3D của các sợi dây dòng tiền
+    latitude=20.0,
+    longitude=30.0,
+    zoom=1.5,
+    pitch=45,
     bearing=0
 )
 
-# 9. Render bản đồ nền tối (Darkmode) làm nổi bật các sợi dây màu phát sáng
+# 9. Render bản đồ nền tối (Darkmode)
 r = pdk.Deck(
     layers=[network_layer],
     initial_view_state=view_state,
-    map_style="mapbox://styles/mapbox/dark-v10", # Giao diện nền tối tối ưu cho đồ thị tài chính
+    map_style="mapbox://styles/mapbox/dark-v10",
     tooltip={"text": "{tooltip_text}"}
 )
 
