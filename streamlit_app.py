@@ -44,6 +44,12 @@ html_map_code = f"""
     <style>
         body, html {{ margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; overflow: hidden; }}
         #map {{ height: 100vh; width: 100vw; background: #0f172a; }}
+        
+        /* 🟢 MẸO KỸ THUẬT: Đảo ngược màu bản đồ gốc thành Dark Mode tài chính để tránh bị chặn */
+        .leaflet-layer, .leaflet-control-zoom {{
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }}
+        
         .hud-panel {{
             position: absolute; top: 10px; left: 10px; z-index: 1000;
             background: rgba(15, 23, 42, 0.85); color: white; padding: 10px 15px;
@@ -65,9 +71,9 @@ html_map_code = f"""
         // Khởi tạo bản đồ tập trung vào tọa độ trung tâm [20, 0]
         var map = L.map('map', {{ minZoom: 2, maxZoom: 18 }}).setView([20, 0], 2);
         
-        // DÁN CỤM NÀY VÀO THAY THẾ:
-        L.tileLayer('https://arcgisonline.com{{z}}/{{y}}/{{x}}', {{
-        attribution: 'Tiles &copy; Esri'
+        // Sử dụng ảnh nền tiêu chuẩn toàn cầu, kết hợp bộ lọc CSS tối ở trên
+        L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+            attribution: '&copy; OpenStreetMap contributors'
         }}).addTo(map);
 
         var currentStatus = '{status_value}';
@@ -87,7 +93,7 @@ html_map_code = f"""
                 Object.keys(countries).forEach(k => {{
                     if (k !== 'US' && countries[k]) {{
                         let polyline = L.polyline([countries.US, countries[k]], {{
-                            color: '#16a34a', weight: 4, dashArray: '5, 10', opacity: 0.8
+                            color: '#e11d48', weight: 4, dashArray: '5, 10', opacity: 0.8
                         }}).bindTooltip("USD chảy mạnh vào: Cổ phiếu & Chuỗi cung ứng " + k);
                         layers.macro.addLayer(polyline);
                     }}
@@ -96,7 +102,7 @@ html_map_code = f"""
                 Object.keys(countries).forEach(k => {{
                     if (countries[k] && safeHavens.Gold) {{
                         let polyline = L.polyline([countries[k], safeHavens.Gold], {{
-                            color: '#dc2626', weight: 4, dashArray: '5, 5', opacity: 0.8
+                            color: '#059669', weight: 4, dashArray: '5, 5', opacity: 0.8
                         }}).bindTooltip("Dòng tiền tháo chạy từ " + k + " trú ẩn vào VÀNG");
                         layers.macro.addLayer(polyline);
                     }}
