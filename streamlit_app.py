@@ -74,16 +74,16 @@ fig.update_layout(
         showland = True,
         showcountries = True,
         showocean = True,
-        countrywidth = 0.8,
-        landcolor = '#0d1117',      # Màu lục địa đổi sang Đen Xám góc cạnh vệ tinh
-        oceancolor = '#020408',     # Màu đại dương Đen Huyền Bí sâu thẳm
-        countrycolor = '#1f2937',   # Biên giới các nước màu xám đen mờ
-        lakecolor = '#020408',
+        countrywidth = 0.5,
+        landcolor = '#b794f4',      # ĐỔI THÀNH: Màu tím Lavender nhạt nghệ thuật
+        oceancolor = '#1a0b2e',     # ĐỔI THÀNH: Màu tím đen huyền bí của vũ trụ
+        countrycolor = '#7e57c2',   # Biên giới các nước màu tím neon
+        lakecolor = '#1a0b2e',
         projection_type = 'orthographic', 
-        # Cấu hình lưới Kinh - Vĩ độ mảnh phát sáng xanh mờ như màn hình rada vũ trụ
-        lonaxis = dict(showgrid=True, gridcolor='rgba(0, 238, 255, 0.08)', gridwidth=0.5),
-        lataxis = dict(showgrid=True, gridcolor='rgba(0, 238, 255, 0.08)', gridwidth=0.5)
+        lonaxis = dict(showgrid=True, gridcolor='rgba(255, 0, 255, 0.1)'),
+        lataxis = dict(showgrid=True, gridcolor='rgba(255, 0, 255, 0.1)')
     ),
+
     # Dùng ảnh nền mô phỏng các vì sao lấp lánh (Starfield) làm background bao quanh quả cầu
     images=[dict(
         source="https://unsplash.com", # Ảnh vũ trụ nhiều sao mịn nền tối
