@@ -56,7 +56,7 @@ global_flows = [
 
     # LIÊN KẾT XUYÊN LỤC ĐỊA
     {"from": "US_NewYork_WallStreet", "to": "Singapore_Global_Hub", "status": "strong_in", "desc": "[XUYÊN LỤC ĐỊA] Dòng vốn đầu tư từ Mỹ phóng sang tài chính Châu Á"},
-    {"from": "Singapore_Global_Hub", "to": "VN_Huyen_Hub", "status": "strong_in", "desc": "[XUYÊN BIÊN GIỚI] Vốn ngoại FDI bơm thẳng vào cụm công nghiệp Huyện tại Việt Nam"},
+    {"from": "Singapore_Global_Hub", "to": "VN_Huyen_Hub", "status": "strong_in", "desc": "[XUYÊN BIÊN GIỚI] Vốn ngoại FDI bơm thẳng vào xây nhà máy ở cụm công nghiệp Huyện tại Việt Nam"},
     {"from": "VN_HaNoi_Central", "to": "Japan_Tokyo_Central", "status": "strong_in", "desc": "[QUỐC TẾ] Việt Nam xuất khẩu hàng hóa công nghệ sang Nhật Bản thu ngoại tệ mạnh"},
     {"from": "EU_Frankfurt_Central", "to": "US_NewYork_WallStreet", "status": "strong_out", "desc": "[XUYÊN ĐẠI DƯƠNG] Giới đầu tư Châu Âu rút vốn, chuyển dịch sang tài sản đô-la Mỹ an toàn"},
     {"from": "Japan_Tokyo_Central", "to": "US_NewYork_WallStreet", "status": "neutral", "desc": "[TOÀN CẦU] Nhật Bản luân chuyển dòng vốn mua Trái phiếu Chính phủ Mỹ"}
@@ -65,8 +65,8 @@ global_flows = [
 # 4. Bảng mã màu sợi dây tài chính vĩ mô
 color_map = {
     "strong_in": [0, 255, 0, 200],    # 🟢 Xanh lá dạ quang rực rỡ
-    "strong_out": [255, 0, 0, 200],    # 🔴 Đỏ sậm quyền lực
-    "neutral": [255, 255, 0, 220],   # 🟡 Vàng rực sáng
+    "strong_out": [255, 0, 0, 200],  # 🔴 Đỏ sậm quyền lực
+    "neutral": [255, 255, 0, 220],        # 🟡 Vàng rực sáng
 }
 
 # 5. Xử lý dữ liệu nạp các đường dây (Arcs)
@@ -75,26 +75,34 @@ for flow in global_flows:
     start_coords = global_locations[flow["from"]]
     end_coords = global_locations[flow["to"]]
     processed_arcs.append({
-        "from_lon": start_coords, "from_lat": start_coords,
-        "to_lon": end_coords, "to_lat": end_coords,
+        "from_lon": start_coords[0], "from_lat": start_coords[1],
+        "to_lon": end_coords[0], "to_lat": end_coords[1],
         "color": color_map[flow["status"]],
         "tooltip_text": flow["desc"]
     })
 df_arcs = pd.DataFrame(processed_arcs)
 
-# 6. Xử lý dữ liệu nạp các điểm nút quốc gia (Nodes) phân tách màu sắc sống động
+# 6. Xử lý dữ liệu nạp các điểm nút quốc gia (Nodes) đã được sửa lỗi biến số trống
 processed_nodes = []
 for name, coords in global_locations.items():
     is_major_hub = any(k in name for k in ["Central", "Street", "Hub"]) and "Huyen" not in name
+    
+    # Ép giá trị màu cố định để tránh lỗi cú pháp
+    if is_major_hub:
+        node_color = [255, 100, 0, 230]   # 🟠 Các trung tâm kinh tế lớn màu Cam rực rỡ
+        radius_size = 120000
+    else:
+        node_color = [0, 200, 255, 230]   # 🔵 Cấp xã/huyện cơ sở màu Xanh Cyan công nghệ
+        radius_size = 45000
+
     processed_nodes.append({
-        "lon": coords, "lat": coords, "name": name,
-        # Trạm lớn màu Cam rực rỡ, Trạm nhỏ màu Xanh Cyan công nghệ
-        "color": if is_major_hub else , 
-        "radius": 120000 if is_major_hub else 45000
+        "lon": coords[0], "lat": coords[1], "name": name,
+        "color": node_color, 
+        "radius": radius_size
     })
 df_nodes = pd.DataFrame(processed_nodes)
 
-# 7. NÂNG CẤP LỚP NỀN: ĐẤT LIỀN MÀU XANH NEON BÓNG ĐÊM SỐNG ĐỘNG
+# 7. NÂNG CẤP LỚP NỀN: ĐẤT LIỀN MÀU XANH TEAL NEON BÓNG ĐÊM SỐNG ĐỘNG
 DATA_URL = "https://githubusercontent.com"
 
 background_map_layer = pdk.Layer(
@@ -102,8 +110,8 @@ background_map_layer = pdk.Layer(
     DATA_URL,
     stroked=True,
     filled=True,
-    get_fill_color=[10, 35, 50, 255],   # Đất liền màu Teal bóng đêm cực sang
-    get_line_color=[0, 180, 216, 150],  # Viền bờ biển phát sáng màu xanh dạ quang
+    get_fill_color=[10, 35, 45, 200],   # Đất liền màu Teal bóng đêm cực sang
+    get_line_color=[0, 160, 200, 180],  # Viền bờ biển phát sáng màu xanh dạ quang
     line_width_min_pixels=1.5,
 )
 
@@ -115,7 +123,7 @@ arc_layer = pdk.Layer(
     get_target_position=["to_lon", "to_lat"],
     get_source_color="color",
     get_target_color="color",
-    get_width=5, # Tăng độ dày sợi dây để phát sáng mạnh hơn
+    get_width=5, 
     pickable=True,
     auto_highlight=True
 )
