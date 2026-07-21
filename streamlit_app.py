@@ -53,12 +53,13 @@ global_flows = [
     {"from": "Japan_Tokyo_Central", "to": "US_NewYork_WallStreet", "status": "neutral", "desc": "Nhật Bản mua Trái phiếu Chính phủ Mỹ để giữ thế cân bằng tỷ giá"}
 ]
 
-# 4. Sửa lỗi cú pháp: Định nghĩa mã màu dạng danh sách RGBA [R, G, B, Alpha] hợp lệ
+# 4. Định nghĩa mã màu dạng danh sách RGBA [R, G, B, Alpha] hợp lệ
 color_map = {
-    "strong_in": [0, 255, 0, 200]
-    "strong_out": [255, 0, 0, 200]
-    "neutral": [255, 255, 0, 200]
+    "strong_in": [0, 255, 0, 200],      # 🟢 Xanh lá: Dòng tiền vào mạnh
+    "strong_out": [255, 0, 0, 200],     # 🔴 Đỏ: Dòng tiền rút mạnh
+    "neutral": [255, 255, 0, 200]       # 🟡 Vàng: Lưỡng lự / Đi ngang
 }
+
 # 5. Xây dựng bộ lọc tương tác trên Sidebar
 st.sidebar.header("🕹️ BẢNG ĐIỀU KHIỂN TOÀN CẦU")
 show_level = st.sidebar.radio(
