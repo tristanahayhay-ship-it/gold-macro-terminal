@@ -154,7 +154,7 @@ fig.update_geos(
     projection_type = "mercator" if geo_scope != "world" else "natural earth"
 )
 # 6. HIỂN THỊ BỐ CỤC CHUYÊN NGHIỆP TRÊN WEB DASHBOARD
-col_map_layer, col_terminal_panel = st.columns()
+col_map_layer, col_terminal_panel = st.columns(2)
 
 with col_map_layer:
     st.plotly_chart(fig, use_container_width=True)
