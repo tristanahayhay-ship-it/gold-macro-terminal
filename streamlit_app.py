@@ -10,7 +10,7 @@ st.set_page_config(
 
 # Thêm tiêu đề chính trên giao diện Streamlit
 st.markdown("# 🌏 Ma trận Mạch máu Tài chính Toàn diện 195 Quốc gia")
-st.markdown("Hệ thống khép kín tích hợp cơ sở dữ liệu 195 nước độc lập, tự động phân rã bộ máy vĩ mô - vi mự mượt mà không lo mất kết nối mạng.")
+st.markdown("Hệ thống khép kín tích hợp cơ sở dữ liệu 195 nước độc lập, tự động phân rã bộ máy vĩ mô - vi mô mượt mà không lo mất kết nối mạng.")
 
 # 2. Tạo thanh điều khiển bên trái (Sidebar) để người dùng thao tác
 st.sidebar.title("🎮 Trung Tâm Điều Khiển")
@@ -31,7 +31,7 @@ st.sidebar.info(
     "Toàn cầu (195 quốc gia) xuống cấp Tỉnh thành và cấp Xã."
 )
 
-# 3. Định nghĩa mã nguồn HTML/JavaScript chứa bản đồ Leaflet đa tầng bảo mật, tránh lỗi Index
+# 3. Định nghĩa mã nguồn HTML/JavaScript chứa bản đồ Leaflet đa tầng bảo mật
 html_map_code = f"""
 <!DOCTYPE html>
 <html>
@@ -43,7 +43,7 @@ html_map_code = f"""
     <script src="https://unpkg.com"></script>
     <style>
         body, html {{ margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; overflow: hidden; }}
-        #map {{ height: 100vh; width: 100vw; background: #0b0f19; }}
+        #map {{ height: 100vh; width: 100vw; background: #f0f2f5; }}
         .hud-panel {{
             position: absolute; top: 10px; left: 10px; z-index: 1000;
             background: rgba(15, 23, 42, 0.85); color: white; padding: 10px 15px;
@@ -62,16 +62,17 @@ html_map_code = f"""
     <div id="map"></div>
 
     <script>
-        // Khởi tạo bản đồ nền tối (Dark mode)
+        // Khởi tạo bản đồ tập trung vào tọa độ trung tâm [20, 0]
         var map = L.map('map', {{ minZoom: 2, maxZoom: 18 }}).setView([20, 0], 2);
-        L.tileLayer('https://{{s}}://{{z}}/{{x}}/{{y}}{{r}}.png', {{
-            attribution: '&copy; OpenStreetMap'
+        
+        // ĐỔI SANG THƯ VIỆN ẢNH NỀN OPENSTREETMAP ĐỂ TRÁNH LỖI ĐEN MÀN HÌNH
+        L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+            attribution: '&copy; OpenStreetMap contributors'
         }}).addTo(map);
 
         var currentStatus = '{status_value}';
         var layers = {{ macro: L.layerGroup(), meso: L.layerGroup(), micro: L.layerGroup() }};
         
-        // Tọa độ cấu trúc Object rõ ràng, tránh sử dụng mảng lồng nhau gây lỗi Index
         const countries = {{
             US: [37.0902, -95.7129], VN: [14.0583, 108.2772], CN: [35.8617, 104.1954], 
             EU: [48.5260, 15.2551], CH: [46.8182, 8.2275], JP: [36.2048, 138.2529],
@@ -80,14 +81,13 @@ html_map_code = f"""
 
         const safeHavens = {{ Gold: [22.3964, 114.1095], SwissBank: [47.3769, 8.5417] }};
 
-        // VẼ TẦNG VĨ MÔ (Zoom 2 - 5): Luồng chảy USD xuyên quốc gia
         function drawMacroFlows() {{
             layers.macro.clearLayers();
             if (currentStatus === 'stable') {{
                 Object.keys(countries).forEach(k => {{
                     if (k !== 'US' && countries[k]) {{
                         let polyline = L.polyline([countries.US, countries[k]], {{
-                            color: '#22c55e', weight: 3, dashArray: '5, 10', opacity: 0.8
+                            color: '#16a34a', weight: 4, dashArray: '5, 10', opacity: 0.8
                         }}).bindTooltip("USD chảy mạnh vào: Cổ phiếu & Chuỗi cung ứng " + k);
                         layers.macro.addLayer(polyline);
                     }}
@@ -96,7 +96,7 @@ html_map_code = f"""
                 Object.keys(countries).forEach(k => {{
                     if (countries[k] && safeHavens.Gold) {{
                         let polyline = L.polyline([countries[k], safeHavens.Gold], {{
-                            color: '#ef4444', weight: 3, dashArray: '5, 5', opacity: 0.8
+                            color: '#dc2626', weight: 4, dashArray: '5, 5', opacity: 0.8
                         }}).bindTooltip("Dòng tiền tháo chạy từ " + k + " trú ẩn vào VÀNG");
                         layers.macro.addLayer(polyline);
                     }}
@@ -104,7 +104,6 @@ html_map_code = f"""
             }}
         }}
 
-        // VẼ TẦNG TRUNG MÔ (Zoom 6 - 10): Nhà máy, Tập đoàn, Sàn chứng khoán nội địa
         function drawMesoFlows() {{
             layers.meso.clearLayers();
             const hubs = [
@@ -115,7 +114,7 @@ html_map_code = f"""
             ];
 
             hubs.forEach(h => {{
-                let color = h.type === 'factory' ? '#a855f7' : (h.type === 'stock' ? '#fbbf24' : '#38bdf8');
+                let color = h.type === 'factory' ? '#a855f7' : (h.type === 'stock' ? '#eab308' : '#2563eb');
                 let marker = L.circleMarker(h.coor, {{
                     radius: 8, fillColor: color, color: '#fff', weight: 1, fillOpacity: 0.9
                 }}).bindPopup(`<b>Bộ máy trung mô:</b><br>${{h.name}}<br><i>Dòng vốn hiện tại: ${{currentStatus === 'stable' ? 'FDI tăng trưởng ổn định' : 'Rủi ro rút vốn ngắn hạn'}}</i>`);
@@ -123,7 +122,6 @@ html_map_code = f"""
             }});
         }}
 
-        // VẼ TẦNG VI MÔ (Zoom >= 11): Cấp xã, Chợ đầu mối, Hộ kinh doanh QR
         function drawMicroFlows() {{
             layers.micro.clearLayers();
             const micros = [
@@ -140,7 +138,6 @@ html_map_code = f"""
             }});
         }}
 
-        // Điều khiển ẩn/hiển thị lớp dữ liệu dựa trên mức Zoom (LOD)
         function handleZoom() {{
             let zoom = map.getZoom();
             document.getElementById('zoom-level').innerText = zoom;
