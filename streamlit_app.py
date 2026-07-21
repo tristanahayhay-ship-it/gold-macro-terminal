@@ -10,22 +10,11 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Nhúng phong cách giao diện tối sâu thẳm (Dark-mode Sci-fi) giống Bloomberg Terminal
 st.markdown("""
     <style>
     .stApp { background-color: #07090e; color: #e1e6eb; }
-    .terminal-card {
-        background-color: #11141c;
-        padding: 15px;
-        border-radius: 8px;
-        border: 1px solid #1f2633;
-        margin-bottom: 12px;
-    }
-    .status-badge {
-        font-weight: bold;
-        padding: 4px 8px;
-        border-radius: 4px;
-    }
+    .terminal-card { background-color: #11141c; padding: 15px; border-radius: 8px; border: 1px solid #1f2633; margin-bottom: 12px; }
+    .status-badge { font-weight: bold; padding: 4px 8px; border-radius: 4px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -41,41 +30,30 @@ market_phase = st.sidebar.selectbox(
      "Đồng USD tăng - Tháo chạy gom tài sản TRÚ ẨN (MÀU ĐỎ CHẠY IN)"]
 )
 
-# Danh sách 195 Quốc gia (Tự động sinh dữ liệu cấu trúc động bộ máy)
 base_countries = ["Việt Nam", "Mỹ (United States)", "Thụy Sĩ (Switzerland)", "Nhật Bản", "Trung Quốc", "Đức", "Anh", "Singapore"]
 all_195_countries = base_countries + [f"Quốc gia mẫu thứ {i}" for i in range(9, 196)]
 
-selected_country = st.sidebar.selectbox(
-    "2. Chọn Quốc gia để ZOOM SÂU nội địa:",
-    all_195_countries
-)
-
-selected_agent = st.sidebar.radio(
-    "3. Tiêu điểm Chủ thể Vi mô (Agent-Layer):",
-    ["Tất cả chủ thể cùng chạy", "Nhà đầu tư Cá nhân (Retail)", "Khối Tập đoàn lớn (Corporate)"]
-)
-
-total_capital = st.sidebar.number_input(
-    "4. Quy mô dòng vốn giả lập (USD):",
-    min_value=1000000, value=100000000, step=1000000, format="%d"
-)
+selected_country = st.sidebar.selectbox("2. Chọn Quốc gia để ZOOM SÂU nội địa:", all_195_countries)
+selected_agent = st.sidebar.radio("3. Tiêu điểm Chủ thể Vi mô (Agent-Layer):", ["Tất cả chủ thể cùng chạy", "Nhà đầu tư Cá nhân (Retail)", "Khối Tập đoàn lớn (Corporate)"])
+total_capital = st.sidebar.number_input("4. Quy mô dòng vốn giả lập (USD):", min_value=1000000, value=100000000, step=1000000, format="%d")
 
 # 3. THUẬT TOÁN ĐIỀU KHIỂN HOẠT HỌA "CHẠY CHẠY" & MÀU SẮC DÂY DẪN
 if "MÀU XANH" in market_phase:
     flow_type = "INVESTMENT"
-    pulse_color = "#2ecc71"  # Xanh lá cây rực sáng
+    pulse_color = "#2ecc71"
     base_color = "rgba(46, 204, 113, 0.15)"
-    dash_pattern = "4 4 4 4"  # Vector tạo hiệu ứng hạt bụi chạy xuôi dòng liên tục
+    dash_pattern = "4 4 4 4"
     badge_style = "background-color: rgba(46, 204, 113, 0.2); color: #2ecc71;"
     status_label = "MỞ RỘNG VỐN ĐẦU TƯ (RISK-ON)"
 else:
     flow_type = "SAFE_HAVEN"
-    pulse_color = "#e74c3c"  # Đỏ rực cảnh báo
+    pulse_color = "#e74c3c"
     base_color = "rgba(231, 76, 60, 0.15)"
-    dash_pattern = "8 4 8 4"  # Tạo nhịp đứt quãng dồn dập kéo ngược dòng về tâm
+    dash_pattern = "8 4 8 4"
     badge_style = "background-color: rgba(231, 76, 60, 0.2); color: #e74c3c;"
     status_label = "THÁO VỐN PHÒNG THỦ (RISK-OFF)"
-# 4. CƠ SỞ DỮ LIỆU ĐỘNG 195 QUỐC GIA PHÂN RÃ THEO TIÊU CHÍ (THƯỢNG - TRUNG - HẠ TẦNG)
+
+# 4. CƠ SỞ DỮ LIỆU ĐỘNG PHÂN RÃ THEO CHỦ THỂ & TÀI SẢN NỘI ĐỊA
 if selected_country == "Việt Nam":
     geo_config = dict(projection_type="mercator", center=dict(lat=15.8, lon=107.5), zoom=4.8)
     level_1 = {"name": "Ngân hàng Nhà nước (SBV) & Bộ Tài chính Việt Nam", "lat": 21.0285, "lon": 105.8342}
@@ -121,7 +99,6 @@ else:
         "Tiền mặt & Tiết kiệm": {"name": f"Ngân hàng nội tệ {selected_country}", "lat": 25.0, "lon": -5.0, "type": "SAFE_HAVEN"},
         "Trái phiếu Chính phủ": {"name": f"Trái phiếu nội bang {selected_country}", "lat": 30.0, "lon": 0.0, "type": "SAFE_HAVEN"}
     }
-
 # 5. ĐỒ HỌA MẠNG LƯỚI BẢN ĐỒ THỜI GIAN THỰC (MAP ENGINE)
 fig = go.Figure()
 
@@ -174,23 +151,14 @@ for agent_key in active_agents:
             fig.add_trace(go.Scattergeo(lon=path_lon, lat=path_lat, mode="lines", line=dict(width=1.5, color=base_color), hoverinfo="none"))
             fig.add_trace(go.Scattergeo(lon=path_lon, lat=path_lat, mode="lines", line=dict(width=3.5, color=pulse_color, dash=dash_pattern), hoverinfo="none"))
 
-# ĐÃ SỬA: Tách biệt cấu trúc cấu hình geo và layout chính của Plotly để hết sạch lỗi
 fig.update_layout(
-    showlegend = False, 
-    height = 650, 
-    margin = dict(l=0, r=0, t=10, b=0),
+    showlegend = False, height = 650, margin = dict(l=0, r=0, t=10, b=0),
     geo = dict(
-        projection_type = geo_config["projection_type"],
-        center = geo_config["center"], 
-        zoom = geo_config["zoom"],
-        showland = True, 
-        landcolor = "#0f131a",
-        countrycolor = "#232b38", 
-        showocean = True, 
-        oceancolor = "#05070a",
-        showcountries = True
+        projection_type = geo_config["projection_type"], center = geo_config["center"], zoom = geo_config["zoom"],
+        showland = True, landcolor = "#0f131a", countrycolor = "#232b38", showocean = True, oceancolor = "#05070a", showcountries = True
     )
 )
+
 # 6. HIỂN THỊ BỐ CỤC CHUYÊN NGHIỆP TRÊN WEB DASHBOARD
 col_map_layer, col_terminal_panel = st.columns()
 
@@ -205,14 +173,12 @@ with col_terminal_panel:
     st.markdown("<div class='terminal-card'>", unsafe_allow_html=True)
     st.markdown("#### ⚙️ Cơ chế hoạt họa nhịp dây:")
     if flow_type == "INVESTMENT":
-        st.write("🟢 **Đường chỉ màu XANH LÁ liền mạch đang CHẠY RA NGOÀI (Outflow):**")
-        st.write("Thể hiện trạng thái USD giảm nhiệt, lãi suất nới lỏng. Dòng tiền từ đầu não Thượng tầng bắn luồng xung lực xuống các Chủ thể Vi mô. Từ đây, dòng tiền giải ngân của **Cá nhân** và **Tập đoàn** tạo thành các hạt sáng chạy tốc độ cao đổ thẳng vào Sàn HOSE, sàn Crypto và gom mua Đất nền vùng ven để nhân bản lợi nhuận.")
+        st.write("🟢 **Đường chỉ màu XANH LÁ liền mạch đang CHẠY RA NGOÀI (Outflow):** Thể hiện trạng thái USD giảm nhiệt, lãi suất nới lỏng. Dòng tiền từ đầu não Thượng tầng bắn luồng xung lực xuống các Chủ thể Vi mô. Từ đây, dòng tiền giải ngân của Cá nhân và Tập đoàn tạo thành các dải hạt sáng chạy tốc độ cao đổ thẳng vào các tọa độ Sàn chứng khoán HOSE, sàn Crypto và gom mua Đất nền vùng ven để đầu tư sinh lời.")
     else:
-        st.write("🔴 **Đường chỉ màu ĐỎ đứt đoạn đang CUỘN NGƯỢC VÀO TRONG (Inflow):**")
-        st.write("Thể hiện trạng thái USD tăng mạnh hoặc rủi ro vĩ mô xuất hiện. Trục tài sản rủi ro bị ngắt kết nối. Bạn nhìn thấy rõ các hạt sáng màu đỏ đang **chạy co cụm dồn dập kéo ngược dòng** từ các tài sản rủi ro về két sắt của Cá nhân và Tập đoàn, sau đó truyền tín hiệu phòng thủ thủ thế thẳng vào **Hệ thống đại lý Vàng miếng SJC** và **Tiền gửi ngân hàng**.")
+        st.write("🔴 **Đường chỉ màu ĐỎ đứt đoạn đang CUỘN NGƯỢC VÀO TRONG (Inflow):** Thể hiện trạng thái USD tăng mạnh hoặc rủi ro vĩ mô xuất hiện. Trục tài sản rủi ro bị đóng băng. Bạn nhìn thấy rõ các hạt sáng màu đỏ đang chạy co cụm dồn dập kéo ngược dòng từ các tài sản rủi ro về két sắt của Cá nhân và Tập đoàn, sau đó truyền tín hiệu phòng thủ thủ thế thẳng vào Hệ thống đại lý Vàng miếng SJC và tài khoản Tiết kiệm ngân hàng.")
     st.markdown("</div>", unsafe_allow_html=True)
 
-# 7. MA TRẬN ĐỊNH LƯỢNG PHÂN PHỐI DÒNG VỐN CHI TIẾT DƯỚI CHÂN TRANG
+# 7. MA TRẬN ĐỊNH LƯỢNG PHÂN PHỐI DÒNG VỐN
 st.markdown("---")
 st.markdown("### 🗜️ Ma trận Phân tách chi tiết dòng tiền kết nối vi mô từ Chủ thể đến Tài sản Đích")
 
