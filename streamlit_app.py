@@ -110,7 +110,7 @@ for country, data in macro_tiles.items():
         hoverinfo="text", hovertext=tile_hover
     ))
 
-# 4.3. Cấu hình khóa cứng toàn bộ trục tọa độ phẳng (Triệt tiêu cuộn dọc/ngang tự do)
+# 4.3. Cấu hình khóa cứng toàn bộ trục tọa độ phẳng (Đã vá lỗi nạp dải biên độ rỗng)
 fig.update_layout(
     showlegend=False,
     height=600,
@@ -119,11 +119,11 @@ fig.update_layout(
     plot_bgcolor="#f5f6fa", # Nền bảng lưới tấm phẳng sạch sẽ sáng sủa
     xaxis=dict(
         range=[0, 10], showgrid=True, gridcolor="rgba(0,0,0,0.05)", zeroline=False,
-        showticklabels=False, fixedrange=True # fixedrange=True khóa cứng không cho co dãn thu phóng
+        showticklabels=False, fixedrange=True
     ),
     yaxis=dict(
         range=[0, 6], showgrid=True, gridcolor="rgba(0,0,0,0.05)", zeroline=False,
-        showticklabels=False, fixedrange=True # fixedrange=True triệt tiêu hoàn toàn khả năng trượt dọc
+        showticklabels=False, fixedrange=True
     )
 )
 
