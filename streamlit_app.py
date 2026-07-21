@@ -20,8 +20,7 @@ scenario = st.sidebar.selectbox(
     options=["Bình thường (Luân chuyển mở toàn cầu)", "Khi Toàn cầu có BIẾN (Khủng hoảng hệ thống)"]
 )
 
-# 3. Bộ dữ liệu mở rộng: Danh sách tọa độ trung tâm của hầu hết các quốc gia/khu vực lớn trên thế giới
-# Mỗi khu vực sẽ tự động sinh ra 3 tầng (Vĩ mô - Trung mô - Vi mô) bằng thuật toán dịch chuyển tọa độ (offset)
+# 3. Bộ dữ liệu mở rộng: Danh sách tọa độ trung tâm của các quốc gia
 world_countries = {
     "Mỹ (USA)": [38.8951, -77.0364],
     "Canada": [45.4215, -75.6972],
@@ -45,16 +44,21 @@ world_countries = {
     "Thái Lan": [13.7563, 100.5018]
 }
 
-# Khởi tạo bản đồ thế giới, đặt góc nhìn bao quát toàn bộ các châu lục
-m = folium.Map(location=[20.0, 10.0], zoom_start=2, tiles="CartoDB positron")
+# KHẮC PHỤC LỖI: Thêm no_wrap=True và max_bounds=True để bản đồ không bị nhân bản lặp lại
+m = folium.Map(
+    location=[20.0, 0.0], 
+    zoom_start=2, 
+    tiles="CartoDB positron",
+    no_wrap=True,
+    max_bounds=True
+)
 
-# Thiết lập hạt giống ngẫu nhiên để các đường dây cố định hình dáng khi tải lại trang
+# Thiết lập hạt giống ngẫu nhiên
 random.seed(42)
 
-# 4. Vẽ các nút (Nodes) 3 tầng cho TẤT CẢ các quốc gia trong danh sách
+# 4. Vẽ các nút (Nodes) 3 tầng cho TẤT CẢ các quốc gia
 hubs_processed = {}
 for name, coords in world_countries.items():
-    # Tự động tính toán tọa độ cho tầng Tỉnh và Xã xung quanh thủ đô vĩ mô để tránh bị đè lên nhau
     quoc_gia = coords
     tinh_kcn = [coords[0] - 1.5, coords[1] + 1.5]
     xa_dan = [coords[0] - 3.0, coords[1] + 3.0]
@@ -83,7 +87,7 @@ for name, coords in world_countries.items():
         popup=f"🏡 Vi mô: Cấp Xã / Hộ gia đình - {name}"
     ).add_to(m)
 
-# 5. Thuật toán tạo "Mạng lưới đường dây tài chính" chằng chịt toàn thế giới
+# 5. Thuật toán tạo "Mạng lưới đường dây tài chính"
 country_names = list(hubs_processed.keys())
 
 if scenario == "Bình thường (Luân chuyển mở toàn cầu)":
@@ -92,17 +96,13 @@ if scenario == "Bình thường (Luân chuyển mở toàn cầu)":
     for i, src_name in enumerate(country_names):
         src = hubs_processed[src_name]
         
-        # Kết nối nội địa 3 tầng (Xã -> Tỉnh -> Trung ương) của từng nước
         folium.PolyLine([src["XA_DAN"], src["TINH_KCN"]], color="#1f77b4", weight=1.5, opacity=0.4).add_to(m)
         folium.PolyLine([src["TINH_KCN"], src["QUOC_GIA"]], color="#1f77b4", weight=1.5, opacity=0.4).add_to(m)
         
-        # Thuật toán ma trận: Mỗi quốc gia sẽ tự động kết nối ngẫu nhiên với 3 quốc gia khác trên thế giới
-        # để tạo ra mạng lưới giao thương chằng chịt không biên giới
         targets = random.sample(country_names, 3)
         for dest_name in targets:
             if src_name != dest_name:
                 dest = hubs_processed[dest_name]
-                # Tiền đầu tư / giao thương xuyên lục địa (chạy chéo giữa các tầng của các nước)
                 folium.PolyLine(
                     locations=[src["QUOC_GIA"], dest["TINH_KCN"]],
                     color="#1f77b4", weight=1.2, opacity=0.3,
@@ -117,29 +117,24 @@ else:
     for src_name in country_names:
         src = hubs_processed[src_name]
         
-        # Luồng Đỏ (Xả ra): Suy thoái nội địa, đóng băng sản xuất nông thôn
         folium.PolyLine([src["XA_DAN"], src["TINH_KCN"]], color="#d62728", weight=1.5, opacity=0.5).add_to(m)
         
-        # Làn sóng rút vốn xuyên biên giới đổ dồn về Trung tâm tài chính vĩ mô Mỹ (Wall Street)
         if src_name != "Mỹ (USA)":
-            # Tiền tháo chạy từ Trung ương nước khác về Mỹ
             folium.PolyLine(
                 locations=[src["QUOC_GIA"], my_hubs["QUOC_GIA"]],
                 color="#d62728", weight=2.0, opacity=0.4,
                 tooltip=f"Vốn tháo chạy: Trung ương {src_name} ➔ Trữ USD tại Mỹ"
             ).add_to(m)
-            # Khối ngoại rút rỗng vốn khỏi KCN các nước đem về Mỹ
             folium.PolyLine(
                 locations=[src["TINH_KCN"], my_hubs["QUOC_GIA"]],
                 color="#d62728", weight=1.8, opacity=0.4,
                 tooltip=f"Rút rỗng dòng vốn đầu tư tại {src_name} về Mỹ"
             ).add_to(m)
         
-        # Luồng Xanh lá (Đổ vào): Chính phủ từng nước nỗ lực bơm tiền cứu hệ thống của riêng mình
         folium.PolyLine([src["QUOC_GIA"], src["TINH_KCN"]], color="#2ca02c", weight=2.0, opacity=0.6).add_to(m)
 
 # 6. Đẩy cấu trúc hiển thị lên trang Streamlit Cloud
-col1, col2 = st.columns([1, 4]) # Cột 2 (Bản đồ) mở rộng tối đa ra toàn màn hình
+col1, col2 = st.columns([1, 4]) # Điều chỉnh tỷ lệ cột để bản đồ có không gian hiển thị lớn nhất
 
 with col1:
     st.subheader("💡 Chú giải Ma trận Toàn cầu")
@@ -151,12 +146,12 @@ with col1:
     st.subheader("📊 Quy luật dòng chảy")
     if scenario == "Khi Toàn cầu có BIẾN (Khủng hoảng hệ thống)":
         st.markdown("""
-        *   🔴 **Đường Đỏ (Xả ra)**: Tiền mặt sụt giảm, dòng vốn từ mọi lục địa bị rút rỗng tháo chạy về Mỹ.
-        *   🟢 **Đường Xanh lá (Đổ vào)**: Các nước phòng thủ co cụm, tự bơm tiền cứu nội bộ.
+        *   🔴 **Đường Đỏ (Xả ra)**: Tiền tháo chạy từ mọi lục địa về Mỹ.
+        *   🟢 **Đường Xanh lá (Đổ vào)**: Các nước tự bơm tiền cứu nội bộ.
         """)
     else:
-        st.markdown("🔵 **Mạng lưới Xanh**: Tiền tệ toàn cầu tuần hoàn tự do, đan chéo xuyên lục địa.")
+        st.markdown("🔵 **Mạng lưới Xanh**: Tiền tệ toàn cầu tuần hoàn tự do.")
 
 with col2:
-    # Kích thước bản đồ lớn giúp phóng to thu nhỏ toàn bộ hành tinh thuận tiện
-    st_folium(m, width=1200, height=750)
+    st.subheader("🗺️ Bản đồ Dòng chảy Tiền tệ Mạng lưới Toàn cầu")
+    st_folium(m, width=1200, height=700)
