@@ -2,7 +2,7 @@
 import pandas as pd
 
 def load_economic_database():
-    """Khởi tạo danh sách quốc gia thực tế bao phủ các châu lục lớn trên bản đồ thế giới"""
+    """Khởi tạo danh sách quốc gia với tọa độ trung tâm chính xác"""
     countries = [
         {'CODE': 'USA', 'NAME': 'Hoa Kỳ', 'GDP': 98, 'Gold': 8133, 'LAT': 37.09, 'LON': -95.71},
         {'CODE': 'VNM', 'NAME': 'Việt Nam', 'GDP': 45, 'Gold': 12, 'LAT': 14.05, 'LON': 108.27},
@@ -20,20 +20,25 @@ def load_economic_database():
     ]
     return pd.DataFrame(countries)
 
-def get_micro_hierarchy(country_name):
-    """Định nghĩa chính xác mạng lưới liên kết chặt chẽ 5 cấp nội tại của quốc gia"""
+def get_geographic_hierarchy(country_name, c_lat, c_lon):
+    """
+    Tự động phân bổ tọa độ địa lý thực tế (LAT, LON) cho 5 cấp bộ máy kinh tế
+    nằm bao quanh khu vực của quốc gia được chọn trên bản đồ.
+    """
+    # Tạo độ lệch kinh vĩ độ nhỏ để các nút phân cấp nằm rải rác trên bản đồ nước đó
     nodes = {
-        "Hệ Thống Tiền Tệ Toàn Cầu (Mỹ/USD)": [0.5, 1.0],
-        f"Chính Phủ & Ngân Hàng Trung Ương {country_name}": [0.5, 0.75],
-        "Tập Đoàn Đa Quốc Gia & Định Chế Tài Chính": [0.25, 0.5],
-        "Doanh Nghiệp Sản Xuất Lõi / SME": [0.75, 0.5],
-        "Nhà Đầu Tư Cá Nhân & Hộ Dân Cư": [0.5, 0.2]
+        "1. TOÀN CẦU (Hệ thống USD)": [c_lat + 4.0, c_lon],
+        f"2. NHTW / Chính Phủ {country_name}": [c_lat + 1.5, c_lon],
+        "3. Tập Đoàn Đa Quốc Gia": [c_lat - 1.0, c_lon - 2.0],
+        "4. Doanh Nghiệp Sản Xuất Core": [c_lat - 1.0, c_lon + 2.0],
+        "5. Nhà Đầu Tư Cá Nhân": [c_lat - 3.5, c_lon]
     }
+    
     edges = [
-        ("Hệ Thống Tiền Tệ Toàn Cầu (Mỹ/USD)", f"Chính Phủ & Ngân Hàng Trung Ương {country_name}"),
-        (f"Chính Phủ & Ngân Hàng Trung Ương {country_name}", "Tập Đoàn Đa Quốc Gia & Định Chế Tài Chính"),
-        (f"Chính Phủ & Ngân Hàng Trung Ương {country_name}", "Doanh Nghiệp Sản Xuất Lõi / SME"),
-        ("Tập Đoàn Đa Quốc Gia & Định Chế Tài Chính", "Nhà Đầu Tư Cá Nhân & Hộ Dân Cư"),
-        ("Doanh Nghiệp Sản Xuất Lõi / SME", "Nhà Đầu Tư Cá Nhân & Hộ Dân Cư")
+        ("1. TOÀN CẦU (Hệ thống USD)", f"2. NHTW / Chính Phủ {country_name}"),
+        (f"2. NHTW / Chính Phủ {country_name}", "3. Tập Đoàn Đa Quốc Gia"),
+        (f"2. NHTW / Chính Phủ {country_name}", "4. Doanh Nghiệp Sản Xuất Core"),
+        ("3. Tập Đoàn Đa Quốc Gia", "5. Nhà Đầu Tư Cá Nhân"),
+        ("4. Doanh Nghiệp Sản Xuất Core", "5. Nhà Đầu Tư Cá Nhân")
     ]
     return nodes, edges
