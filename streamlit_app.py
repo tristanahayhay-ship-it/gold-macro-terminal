@@ -1,150 +1,144 @@
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
+import requests
 import random
 import math
 
-# ====================================================
-# ĐOẠN 1: CẤU HÌNH TRANG GIAO DIỆN WEB
-# ====================================================
+# 1. Cấu hình trang giao diện Web toàn màn hình
 st.set_page_config(
-    page_title="Mạng lưới Tài chính Toàn cầu Hợp nhất",
-    page_icon="🕸️",
+    page_title="Ma trận Tài chính 195 Quốc gia",
+    page_icon="🌍",
     layout="wide"
 )
 
-st.title("🕸️ Hệ thống Ma trận Tài chính Đa tầng Phủ kín Toàn cầu")
-st.markdown("Hệ thống đã được tối ưu hóa hiệu năng, tự động đồng bộ cấu trúc mạng lưới phân rã vĩ mô - vi mô cho các quốc gia lớn trên thế giới.")
+st.title("🌍 Ma trận Mạch máu Tài chính Phủ kín 195 Quốc gia")
+st.markdown("Mô hình sử dụng dữ liệu bản đồ số quốc tế để tự động dựng bộ máy kinh tế 3 tầng cho **TẤT CẢ** các quốc gia và vùng lãnh thổ trên thế giới.")
 
 scenario = st.sidebar.selectbox(
     "Chọn trạng thái kinh tế thế giới:",
     options=["Bình thường (Luân chuyển mở)", "Khi Toàn cầu có BIẾN (Khủng hoảng vĩ mô)"]
 )
 
+# 2. Tải cơ sở dữ liệu ranh giới địa lý của 195 quốc gia từ kho lưu trữ quốc tế công cộng
+@st.cache_data # Lưu vào bộ nhớ đệm để bản đồ tải siêu nhanh, không bị lag sập server
+def load_world_geojson():
+    url = "https://githubusercontent.com"
+    response = requests.get(url)
+    return response.json()
+
+try:
+    world_geo = load_world_geojson()
+except Exception as e:
+    st.error("Không thể kết nối đến máy chủ dữ liệu quốc tế. Vui lòng kiểm tra internet.")
+    st.stop()
+
 # Khởi tạo bản đồ thế giới phẳng, khóa không cho lặp màn hình ngang
 m = folium.Map(
-    location=[20.0, 20.0], 
-    zoom_start=3, 
+    location=[20.0, 0.0], 
+    zoom_start=2, 
     tiles="CartoDB positron",
     no_wrap=True,
     max_bounds=True
 )
 
-random.seed(100)
+random.seed(42)
 color_flow = "#1f77b4" if scenario == "Bình thường (Luân chuyển mở)" else "#d62728"
 color_defense = "#2ca02c"
 
+# Thiết lập các phân lớp quản lý ghim tự động
 fg_quoc_gia = folium.FeatureGroup(name="🏛️ Tầng Trung ương (Vĩ mô)").add_to(m)
 fg_cap_tinh = folium.FeatureGroup(name="🏭 Tầng Cấp Tỉnh (Trung mô)").add_to(m)
 fg_cap_xa = folium.FeatureGroup(name="🏡 Tầng Cấp Xã (Vi mô)").add_to(m)
 
-# ====================================================
-# ĐOẠN 2: CƠ SỞ DỮ LIỆU ĐỊA LÝ THỰC TẾ ĐA ĐIỂM TOÀN CẦU
-# ====================================================
-global_macro_database = {
-    "Việt Nam (VN)": {
-        "QG": [21.0285, 105.8542],
-        "PROVS": {
-            "Hải Phòng (Miền Bắc)": [20.8449, 106.6881],
-            "Quảng Ninh (Miền Bắc)": [20.9485, 107.0734],
-            "Đà Nẵng (Miền Trung)": [16.0544, 108.2022],
-            "Khánh Hòa (Miền Trung)": [12.2471, 109.1961],
-            "TP. Hồ Chí Minh (Miền Nam)": [10.8231, 106.6297],
-            "Cần Thơ (Miền Nam)": [10.0452, 105.7469]
-        }
-    },
-    "Mỹ (USA)": {
-        "QG": [38.8951, -77.0364],
-        "PROVS": {
-            "New York (Bờ Đông)": [40.7128, -74.0060],
-            "Chicago (Trung Tây)": [41.8781, -87.6298],
-            "Los Angeles (Bờ Tây)": [34.0522, -118.2437],
-            "Houston (Miền Nam)": [29.7604, -95.3698]
-        }
-    },
-    "Trung Quốc (CN)": {
-        "QG": [39.9042, 116.4074],
-        "PROVS": {
-            "Thượng Hải (Bờ Biển)": [31.2304, 121.4737],
-            "Quảng Châu (Miền Nam)": [23.1291, 113.2644],
-            "Thành Đô (Phía Tây)": [30.6594, 104.0657]
-        }
-    },
-    "Nhật Bản (JP)": {
-        "QG": [35.6762, 139.6503],
-        "PROVS": {
-            "Osaka (Vùng Kansai)": [34.6937, 135.5023],
-            "Hokkaido (Miền Bắc)": [43.0621, 141.3544]
-        }
-    },
-    "Đức (Germany)": {
-        "QG": [52.5200, 13.4050],
-        "PROVS": {
-            "Frankfurt (Tài chính)": [50.1109, 8.6821],
-            "Munich (Miền Nam)": [48.1351, 11.5820]
-        }
-    }
-}
-hubs_processed = {}
-
-# ====================================================
-# ĐOẠN 3: THUẬT TOÁN PHÂN RÃ CỤM ĐÔ THỊ (TỐI ƯU BỘ NHỚ)
-# ====================================================
-for country_name, dataset in global_macro_database.items():
-    qg_coords = dataset["QG"]
+# 3. THUẬT TOÁN QUÉT VÀ TỰ ĐỘNG DỰNG BỘ MÁY CHO TẤT CẢ CÁC NƯỚC TRÊN TRÁI ĐẤT
+# Duyệt qua từng quốc gia trong file dữ liệu quốc tế
+for feature in world_geo['features']:
+    country_name = feature['properties']['name']
     
-    # 🏛️ 1. Gắn ghim Tầng Quốc gia
+    # Tìm tọa độ trọng tâm đất liền của quốc gia đó để cắm mốc ghim
+    # Thuật toán tự động bóc tách hình học đa giác (Polygons) của biên giới nước đó
+    geom = feature['geometry']
+    if geom['type'] == 'Polygon':
+        coords_list = geom['coordinates'][0]
+    elif geom['type'] == 'MultiPolygon':
+        coords_list = geom['coordinates'][0][0]
+    else:
+        continue
+        
+    # Tính toán tọa độ trung tâm đất liền (Average Mean) để ghim không bị lệch ra ngoài biển
+    lats = [c[1] for c in coords_list if isinstance(c, list) and len(c)>=2]
+    lons = [c[0] for c in coords_list if isinstance(c, list) and len(c)>=2]
+    
+    if not lats or not lons:
+        continue
+        
+    lat_qg = sum(lats) / len(lats)
+    lon_qg = sum(lons) / len(lons)
+    qg_ctr = [lat_qg, lon_qg]
+    
+    # Loại trừ các điểm lỗi tính toán vĩ độ vượt quá ranh giới cực địa
+    if not (-75 < lat_qg < 75) or not (-170 < lon_qg < 170):
+        continue
+
+    # --- A. TỰ ĐỘNG CẮM MARKER TRUNG ƯƠNG QUỐC GIA ---
     folium.Marker(
-        location=qg_coords, tooltip=f"🏛️ Trung ương vĩ mô - {country_name}",
+        location=qg_ctr, 
+        tooltip=f"🏛️ Trung ương vĩ mô - {country_name}",
         icon=folium.Icon(color="blue", icon="university", prefix="fa")
     ).add_to(fg_quoc_gia)
     
-    hubs_processed[country_name] = {"QG": qg_coords, "TINH_COORDS": list(dataset["PROVS"].values())}
+    # Tạo các cơ quan vi mô nội bộ (Ngân hàng TW & Bộ tài chính) bám sát sườn thủ đô nước đó
+    nhtw = [lat_qg - 0.1, lon_qg - 0.1]
+    btc = [lat_qg + 0.1, lon_qg + 0.1]
+    folium.CircleMarker(location=nhtw, radius=3, color="blue", fill=True, popup=f"Ngân hàng Trung ương - {country_name}").add_to(fg_quoc_gia)
+    folium.CircleMarker(location=btc, radius=3, color="blue", fill=True, popup=f"Bộ Tài chính - {country_name}").add_to(fg_quoc_gia)
+    folium.PolyLine([nhtw, btc], color="#7f7f7f", weight=1, dash_array="3,3").add_to(fg_quoc_gia)
+
+    # --- B. TỰ ĐỘNG DỰNG BỘ MÁY CẤP TỈNH TRÊN ĐẤT LIỀN ---
+    # Tỉnh được dịch chuyển một khoảng cách cực nhỏ theo hướng địa hình của ranh giới nước đó
+    lat_tinh = lat_qg - 0.8 if lat_qg > 0 else lat_qg + 0.8
+    lon_tinh = lon_qg + 0.8
+    tinh_ctr = [lat_tinh, lon_tinh]
     
-    # 🏭 2. Gắn ghim mạng lưới cấp Tỉnh/Thành phố
-    for prov_name, prov_coords in dataset["PROVS"].items():
-        folium.Marker(
-            location=prov_coords, tooltip=f"🏭 Bộ máy Cấp Tỉnh: {prov_name}",
-            icon=folium.Icon(color="orange", icon="building", prefix="fa")
-        ).add_to(fg_cap_tinh)
-        
-        # Mạch tiền vĩ mô: Trung ương ➔ Cấp Tỉnh
-        folium.PolyLine([qg_coords, prov_coords], color=color_flow, weight=2.0, opacity=0.6).add_to(fg_cap_tinh)
-        
-        # 🏡 3. Cụm vi mô: Tự động sinh 1 ghim Xã bám sát theo hình tròn để giảm tải cho server
-        angle = math.radians(random.randint(0, 360))
-        dist = 0.12  
-        
-        lat_xa = prov_coords[0] + dist * math.sin(angle)
-        lon_xa = prov_coords[1] + dist * math.cos(angle)
-        xa_coords = [lat_xa, lon_xa]
-        
-        folium.Marker(
-            location=xa_coords, tooltip=f"🏡 Bộ máy Cấp Xã trực thuộc vùng {prov_name}",
-            icon=folium.Icon(color="green", icon="home", prefix="fa")
-        ).add_to(fg_cap_xa)
-        
-        # Mạch tiền vi mô địa phương: Tỉnh ➔ Xã
-        folium.PolyLine([prov_coords, xa_coords], color=color_flow, weight=1.2, opacity=0.5).add_to(fg_cap_xa)
+    folium.Marker(
+        location=tinh_center, tooltip=f"🏭 Bộ máy Cấp Tỉnh - {country_name}",
+        icon=folium.Icon(color="orange", icon="building", prefix="fa")
+    ).add_to(fg_cap_tinh)
+    
+    # Đường mạch tiền vĩ mô: Trung ương ➔ Tỉnh
+    folium.PolyLine([qg_ctr, tinh_ctr], color=color_flow, weight=2, opacity=0.6).add_to(fg_cap_tinh)
+    
+    # Cơ quan thành phần của Tỉnh
+    tax = [lat_tinh - 0.08, lon_tinh - 0.08]
+    kcn = [lat_tinh + 0.08, lon_tinh + 0.08]
+    folium.CircleMarker(location=tax, radius=3, color="orange", fill=True, popup=f"Cục Thuế địa phương - {country_name}").add_to(fg_cap_tinh)
+    folium.CircleMarker(location=kcn, radius=3, color="orange", fill=True, popup=f"Khu công nghiệp / DN lớn - {country_name}").add_to(fg_cap_tinh)
 
-# ====================================================
-# ĐOẠN 4: MA TRẬN GIAO THƯƠNG QUỐC TẾ XUYÊN LỤC ĐỊA
-# ====================================================
-country_names = list(hubs_processed.keys())
-for src_name in country_names:
-    if src_name != "Mỹ (USA)":
-        src_qg = hubs_processed[src_name]["QG"]
-        us_qg = hubs_processed["Mỹ (USA)"]["QG"]
-        
-        if scenario == "Bình thường (Luân chuyển mở)":
-            random_us_tinh = random.choice(hubs_processed["Mỹ (USA)"]["TINH_COORDS"])
-            folium.PolyLine([src_qg, random_us_tinh], color="#1f77b4", weight=1.0, opacity=0.2).add_to(fg_quoc_gia)
-        else:
-            folium.PolyLine([src_qg, us_qg], color="#d62728", weight=1.2, opacity=0.3).add_to(fg_quoc_gia)
+    # --- C. TỰ ĐỘNG DỰNG BỘ MÁY CẤP XÃ TRÊN ĐẤT LIỀN ---
+    lat_xa = lat_tinh - 0.6 if lat_tinh > 0 else lat_tinh + 0.6
+    lon_xa = lon_tinh + 0.6
+    xa_ctr = [lat_xa, lon_xa]
+    
+    folium.Marker(
+        location=xa_ctr, tooltip=f"🏡 Bộ máy Cấp Xã - {country_name}",
+        icon=folium.Icon(color="green", icon="home", prefix="fa")
+    ).add_to(fg_cap_xa)
+    
+    # Đường mạch tiền vi mô: Tỉnh ➔ Xã
+    folium.PolyLine([tinh_ctr, xa_ctr], color=color_flow, weight=1.5, opacity=0.5).add_to(fg_cap_xa)
+    
+    # Cơ quan thành phần của Xã
+    ubnd = [lat_xa - 0.06, lon_xa - 0.06]
+    hodan = [lat_xa + 0.06, lon_xa + 0.06]
+    folium.CircleMarker(location=ubnd, radius=3, color="green", fill=True, popup=f"Ủy ban Nhân dân xã - {country_name}").add_to(fg_cap_xa)
+    folium.CircleMarker(location=hodan, radius=3, color="green", fill=True, popup=f"Hộ dân / Nông dân sản xuất - {country_name}").add_to(fg_cap_xa)
 
-# ====================================================
-# ĐOẠN 5: NHÚNG MÃ JAVASCRIPT ĐIỀU KHIỂN ẨN/HIỆN ZOOM SỬ DỤNG WINDOW
-# ====================================================
+    # Nếu có BIẾN, đường cứu trợ khẩn cấp từ Trung ương bắn thẳng xuống Xã
+    if scenario == "Khi Toàn cầu có BIẾN (Khủng hoảng vĩ mô)":
+        folium.PolyLine([qg_ctr, xa_ctr], color=color_defense, weight=1.2, opacity=0.5, dash_array="6,6").add_to(fg_cap_xa)
+
+# 4. NHÚNG MÃ JAVASCRIPT ĐIỀU KHIỂN KÍNH HIỂN VI CHUYỂN LỚP (Mượt 100%, không nhấp nháy)
 macro_zoom_script = f"""
 <script>
 document.addEventListener("DOMContentLoaded", function() {{
@@ -152,8 +146,8 @@ document.addEventListener("DOMContentLoaded", function() {{
     window.checkAndApplyZoom = function() {{
         var maps = document.getElementsByClassName("folium-map");
         if (maps.length > 0) {{
-            var mapId = maps[0].id;
-            var leafletMap = window[mapId];
+            var mapId = maps.id;
+            var leafletMap = window[maps.id];
             if (leafletMap) {{
                 clearInterval(checkMap);
                 var layerTinhId = window["{fg_cap_tinh.get_name()}"];
@@ -161,15 +155,15 @@ document.addEventListener("DOMContentLoaded", function() {{
                 
                 function updateLayers() {{
                     var currentZoom = leafletMap.getZoom();
-                    if (currentZoom < 5) {{
+                    if (currentZoom < 4) {{
                         if (leafletMap.hasLayer(layerTinhId)) leafletMap.removeLayer(layerTinhId);
                         if (leafletMap.hasLayer(layerXaId)) leafletMap.removeLayer(layerXaId);
                     }} 
-                    else if (currentZoom >= 5 && currentZoom < 7) {{
+                    else if (currentZoom >= 4 && currentZoom < 6) {{
                         if (!leafletMap.hasLayer(layerTinhId)) leafletMap.addLayer(layerTinhId);
                         if (leafletMap.hasLayer(layerXaId)) leafletMap.removeLayer(layerXaId);
                     }} 
-                    else if (currentZoom >= 7) {{
+                    else if (currentZoom >= 6) {{
                         if (!leafletMap.hasLayer(layerTinhId)) leafletMap.addLayer(layerTinhId);
                         if (!leafletMap.hasLayer(layerXaId)) leafletMap.addLayer(layerXaId);
                     }}
@@ -184,19 +178,17 @@ document.addEventListener("DOMContentLoaded", function() {{
 """
 m.get_root().html.add_child(folium.Element(macro_zoom_script))
 
-# ====================================================
-# ĐOẠN 6: ĐẨY HÌNH ẢNH GIAO DIỆN LÊN DASHBOARD WEB
-# ====================================================
-col1, col2 = st.columns([1, 4]) # Tối ưu tỷ lệ cột để bản đồ mở rộng tối đa
+# 5. ĐẨY HÌNH ẢNH GIAO DIỆN LÊN DASHBOARD STREAMLIT
+col1, col2 = st.columns()
 
 with col1:
-    st.subheader("⚙️ Kính Hiển Vi Toàn Cầu")
+    st.subheader("⚙️ Kính Hiển Vi 195 Nước")
     st.markdown("""
-    **Cấu trúc Đa điểm Toàn diện:**
-    *   🏛️ **Zoom xa (Zoom < 5)**: Chỉ hiển thị cơ quan vĩ mô Trung ương của các nước trên thế giới.
-    *   🏭 **Zoom vừa (Zoom 5 - 6)**: Hiện toàn bộ mạng lưới Cấp Tỉnh thực tế (Hải Phòng, Đà Nẵng, New York, Thượng Hải, Tokyo...).
-    *   🏡 **Zoom sâu (Zoom >= 7)**: Bung mạng lưới Cấp Xã vệ tinh bám chặt trong đất liền.
+    **Cơ chế ma trận toàn hành tinh:**
+    *   🌍 **Nhìn bao quát**: 195 quốc gia đều có ghim đầu não 🏛️ **Trung ương**.
+    *   🏭 **Phóng to vào nước bất kỳ**: Bộ máy 🏭 **Cấp Tỉnh** cùng các cơ quan nội bộ (Cục thuế, KCN) tự động bung ra trên đất liền nước đó.
+    *   🏡 **Phóng to sát sườn**: Bộ máy 🏡 **Cấp Xã** (UBND, Hộ dân) xuất hiện chi tiết.
     """)
 
 with col2:
-    st_folium(m, width=1300, height=800, returned_objects=[])
+    st_folium(m, width=1250, height=780, returned_objects=[])
