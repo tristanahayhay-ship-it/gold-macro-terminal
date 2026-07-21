@@ -56,8 +56,8 @@ global_flows = [
 # 4. Sửa lỗi cú pháp: Định nghĩa mã màu dạng danh sách RGBA [R, G, B, Alpha] hợp lệ
 color_map = {
 color_map = {
-    "strong_in":,      # 🟢 Màu xanh lá cây
-    "strong_out":,     # 🔴 Màu đỏ
+    "strong_in":, [0, 255, 0, 200]
+    "strong_out":, [255, 0, 0, 200]
     "neutral": [255, 255, 0, 200]       # 🟡 Màu vàng (giữ nguyên của bạn)
 }
 
