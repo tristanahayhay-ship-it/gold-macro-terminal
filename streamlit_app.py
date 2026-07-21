@@ -34,7 +34,7 @@ else:
     st.sidebar.error("• Lãi suất: Cao (Thắt chặt)")
     st.sidebar.error("• Lạm phát: Phi mã / Thiểu phát")
     st.sidebar.error("• Địa chính trị: Căng thẳng")
-    st.sidebar.error("• Tâm lý: Sơ hãi (FUD)")
+    st.sidebar.error("• Tâm lý: Sợ hãi (FUD)")
     bg_color = "#FDEDEC"
     line_color = "#E74C3C"
 
@@ -42,18 +42,16 @@ else:
 # Gán nhãn cho các nút (Nodes) trong sơ đồ
 labels = [
     "HỆ THỐNG VĨ MÔ",                   # 0
-    "Kinh tế Tăng trưởng (Risk-On)",     # 1
-    "Kinh tế Suy thoái (Risk-Off)",      # 2
-    "Khối Doanh nghiệp",                # 3
-    "Khối Cá nhân",                     # 4
-    "Khối Định chế Tài chính",           # 5
-    "Chính phủ & Ngân hàng TW",          # 6
-    "Cổ phiếu Tăng trưởng & Đầu cơ",     # 7
-    "Bất động sản Đầu cơ / Vùng ven",    # 8
-    "Thị trường Crypto (Tài sản mới)",   # 9
-    "Vàng vật chất & Vàng tài khoản",    # 10
-    "Tiền mặt & Đồng tiền mạnh (USD)",   # 11
-    "Trái phiếu CP & Ngành phòng thủ"    # 12
+    "Khối Doanh nghiệp",                # 1
+    "Khối Cá nhân",                     # 2
+    "Khối Định chế Tài chính",           # 3
+    "Chính phủ & Ngân hàng TW",          # 4
+    "Cổ phiếu Tăng trưởng & Đầu cơ",     # 5
+    "Bất động sản Đầu cơ / Vùng ven",    # 6
+    "Thị trường Crypto (Tài sản mới)",   # 7
+    "Vàng vật chất & Vàng tài khoản",    # 8
+    "Tiền mặt & Đồng tiền mạnh (USD)",   # 9
+    "Trái phiếu CP & Ngành phòng thủ"    # 10
 ]
 
 # Khởi tạo danh mục dòng chảy (nguồn -> đích -> khối lượng)
@@ -62,15 +60,15 @@ targets = []
 values = []
 
 if "Risk-On" in market_phase:
-    # Tuyến đường của dòng tiền Tăng trưởng
-    sources += [0, 1, 1, 3, 3, 4, 4]
-    targets += [1, 3, 4, 7, 8, 8, 9]
-    values  += [100, 50, 50, 30, 20, 25, 25] # Tỷ trọng mô phỏng
+    # Tuyến đường của dòng tiền Tăng trưởng (Vĩ mô -> DN/Cá nhân -> Tài sản rủi ro)
+    sources = [0, 0, 1, 1, 1, 2, 2, 2]
+    targets = [1, 2, 5, 6, 7, 5, 6, 7]
+    values  = [50, 50, 20, 20, 10, 20, 20, 10]
 else:
-    # Tuyến đường của dòng tiền Phòng thủ
-    sources += [0, 2, 2, 5, 5, 6, 6]
-    targets += [2, 5, 6, 10, 11, 11, 12]
-    values  += [100, 60, 40, 35, 25, 15, 25]
+    # Tuyến đường của dòng tiền Phòng thủ (Vĩ mô -> Định chế/Chính phủ -> Tài sản trú ẩn)
+    sources = [0, 0, 3, 3, 3, 4, 4, 4]
+    targets = [3, 4, 8, 9, 10, 8, 9, 10]
+    values  = [50, 50, 20, 20, 10, 10, 25, 15]
 
 # Tạo biểu đồ Sankey bằng Plotly
 fig = go.Figure(data=[go.Sankey(
@@ -85,13 +83,13 @@ fig = go.Figure(data=[go.Sankey(
       source = sources,
       target = targets,
       value = values,
-      color = line_color + "44" # Thêm alpha channel để làm mờ đường nối
+      color = line_color + "44" # Thêm độ mờ (alpha channel) cho đường nối
   ))])
 
 fig.update_layout(title_text="<b>SƠ ĐỒ TRỰC QUAN DÒNG CHẢY CỦA TIỀN</b>", font_size=13, height=500)
 
 # 4. Hiển thị khu vực nội dung chính
-col1, col2 = st.columns([2, 1])
+col1, col2 = st.columns([2, 1]) # Chia tỷ lệ cột biểu đồ rộng hơn cột text
 
 with col1:
     # Render biểu đồ dòng tiền lên ứng dụng
@@ -123,6 +121,7 @@ with col2:
         )
 
 # Bảng thông tin tra cứu nhanh danh mục tài sản dưới chân trang
+st.markdown("---")
 st.markdown("### 🗂️ Chi tiết các Nhóm Tài sản phân bổ")
 t1, t2, t3 = st.columns(3)
 with t1:
