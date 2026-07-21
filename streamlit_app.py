@@ -2,196 +2,129 @@ import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
 
-# 1. CẤU HÌNH GIAO DIỆN TERMINAL TỐI (DARK-MODE)
+# ==============================================================================
+# 1. CẤU HÌNH GIAO DIỆN TERMINAL TỐI GÓC RỘNG TRÊN CÙNG (SUPER FULL-WIDTH LAYOUT)
+# ==============================================================================
 st.set_page_config(
-    page_title="Gold Macro Terminal Pro",
+    page_title="Global Mesh Macro Terminal",
     page_icon="🕸️",
-    layout="wide",
+    layout="wide", # Kích hoạt chế độ tràn màn hình góc rộng
     initial_sidebar_state="expanded"
 )
 
 st.markdown("""
     <style>
-    .stApp { background-color: #07090e; color: #e1e6eb; }
-    .terminal-card { background-color: #11141c; padding: 15px; border-radius: 8px; border: 1px solid #1f2633; margin-bottom: 12px; }
-    .status-badge { font-weight: bold; padding: 4px 8px; border-radius: 4px; }
+    .stApp { background-color: #05070a; color: #e1e6eb; }
+    .terminal-card { background-color: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #1f2633; margin-top: 15px; }
+    .status-badge { font-weight: bold; padding: 6px 12px; border-radius: 4px; font-size: 16px; }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🕸️ GOLD MACRO-MICRO TERMINAL (COMPLETE EDITION)")
-st.subheader("Hệ thống Định vị Mạng lưới Dòng chảy Tài chính 195 Quốc gia")
+st.title("🕸️ GLOBAL FINANCIAL MESH TERMINAL (MEGA-VIEW)")
+st.subheader("Mạng lưới Xung nhịp Dòng chảy Chằng chịt Toàn cầu - Tương quan 195 Quốc gia")
 st.markdown("---")
 
-# 2. BỘ ĐIỀU KHIỂN SIDEBAR TƯƠNG TÁC
-st.sidebar.header("🎛️ BỘ ĐIỀU KHIỂN TRỤC VĨ MÔ")
+# 2. SIDEBAR ĐIỀU KHIỂN ĐỘNG LỰC TOÀN CẦU
+st.sidebar.header("🎛️ TỔNG TÀI KHOẢN VĨ MÔ")
 market_phase = st.sidebar.selectbox(
-    "1. Chọn Trạng thái Chỉ số Dòng tiền:",
-    ["Đồng USD giảm - Kích hoạt ĐẦU TƯ TOÀN CẦU (MÀU XANH CHẠY OUT)", 
-     "Đồng USD tăng - Tháo chạy gom tài sản TRÚ ẨN (MÀU ĐỎ CHẠY IN)"]
+    "Chọn Trạng thái Chỉ số Dòng tiền:",
+    ["Đồng USD giảm - Tổng lực ĐẦU TƯ TOÀN CẦU CHẰNG CHỊT (MÀU XANH CHẠY OUT)", 
+     "Đồng USD tăng - Bán tháo rút dòng về Mỹ TRÚ ẨN (MÀU ĐỎ CHẠY IN)"]
 )
 
-base_countries = ["Việt Nam", "Mỹ (United States)", "Thụy Sĩ (Switzerland)", "Nhật Bản", "Trung Quốc", "Đức", "Anh", "Singapore"]
-all_195_countries = base_countries + [f"Quốc gia mẫu thứ {i}" for i in range(9, 196)]
+selected_agent = st.sidebar.radio(
+    "Tiêu điểm Khối Thực thể chạy dây:",
+    ["Tất cả chủ thể (Cá nhân & Tập đoàn)", "Chỉ hiện Nhà đầu tư Cá nhân (Retail)", "Chỉ hiện Khối Tập đoàn lớn (Corporate)"]
+)
 
-selected_country = st.sidebar.selectbox("2. Chọn Quốc gia để ZOOM SÂU nội địa:", all_195_countries)
-selected_agent = st.sidebar.radio("3. Tiêu điểm Chủ thể Vi mô (Agent-Layer):", ["Tất cả chủ thể cùng chạy", "Nhà đầu tư Cá nhân (Retail)", "Khối Tập đoàn lớn (Corporate)"])
-total_capital = st.sidebar.number_input("4. Quy mô dòng vốn giả lập (USD):", min_value=1000000, value=100000000, step=1000000, format="%d")
+total_capital = st.sidebar.number_input("Tổng quy mô dòng vốn hệ thống vận chuyển (USD):", min_value=1000000, value=500000000, format="%d")
 
-# 3. THUẬT TOÁN ĐIỀU KHIỂN HOẠT HỌA "CHẠY CHẠY" & MÀU SẮC
+# Thiết lập xung nhịp hoạt họa chạy dòng tiền
 if "MÀU XANH" in market_phase:
-    flow_type = "INVESTMENT"
-    pulse_color = "#2ecc71"
-    base_color = "rgba(46, 204, 113, 0.15)"
-    dash_pattern = "4 4 4 4"
-    badge_style = "background-color: rgba(46, 204, 113, 0.2); color: #2ecc71;"
-    status_label = "MỞ RỘNG VỐN ĐẦU TƯ (RISK-ON)"
+    flow_type, pulse_color, base_color, dash_pattern, badge_style, status_label = "INVESTMENT", "#2ecc71", "rgba(46, 204, 113, 0.08)", "4 4 4 4", "background-color: rgba(46, 204, 113, 0.2); color: #2ecc71;", "HỆ THỐNG XUNG LỰC ĐẦU TƯ TỔNG LỰC (RISK-ON)"
 else:
-    flow_type = "SAFE_HAVEN"
-    pulse_color = "#e74c3c"
-    base_color = "rgba(231, 76, 60, 0.15)"
-    dash_pattern = "8 4 8 4"
-    badge_style = "background-color: rgba(231, 76, 60, 0.2); color: #e74c3c;"
-    status_label = "THÁO VỐN PHÒNG THỦ (RISK-OFF)"
-# 4. CƠ SỞ DỮ LIỆU ĐỘNG PHÂN RÃ THEO CHỦ THỂ & TÀI SẢN NỘI ĐỊA
-if selected_country == "Việt Nam":
-    geo_scope = "asia"
-    center_lat, center_lon = 15.8, 107.5
-    level_1 = {"name": "Ngân hàng Nhà nước (SBV) & Bộ Tài chính Việt Nam", "lat": 21.0285, "lon": 105.8342}
-    agents_data = {
-        "Nhà đầu tư Cá nhân (Retail)": {"name": "Hộ gia đình & Cá nhân đầu tư VN", "lat": 16.0470, "lon": 108.2205},
-        "Khối Tập đoàn lớn (Corporate)": {"name": "Tập đoàn kinh tế & Doanh nghiệp nội địa", "lat": 10.7769, "lon": 106.7018}
-    }
-    assets_data = {
-        "Cổ phiếu Tăng trưởng": {"name": "Sàn HOSE (Cổ phiếu Tăng trưởng)", "lat": 10.8231, "lon": 106.6297, "type": "INVESTMENT"},
-        "Bất động sản Đầu cơ": {"name": "Đất nền vùng ven & Dự án Đô thị", "lat": 11.5424, "lon": 106.9407, "type": "INVESTMENT"},
-        "Thị trường Crypto": {"name": "Sàn Tài sản số (Crypto Exchange)", "lat": 10.7626, "lon": 106.6602, "type": "INVESTMENT"},
-        "Vàng miếng & Nhẫn": {"name": "Đại lý Vàng vật chất (SJC/Nhẫn 9999)", "lat": 21.0333, "lon": 105.8500, "type": "SAFE_HAVEN"},
-        "Tiền mặt & Tiết kiệm": {"name": "H型thống Ngân hàng Thương mại (Tiết kiệm VND)", "lat": 21.0167, "lon": 105.8167, "type": "SAFE_HAVEN"},
-        "Trái phiếu Chính phủ": {"name": "Sàn Giao dịch Trái phiếu Kho bạc Nhà nước", "lat": 21.0245, "lon": 105.8412, "type": "SAFE_HAVEN"}
-    }
-elif selected_country == "Mỹ (United States)":
-    geo_scope = "north america"
-    center_lat, center_lon = 37.0, -95.7
-    level_1 = {"name": "Fed (Cục Dự trữ Liên bang) & US Treasury", "lat": 38.9072, "lon": -77.0369}
-    agents_data = {
-        "Nhà đầu tư Cá nhân (Retail)": {"name": "Cộng đồng nhỏ lẻ Robinhood Traders", "lat": 41.8781, "lon": -87.6298},
-        "Khối Tập đoàn lớn (Corporate)": {"name": "Các tập đoàn S&P 500 & Định chế tài chính", "lat": 34.0522, "lon": -118.2437}
-    }
-    assets_data = {
-        "Cổ phiếu Tăng trưởng": {"name": "Sàn NYSE / NASDAQ (Cổ phiếu Công nghệ)", "lat": 40.7128, "lon": -74.0060, "type": "INVESTMENT"},
-        "Bất động sản Đầu cơ": {"name": "BĐS Thương mại (US Commercial REITs)", "lat": 32.7767, "lon": -96.7970, "type": "INVESTMENT"},
-        "Thị trường Crypto": {"name": "Quỹ ETF Bitcoin & Coinbase Pro", "lat": 37.7749, "lon": -122.4194, "type": "INVESTMENT"},
-        "Vàng miếng & Nhẫn": {"name": "Quỹ Tín thác Vàng quốc tế (GLD ETF)", "lat": 42.3601, "lon": -71.0589, "type": "SAFE_HAVEN"},
-        "Tiền mặt & Tiết kiệm": {"name": "Tài khoản Tiền gửi Đô la Mỹ (USD Cash)", "lat": 39.9526, "lon": -75.1652, "type": "SAFE_HAVEN"},
-        "Trái phiếu Chính phủ": {"name": "Két an toàn Trái phiếu Chính phủ Mỹ (US Treasuries)", "lat": 38.8951, "lon": -77.0364, "type": "SAFE_HAVEN"}
-    }
-else:
-    geo_scope = "world"
-    center_lat, center_lon = 20.0, 0.0
-    level_1 = {"name": f"Hội đồng Vĩ mô Thượng tầng {selected_country}", "lat": 20.0, "lon": 0.0}
-    agents_data = {
-        "Nhà đầu tư Cá nhân (Retail)": {"name": f"Khối Cá nhân {selected_country}", "lat": 15.0, "lon": -10.0},
-        "Khối Tập đoàn lớn (Corporate)": {"name": f"Khối Doanh nghiệp {selected_country}", "lat": 10.0, "lon": 10.0}
-    }
-    assets_data = {
-        "Cổ phiếu Tăng trưởng": {"name": f"Thị trường tài sản {selected_country}", "lat": 5.0, "lon": 5.0, "type": "INVESTMENT"},
-        "Bất động sản Đầu cơ": {"name": f"BĐS Địa phương {selected_country}", "lat": 5.0, "lon": -5.0, "type": "INVESTMENT"},
-        "Thị trường Crypto": {"name": "Ví lạnh lưu trữ Crypto kỹ thuật số", "lat": 0.0, "lon": 0.0, "type": "INVESTMENT"},
-        "Vàng miếng & Nhẫn": {"name": f"Kho dự trữ Vàng {selected_country}", "lat": 25.0, "lon": 5.0, "type": "SAFE_HAVEN"},
-        "Tiền mặt & Tiết kiệm": {"name": f"Ngân hàng nội tệ {selected_country}", "lat": 25.0, "lon": -5.0, "type": "SAFE_HAVEN"},
-        "Trái phiếu Chính phủ": {"name": f"Trái phiếu nội bang {selected_country}", "lat": 30.0, "lon": 0.0, "type": "SAFE_HAVEN"}
-    }
+    flow_type, pulse_color, base_color, dash_pattern, badge_style, status_label = "SAFE_HAVEN", "#e74c3c", "rgba(231, 76, 60, 0.08)", "8 4 8 4", "background-color: rgba(231, 76, 60, 0.2); color: #e74c3c;", "HỆ THỐNG KHỦNG HOẢNG THÁO CHẠY VỀ MỸ (RISK-OFF)"
 
-# 5. ĐỒ HỌA MẠNG LƯỚI BẢN ĐỒ THỜI GIAN THỰC (MAP ENGINE)
+# 3. SƠ SỞ DỮ LIỆU ĐA LỚP TOÀN CẦU (GỘP ĐỒNG THỜI TOÀN BỘ CÁC TRỤC QUỐC GIA LỚN)
+us_hq = {"name": "Mỹ (Trung tâm USD/Fed/Treasury)", "lat": 38.9072, "lon": -77.0369}
+
+macro_mesh = {
+    "Việt Nam": {"lat_c1": 21.0, "lon_c1": 105.8, "lat_ag": 14.0, "lon_ag": 108.0, "lat_as": 10.7, "lon_as": 106.7, "name_as": "Sàn HOSE / BĐS Vùng ven"},
+    "Trung Quốc": {"lat_c1": 39.9, "lon_c1": 116.4, "lat_ag": 31.2, "lon_ag": 121.4, "lat_as": 22.5, "lon_as": 114.0, "name_as": "Sàn Thâm Quyến / Thượng Hải"},
+    "Nhật Bản": {"lat_c1": 35.6, "lon_c1": 139.6, "lat_ag": 34.6, "lon_ag": 135.5, "lat_as": 35.0, "lon_as": 136.0, "name_as": "Sàn Nikkei / Trái phiếu Yên JPY"},
+    "Đức": {"lat_c1": 52.5, "lon_c1": 13.4, "lat_ag": 50.1, "lon_ag": 8.6, "lat_as": 48.1, "lon_as": 11.5, "name_as": "Thị trường Công nghiệp Frankfurt"},
+    "Anh": {"lat_c1": 51.5, "lon_c1": -0.1, "lat_ag": 53.4, "lon_ag": -2.2, "lat_as": 55.9, "lon_as": -3.1, "name_as": "Sàn LSE / Công cụ nợ Bảng Anh"},
+    "Singapore": {"lat_c1": 1.35, "lon_c1": 103.8, "lat_ag": 1.30, "lon_ag": 103.7, "lat_as": 1.40, "lon_as": 103.9, "name_as": "Trung tâm Tài chính Đông Nam Á"},
+    "Thụy Sĩ": {"lat_c1": 46.9, "lon_c1": 7.4, "lat_ag": 47.3, "lon_ag": 8.5, "lat_as": 46.2, "lon_as": 6.1, "name_as": "Két sắt Vàng & Franc Thụy Sĩ (CHF)"},
+    "Úc": {"lat_c1": -35.2, "lon_c1": 149.1, "lat_ag": -33.8, "lon_ag": 151.2, "lat_as": -37.8, "lon_as": 144.9, "name_as": "Thị trường Hàng hóa Quặng Sydney"}
+}
+
+# Tự động hóa sinh thêm 30 nút mạng lưới đại diện cho các quốc gia còn lại để tăng độ chằng chịt
+for i in range(1, 31):
+    macro_mesh[f"Quốc gia Mẫu {i}"] = {
+        "lat_c1": 20.0 + (i * 0.8), "lon_c1": -40.0 + (i * 2.5),
+        "lat_ag": 15.0 + (i * 0.8), "lon_ag": -45.0 + (i * 2.5),
+        "lat_as": 10.0 + (i * 0.8), "lon_as": -50.0 + (i * 2.5),
+        "name_as": f"Hạ tầng Tài sản nội bang {i}"
+    }
+# 4. ENGINE ĐỒ HỌA MẠNG LƯỚI MA TRẬN CHẰNG CHỊT TOÀN CẦU
 fig = go.Figure()
 
+# Vẽ điểm nút Thượng tầng Mỹ (Trung tâm hấp thụ USD tối cao)
 fig.add_trace(go.Scattergeo(
-    lon = [level_1["lon"]], lat = [level_1["lat"]],
-    text = f"🏛️ CẤP 1: {level_1['name']}", mode = "markers+text", textposition = "top center",
-    marker = dict(size=14, color="#1abc9c", symbol="square", line=dict(color="#fff", width=1.5))
+    lon = [us_hq["lon"]], lat = [us_hq["lat"]],
+    text = f"⭐ {us_hq['name']}", mode = "markers+text", textposition = "top center",
+    marker = dict(size=16, color="#f39c12", symbol="star", line=dict(color="#fff", width=2))
 ))
 
-active_agents = list(agents_data.keys()) if selected_agent == "Tất cả chủ thể cùng chạy" else [selected_agent]
-
-for agent_key in active_agents:
-    agent = agents_data[agent_key]
-    fig.add_trace(go.Scattergeo(
-        lon = [agent["lon"]], lat = [agent["lat"]],
-        text = f"👤 CẤP 2: {agent['name']}", mode = "markers+text", textposition = "bottom center",
-        marker = dict(size=12, color="#f39c12", symbol="diamond", line=dict(color="#fff", width=1))
-    ))
-
-for asset_key, asset in assets_data.items():
-    is_active = (flow_type == asset["type"])
-    node_size = 11 if is_active else 6
-    node_col = pulse_color if is_active else "#57606f"
-    fig.add_trace(go.Scattergeo(
-        lon = [asset["lon"]], lat = [asset["lat"]],
-        text = f"🎯 CẤP 3: {asset['name']}", mode = "markers+text", textposition = "top right",
-        marker = dict(size=node_size, color=node_col, symbol="circle", line=dict(color="#fff", width=0.5))
-    ))
-
-for agent_key in active_agents:
-    agent = agents_data[agent_key]
-    l1_l2_lon = [level_1["lon"], agent["lon"]] if flow_type == "INVESTMENT" else [agent["lon"], level_1["lon"]]
-    l1_l2_lat = [level_1["lat"], agent["lat"]] if flow_type == "INVESTMENT" else [agent["lat"], level_1["lat"]]
+for country, data in macro_mesh.items():
+    fig.add_trace(go.Scattergeo(lon=[data["lon_c1"]], lat=[data["lat_c1"]], text=f"🏛️ {country}", mode="markers", marker=dict(size=9, color="#1abc9c", symbol="square")))
     
-    fig.add_trace(go.Scattergeo(lon=l1_l2_lon, lat=l1_l2_lat, mode="lines", line=dict(width=1, color=base_color), hoverinfo="none"))
-    fig.add_trace(go.Scattergeo(lon=l1_l2_lon, lat=l1_l2_lat, mode="lines", line=dict(width=2.5, color=pulse_color, dash=dash_pattern), hoverinfo="none"))
+    if "Tập đoàn" not in selected_agent:
+        fig.add_trace(go.Scattergeo(lon=[data["lon_ag"]], lat=[data["lat_ag"]], text=f"👤 Cá nhân ({country})", mode="markers", marker=dict(size=7, color="#f1c40f", symbol="diamond")))
+    if "Cá nhân" not in selected_agent:
+        fig.add_trace(go.Scattergeo(lon=[data["lon_ag"]+0.2], lat=[data["lat_ag"]+0.2], text=f"🏢 Tập đoàn ({country})", mode="markers", marker=dict(size=7, color="#e67e22", symbol="triangle-up")))
+        
+    fig.add_trace(go.Scattergeo(lon=[data["lon_as"]], lat=[data["lat_as"]], text=f"🎯 {data['name_as']}", mode="markers", marker=dict(size=8, color=pulse_color if flow_type=="INVESTMENT" else "#7f8c8d")))
 
-    for asset_key, asset in assets_data.items():
-        if asset["type"] == flow_type:
-            path_lon = [agent["lon"], asset["lon"]] if flow_type == "INVESTMENT" else [asset["lon"], agent["lon"]]
-            path_lat = [agent["lat"], asset["lat"]] if flow_type == "INVESTMENT" else [agent["lat"], asset["lat"]]
-            fig.add_trace(go.Scattergeo(lon=path_lon, lat=path_lat, mode="lines", line=dict(width=1.5, color=base_color), hoverinfo="none"))
-            fig.add_trace(go.Scattergeo(lon=path_lon, lat=path_lat, mode="lines", line=dict(width=3.5, color=pulse_color, dash=dash_pattern), hoverinfo="none"))
+    # THUẬT TOÁN ĐA LỚP GIĂNG LƯỚI ĐƯỜNG DÂY CHẰNG CHỊT NHẤP NHÁY "CHẠY CHẠY"
+    cross_lon = [us_hq["lon"], data["lon_c1"]] if flow_type == "INVESTMENT" else [data["lon_c1"], us_hq["lon"]]
+    cross_lat = [us_hq["lat"], data["lat_c1"]] if flow_type == "INVESTMENT" else [data["lat_c1"], us_hq["lat"]]
+    fig.add_trace(go.Scattergeo(lon=cross_lon, lat=cross_lat, mode="lines", line=dict(width=1, color=base_color), hoverinfo="none"))
+    fig.add_trace(go.Scattergeo(lon=cross_lon, lat=cross_lat, mode="lines", line=dict(width=2.5, color=pulse_color, dash=dash_pattern), hoverinfo="none"))
 
-fig.update_layout(showlegend = False, height = 600, margin = dict(l=0, r=0, t=0, b=0))
+    local_lon = [data["lon_c1"], data["lon_ag"], data["lon_as"]] if flow_type == "INVESTMENT" else [data["lon_as"], data["lon_ag"], data["lon_c1"]]
+    local_lat = [data["lat_c1"], data["lat_ag"], data["lat_as"]] if flow_type == "INVESTMENT" else [data["lat_as"], data["lat_ag"], data["lat_c1"]]
+    fig.add_trace(go.Scattergeo(lon=local_lon, lat=local_lat, mode="lines", line=dict(width=1, color=base_color), hoverinfo="none"))
+    fig.add_trace(go.Scattergeo(lon=local_lon, lat=local_lat, mode="lines", line=dict(width=3, color=pulse_color, dash=dash_pattern), hoverinfo="none"))
 
-fig.update_geos(
-    scope = geo_scope, showland = True, landcolor = "#0f131a",
-    countrycolor = "#232b38", showcountries = True, showocean = True, oceancolor = "#05070a",
-    projection_type = "mercator" if geo_scope != "world" else "natural earth"
-)
-# 6. HIỂN THỊ BỐ CỤC CHUYÊN NGHIỆP TRÊN WEB DASHBOARD
-col_map_layer, col_terminal_panel = st.columns(2)
+# Thiết lập Bản đồ phẳng góc rộng phóng to kích thước tối đa toàn cầu (Mega-view Layout)
+fig.update_layout(showlegend = False, height = 700, margin = dict(l=0, r=0, t=10, b=0))
+fig.update_geos(scope = "world", projection_type = "natural earth", showland = True, landcolor = "#090c10", countrycolor = "#1f242e", showcountries = True, showocean = True, oceancolor = "#040508")
 
-with col_map_layer:
-    st.plotly_chart(fig, use_container_width=True)
+# 5. HIỂN THỊ BIỂU ĐỒ BẢN ĐỒ TO TRÊN CÙNG TRÀN MÀN HÌNH
+st.plotly_chart(fig, use_container_width=True)
 
-with col_terminal_panel:
-    st.markdown("### 🎚️ Trung tâm Phân tích Luồng tín hiệu")
-    st.markdown(f"Hệ thống: <span class='status-badge' style='{badge_style}'>{status_label}</span>", unsafe_allow_html=True)
-    st.write(f"Tọa độ mục tiêu: **{selected_country.upper()}**")
-    
+# 6. KHU VỰC THÔNG TIN TERMINAL VÀ MA TRẬN ĐỊNH LƯỢNG Ở PHÍA DƯỚI
+col_text, col_stats = st.columns(2)
+
+with col_text:
+    st.markdown("### 🎚️ Trung tâm Phân tích Luồng Hệ thống")
+    st.markdown(f"Trạng thái mạng lưới: <span class='status-badge' style='{badge_style}'>{status_label}</span>", unsafe_allow_html=True)
     st.markdown("<div class='terminal-card'>", unsafe_allow_html=True)
-    st.markdown("#### ⚙️ Cơ chế hoạt họa nhịp dây:")
+    st.markdown("#### ⚙️ Bản chất của mạng lưới dây chuyển động chằng chịt:")
     if flow_type == "INVESTMENT":
-        st.write("🟢 **Đường chỉ màu XANH LÁ liền mạch đang CHẠY RA NGOÀI (Outflow):** Thể hiện trạng thái USD giảm nhiệt, lãi suất nới lỏng. Dòng tiền từ đầu não Thượng tầng bắn luồng xung lực xuống các Chủ thể Vi mô. Từ đây, dòng tiền giải ngân của Cá nhân và Tập đoàn tạo thành các dải hạt sáng chạy tốc độ cao đổ thẳng vào các tọa độ Sàn chứng khoán HOSE, sàn Crypto và gom mua Đất nền vùng ven để đầu tư sinh lời.")
+        st.write("🟢 **MÀU XANH LÁ CHẠY TOẢ RA NGOÀI (Outflow):** Chỉ số sức mạnh USD giảm nhiệt, chiếc van tiền từ nước Mỹ mở ra. Bạn nhìn thấy rõ hàng trăm sợi cáp quang đang nhấp nháy các hạt bụi sáng chạy bắn liên tục từ Mỹ phóng ra 195 quốc gia. Tại nội địa từng nước, dòng vốn ngoại này tiếp tục rẽ nhánh thành các đường dây vi mô chạy luồn lách xuống các tài khoản của Cá nhân và Tập đoàn, đẩy mạnh sản xuất và thổi bùng thanh khoản các sàn chứng khoán (HOSE, Thâm Quyến, Frankfurt) và bất động sản.")
     else:
-        st.write("🔴 **Đường chỉ màu ĐỎ đứt đoạn đang CUỘN NGƯỢC VÀO TRONG (Inflow):** Thể hiện trạng thái USD tăng mạnh hoặc rủi ro vĩ mô xuất hiện. Trục tài sản rủi ro bị đóng băng. Bạn nhìn thấy rõ các hạt sáng màu đỏ đang chạy co cụm dồn dập kéo ngược dòng từ các tài sản rủi ro về két sắt của Cá nhân và Tập đoàn, sau đó truyền tín hiệu phòng thủ thủ thế thẳng vào Hệ thống đại lý Vàng miếng SJC và tài khoản Tiết kiệm ngân hàng.")
+        st.write("🔴 **MÀU ĐỎ CHẠY CUỘN VÀO TRONG (Inflow):** Rủi ro hệ thống bùng nổ, lực hút của nước Mỹ kích hoạt. Toàn bộ các trục tài sản rủi ro quốc tế lập tức bị ngắt kết nối. Mạng lưới bản đồ bị bao phủ bởi hàng trăm đường chỉ đỏ chạy giật nhịp cuộn dồn dập ngược từ các quốc gia đổ thẳng về trung tâm nước Mỹ. Nhà đầu tư toàn cầu bán tháo tài sản nội địa, chuyển hóa dòng tiền chạy xuyên biên giới để tháo chạy vào kho dự trữ Vàng và Trái phiếu chính phủ Mỹ.")
     st.markdown("</div>", unsafe_allow_html=True)
 
-# 7. MA TRẬN ĐỊNH LƯỢNG PHÂN PHỐI DÒNG VỐN
-st.markdown("---")
-st.markdown("### 🗜️ Ma trận Phân tách chi tiết dòng tiền kết nối vi mô từ Chủ thể đến Tài sản Đích")
-
-active_assets_list = [asset for asset in assets_data.values() if asset["type"] == flow_type]
-shares_allocation = [0.50, 0.30, 0.20]
-
-matrix_rows = []
-for agent_key in active_agents:
-    agent_name = agents_data[agent_key]["name"]
-    for asset, pct in zip(active_assets_list, shares_allocation):
-        allocated_val = total_capital * pct
-        matrix_rows.append({
-            "Quốc gia": selected_country,
-            "Chủ thể khởi nguồn (Cấp 2)": agent_name,
-            "Tín hiệu đường dây": "🟢 CHẠY RA ĐẦU TƯ" if flow_type == "INVESTMENT" else "🔴 RÚT VỀ TRÚ ẨN",
-            "Hạ tầng tài sản đích (Cấp 3)": asset["name"],
-            "Tỷ lệ xung dòng": f"{pct*100:.0f}%",
-            "Quy đổi dòng vốn phân bổ": f"${allocated_val:,.0f} USD"
-        })
-
-df_terminal_matrix = pd.DataFrame(matrix_rows)
-st.dataframe(df_terminal_matrix, use_container_width=True, hide_index=True)
+with col_stats:
+    st.markdown("### 🗜️ Tóm tắt Ma trận Điều phối Vốn liên quốc gia (Top 5 Trục lớn)")
+    matrix_rows = []
+    top_countries = ["Việt Nam", "Trung Quốc", "Thụy Sĩ", "Nhật Bản", "Đức"]
+    for country in top_countries:
+        allocated_val = total_capital / len(macro_mesh)
+        matrix_rows.append({"Trục kết nối vĩ mô": f"Mỹ ➔ {country}", "Tín hiệu chuyển động": "🟢 TỎA RA ĐẦU TƯ" if flow_type == "INVESTMENT" else "🔴 HÚT VỀ TRÚ ẨN", "Hạ tầng tiếp nhận tiêu biểu": macro_mesh[country]["name_as"], "Trạng thái hoạt họa": "Dải XANH chạy Out" if flow_type == "INVESTMENT" else "Dải ĐỎ chạy In", "Dòng vốn ước tính (USD)": f"${allocated_val:,.0f} USD"})
+    df_matrix = pd.DataFrame(matrix_rows)
+    st.dataframe(df_matrix, use_container_width=True, hide_index=True)
