@@ -1,3 +1,24 @@
+import streamlit as st
+import folium
+from streamlit_folium import st_folium
+import random
+import math
+
+# Cấu hình trang giao diện Web toàn màn hình
+st.set_page_config(
+    page_title="Mạng lưới Tài chính Toàn cầu Thực tế",
+    page_icon="🕸️",
+    layout="wide"
+)
+
+st.title("🕸️ Ma trận Mạch máu Tài chính 3 Tầng Thực tế Toàn cầu")
+st.markdown("Hệ thống tự động đồng bộ **toàn bộ các Tỉnh/Thành phố của Việt Nam** và mạng lưới đa điểm vi mô trên phạm vi toàn thế giới.")
+
+# Thanh cấu hình kịch bản hệ thống thế giới từ thanh Sidebar bên trái
+scenario = st.sidebar.selectbox(
+    "Chọn trạng thái kinh tế toàn cầu:",
+    options=["Bình thường (Luân chuyển mở)", "Khi Toàn cầu có BIẾN (Khủng hoảng vĩ mô)"]
+)
 # Khởi tạo bản đồ nền phẳng 1 quả địa cầu duy nhất, khóa không cho lặp màn hình ngang
 m = folium.Map(
     location=[16.0, 108.0], 
