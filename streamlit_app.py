@@ -144,8 +144,8 @@ for i, src_name in enumerate(country_names):
                     folium.PolyLine([src["QUOC_GIA"], my_hubs["QUOC_GIA"]], color="#d62728", weight=1.5, opacity=0.35).add_to(m)
                     folium.PolyLine([src["CAP_TINH"], my_hubs["QUOC_GIA"]], color="#d62728", weight=1.5, opacity=0.35).add_to(m)
 
-# 6. Đẩy cấu trúc hiển thị lên trang Streamlit Web
-col1, col2 = st.columns()
+# 6. ĐỒNG BỘ CHÍNH XÁC: Đã truyền mảng số nguyên [1, 3] vào hàm st.columns để loại bỏ hoàn toàn lỗi TypeError
+col1, col2 = st.columns([1, 3])
 
 with col1:
     st.subheader("⚙️ Hướng dẫn Khảo sát Toàn cầu")
@@ -153,7 +153,7 @@ with col1:
     Thuật toán đã áp dụng cấu trúc đa tầng phân rã cho **TẤT CẢ các quốc gia trên thế giới** (Mỹ, Châu Âu, Châu Á, Châu Phi, Nam Mỹ...):
     *   **Cuộn chuột để di chuyển đến bất kỳ nước nào** trên thế giới (Ví dụ: Đức, Ấn Độ, Brazil, Nhật Bản...).
     *   **Phóng to (Zoom in)** vào nước đó, bạn sẽ thấy xuất hiện đầy đủ cấu trúc ghim biểu tượng kéo dài: 🏛️ Trung ương (Xanh) ➔ 🏭 Cấp Tỉnh (Cam) ➔ 🏡 Cấp Xã (Xanh lá).
-    *   **Phóng to sâu nhất** vào từng ghim để nhấp chọn các chấm tròn vệ tinh xem chi tiết chức năng *Ngân hàng Nhà nước, Bộ tài chính, Cục thuế, Hộ dân...* của quốc gia đó.
+    *   **Phóng to sâu nhất** vào từng ghim để nhấp chọn các chấm tròn vệ tinh xem chi tiết chức năng *Ngân hàng Trung ương, Bộ tài chính, Cục thuế, Hộ dân...* của quốc gia đó.
     """)
     if scenario == "Khi Toàn cầu có BIẾN (Khủng hoảng vĩ mô)":
         st.error("🔴 Đường Đỏ: Dòng tiền sản xuất của tất cả các nước bị tháo chạy xuyên biên giới gom về nước Mỹ.")
