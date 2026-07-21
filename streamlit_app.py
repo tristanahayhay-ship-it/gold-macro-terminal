@@ -143,8 +143,8 @@ view_state = pdk.ViewState(
     latitude=23.0,
     longitude=20.0,
     zoom=1.3,
-    pitch=45,
-    bearing=5
+    pitch=0,
+    bearing=0
 )
 
 # 11. Render toàn bộ hệ thống ma trận lên màn hình
