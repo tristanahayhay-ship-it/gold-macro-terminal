@@ -65,11 +65,10 @@ html_map_code = f"""
         // Khởi tạo bản đồ tập trung vào tọa độ trung tâm [20, 0]
         var map = L.map('map', {{ minZoom: 2, maxZoom: 18 }}).setView([20, 0], 2);
         
-        // Đã sửa đổi đường dẫn ảnh nền chuẩn hóa cho nền tối CARTO DB
         // DÁN CỤM NÀY VÀO THAY THẾ:
-L.tileLayer('https://arcgisonline.com{{z}}/{{y}}/{{x}}', {{
-    attribution: 'Tiles &copy; Esri'
-}}).addTo(map);
+        L.tileLayer('https://arcgisonline.com{{z}}/{{y}}/{{x}}', {{
+        attribution: 'Tiles &copy; Esri'
+        }}).addTo(map);
 
         var currentStatus = '{status_value}';
         var layers = {{ macro: L.layerGroup(), meso: L.layerGroup(), micro: L.layerGroup() }};
