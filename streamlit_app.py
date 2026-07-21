@@ -1,172 +1,153 @@
 import streamlit as st
 import plotly.graph_objects as go
-import networkx as nx
 
-# 1. Cấu hình giao diện Streamlit Darkmode đồng bộ nền đen hoàn toàn
-st.set_page_config(layout="wide", page_title="Macro Money Network Matrix")
+# 1. Cấu hình giao diện Streamlit ép nền đen tuyệt đối (Ultra Dark Mode)
+st.set_page_config(layout="wide", page_title="Cyber Global Money Flow Terminal")
 
 st.markdown(
     """
     <style>
     .stApp { background-color: #000000; color: #ffffff; }
-    h1, p, span, div, label { color: #ffffff !important; }
-    div[data-baseweb="select"] { background-color: #111111 !important; color: #ffffff !important; }
+    iframe { background-color: #000000 !important; }
+    header, footer, [data-testid="stSidebar"] { display: none !important; }
+    div.block-container { padding: 0rem !important; }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-st.title("🌐 Hệ Thống Ma Trận Dòng Chảy Tiền Tệ & Tài Sản Toàn Cầu")
-st.caption("Mô phỏng mạng lưới kinh tế phân cấp: Kết nối Xuyên lục địa (Mỹ - Trung Quốc) và mạng lưới 4 cấp chi tiết bên trong nội địa.")
+# 2. Cơ sở dữ liệu tọa độ địa lý chuẩn [Kinh độ, Vĩ độ]
+global_locations = {
+    # === ĐIỂM A: NỘI ĐỊA MỸ (Cấu trúc phân cấp 4 tầng) ===
+    "US_Xa_Commune": [-100.0, 35.0],          
+    "US_Huyen_District": [-92.0, 38.0],       
+    "US_Tinh_Province": [-84.0, 40.0],        
+    "US_NewYork_WallStreet": [-74.0060, 40.7128], 
 
-# 2. Tạo kiến trúc Đồ thị phân tầng bằng NetworkX
-G = nx.DiGraph()
+    # === ĐIỂM B: NỘI ĐỊA TRUNG QUỐC (Cấu trúc phân cấp 4 tầng) ===
+    "CN_Xa_Commune": [100.0, 25.0],           
+    "CN_Huyen_District": [108.0, 28.0],       
+    "CN_Tinh_Province": [114.0, 31.0],        
+    "CN_Beijing_Central": [116.4074, 39.9042], 
 
-# Định nghĩa danh sách các nút và tọa độ phẳng cố định để khi phóng to không bao giờ bị lệch vị trí
-# Tọa độ cấu trúc theo dạng: Cụm Mỹ ở trục X âm (-), Cụm Trung Quốc ở trục X dương (+)
-nodes_data = {
-    # ==================== CỤM ĐIỂM A: MỸ (USA CLUSTER) ====================
-    "US_SuperNode": {"label": "🇺🇸 ĐẦU NÃO VĨ MÔ MỸ", "x": -5, "y": 0, "type": "country_hub", "color": "#1f77b4", "size": 40},
-    # Sơ đồ nội địa Mỹ (Cấp Xã -> Huyện -> Tỉnh)
-    "US_Commune_Xa": {"label": "Hộ dân & Trang trại (Xã tại Mỹ)", "x": -7, "y": -2, "type": "local", "color": "#00d2ff", "size": 18},
-    "US_District_Huyen": {"label": "Cụm Công nghiệp (Huyện tại Mỹ)", "x": -6, "y": -1, "type": "local", "color": "#00d2ff", "size": 22},
-    "US_Province_Tinh": {"label": "Thị trường Đô thị (Tỉnh tại Mỹ)", "x": -6, "y": 1, "type": "local", "color": "#00d2ff", "size": 26},
-    "US_Federal_Central": {"label": "Cục Dự trữ Liên bang (FED)", "x": -5, "y": 2, "type": "local", "color": "#ffaa00", "size": 30},
+    # === CỤM NỘI ĐỊA VIỆT NAM (Kết nối trung gian) ===
+    "VN_Xa_CoSo": [105.5000, 16.0000],         
+    "VN_Huyen_Hub": [106.3000, 18.5000],       
+    "VN_Tinh_Center": [107.5000, 20.0000],     
+    "VN_HaNoi_Central": [105.8542, 21.0285],   
 
-    # ==================== CỤM ĐIỂM B: TRUNG QUỐC (CHINA CLUSTER) ====================
-    "CN_SuperNode": {"label": "🇨🇳 ĐẦU NÃO VĨ MÔ TRUNG QUỐC", "x": 5, "y": 0, "type": "country_hub", "color": "#de2110", "size": 40},
-    # Sơ đồ nội địa Trung Quốc (Cấp Xã -> Huyện -> Tỉnh)
-    "CN_Commune_Xa": {"label": "Hộ nông dân & Tiểu thương (Xã tại TQ)", "x": 7, "y": -2, "type": "local", "color": "#e74c3c", "size": 18},
-    "CN_District_Huyen": {"label": "Công xưởng sản xuất (Huyện tại TQ)", "x": 6, "y": -1, "type": "local", "color": "#e74c3c", "size": 22},
-    "CN_Province_Tinh": {"label": "Đặc khu kinh tế (Tỉnh tại TQ)", "x": 6, "y": 1, "type": "local", "color": "#e74c3c", "size": 26},
-    "CN_PBOC_Central": {"label": "Ngân hàng Trung ương (PBOC)", "x": 5, "y": 2, "type": "local", "color": "#ffaa00", "size": 30}
+    # === KHỐI LIÊN LỤC ĐỊA TRUNG CHUYỂN ===
+    "Singapore_Global_Hub": [103.8198, 1.3521] 
 }
 
-for node, attrs in nodes_data.items():
-    G.add_node(node, **attrs)
+# 3. Danh sách dòng chảy kết nối mạng lưới đa tầng
+global_flows = [
+    # ================= MẠCH LIÊN KẾT XUYÊN LỤC ĐỊA (MỸ ↔ TRUNG QUỐC) =================
+    {"from": "US_NewYork_WallStreet", "to": "CN_Beijing_Central", "status": "strong_out", "desc": "Mỹ rút ròng dòng vốn đầu tư vĩ mô khỏi thị trường Trung Quốc"},
+    {"from": "CN_Beijing_Central", "to": "US_NewYork_WallStreet", "status": "strong_in", "desc": "Trung Quốc đẩy mạnh xuất khẩu hàng hóa công nghiệp thu Đô-la Mỹ"},
+    {"from": "Singapore_Global_Hub", "to": "VN_HaNoi_Central", "status": "strong_in", "desc": "Dòng vốn ngoại FDI quốc tế bơm thẳng về đầu não Việt Nam"},
+    {"from": "VN_HaNoi_Central", "to": "US_NewYork_WallStreet", "status": "neutral", "desc": "Việt Nam xuất khẩu linh kiện công nghệ sang thị trường Mỹ"},
 
-# 3. Định nghĩa các sợi dây liên kết dòng tiền (Edges)
-# Trạng thái màu sắc: strong_in (Xanh lá), strong_out (Đỏ), neutral (Vàng)
-edges_data = [
-    # ================= SỢI DÂY KẾT NỐI KINH TẾ VĨ MÔ XUYÊN QUỐC GIA (MỸ <-> TRUNG QUỐC) =================
-    ("US_SuperNode", "CN_SuperNode", {"status": "strong_out", "color": "#ff0000", "desc": "Mỹ rút dòng vốn đầu tư / Tăng thuế nhập khẩu thắt chặt thương mại với TQ"}),
-    ("CN_SuperNode", "US_SuperNode", {"status": "strong_in", "color": "#00ff00", "desc": "Trung Quốc đẩy mạnh xuất khẩu hàng hóa công nghiệp thu Đô-la Mỹ"}),
-    ("CN_PBOC_Central", "US_Federal_Central", {"status": "neutral", "color": "#ffff00", "desc": "PBOC luân chuyển dòng ngoại hối mua Trái phiếu Chính phủ Mỹ"}),
+    # ================= MẠCH NỘI ĐỊA BÊN TRONG MỸ (ĐIỂM A) =================
+    {"from": "US_Xa_Commune", "to": "US_Huyen_District", "status": "neutral", "desc": "[MỸ - XÃ ➔ HUYỆN] Nông sản thô đổ về cụm công nghiệp huyện chế biến"},
+    {"from": "US_Huyen_District", "to": "US_Tinh_Province", "status": "strong_in", "desc": "[MỸ - HUYỆN ➔ TỈNH] Thành phẩm gom lên phân phối tại đô thị cấp Tỉnh"},
+    {"from": "US_Tinh_Province", "to": "US_NewYork_WallStreet", "status": "strong_in", "desc": "[MỸ - TỈNH ➔ QUỐC GIA] Dòng thặng dư tài chính kết chuyển về Wall Street"},
 
-    # ================= SỢI DÂY NỘI ĐỊA BÊN TRONG NƯỚC MỸ (ĐIỂM A) =================
-    ("US_Commune_Xa", "US_District_Huyen", {"status": "neutral", "color": "#ffff00", "desc": "Lao động nông thôn Mỹ chuyển dịch về các cụm công nghiệp huyện"}),
-    ("US_District_Huyen", "US_Province_Tinh", {"status": "strong_in", "color": "#00ff00", "desc": "Hàng hóa từ huyện gom lên phân phối tại đô thị lớn cấp Tỉnh"}),
-    ("US_Province_Tinh", "US_SuperNode", {"status": "strong_in", "color": "#00ff00", "desc": "Dòng thặng dư tài chính đổ về các sàn giao dịch Wall Street vĩ mô"}),
-    ("US_Federal_Central", "US_SuperNode", {"status": "strong_out", "color": "#ff0000", "desc": "FED tăng lãi suất điều hành, thắt chặt dòng tiền rút khỏi thị trường"}),
+    # ================= MẠCH NỘI ĐỊA BÊN TRONG TRUNG QUỐC (ĐIỂM B) =================
+    {"from": "CN_Xa_Commune", "to": "CN_Huyen_District", "status": "strong_in", "desc": "[TQ - XÃ ➔ HUYỆN] Tiền lương sản xuất chuyển về hộ gia đình ở Xã"},
+    {"from": "CN_Huyen_District", "to": "CN_Tinh_Province", "status": "strong_in", "desc": "[TQ - HUYỆN ➔ TỈNH] Hàng hóa công xưởng Huyện đẩy ra Đặc khu cấp Tỉnh"},
+    {"from": "CN_Tinh_Province", "to": "CN_Beijing_Central", "status": "strong_in", "desc": "[TQ - TỈNH ➔ QUỐC GIA] Tỉnh nộp thuế sản xuất về trung ương Bắc Kinh"},
 
-    # ================= SỢI DÂY NỘI ĐỊA BÊN TRONG TRUNG QUỐC (ĐIỂM B) =================
-    ("CN_Commune_Xa", "CN_District_Huyen", {"status": "strong_in", "color": "#00ff00", "desc": "Tiền lương từ khu công nghiệp Huyện gửi về kinh tế hộ gia đình ở Xã"}),
-    ("CN_District_Huyen", "CN_Province_Tinh", {"status": "strong_in", "color": "#00ff00", "desc": "Nhà máy công xưởng Huyện xuất xưởng hàng hóa ra Đặc khu Tỉnh"}),
-    ("CN_Province_Tinh", "CN_SuperNode", {"status": "strong_in", "color": "#00ff00", "desc": "Tỉnh kết chuyển thặng dư sản xuất về đầu não kinh tế quốc gia Bắc Kinh"}),
-    ("CN_PBOC_Central", "CN_Province_Tinh", {"status": "neutral", "color": "#ffff00", "desc": "PBOC điều tiết cung tiền kích thích tăng trưởng bất động sản các Tỉnh"})
+    # ================= MẠCH NỘI ĐỊA BÊN TRONG VIỆT NAM =================
+    {"from": "VN_Xa_CoSo", "to": "VN_Huyen_Hub", "status": "neutral", "desc": "[VN - XÃ ➔ HUYỆN] Người dân gửi tiền tích lũy lên hệ thống tín dụng Huyện"},
+    {"from": "VN_Huyen_Hub", "to": "VN_Tinh_Center", "status": "strong_in", "desc": "[VN - HUYỆN ➔ TỈNH] Doanh nghiệp nộp thuế sản xuất địa phương về Tỉnh"},
+    {"from": "VN_Tinh_Center", "to": "VN_HaNoi_Central", "status": "strong_out", "desc": "[VN - TỈNH ➔ QUỐC GIA] Tỉnh kết chuyển ngân sách về Kho bạc Trung ương"}
 ]
 
-for u, v, attrs in edges_data:
-    G.add_edge(u, v, **attrs)
+# 4. Định nghĩa bảng màu phát sáng dạ quang chuẩn Cyberpunk
+color_map = {
+    "strong_in": "#00FF66",   
+    "strong_out": "#FF0033",  
+    "neutral": "#FFFF00"     
+}
 
-# 4. Tạo bộ lọc hiển thị thông minh trên Sidebar để giả lập cơ chế Zoom hệ thống
-st.sidebar.header("🎛️ BỘ ĐIỀU KHIỂN MA TRẬN KINH TẾ")
-view_mode = st.sidebar.radio(
-    "Chọn chế độ quan sát hệ thống:",
-    ["1. Toàn cảnh vĩ mô (Mỹ ↔ Trung Quốc)", "2. Phóng to Điểm A (Xem sơ đồ nội địa Mỹ)", "3. Phóng to Điểm B (Xem sơ đồ nội địa Trung Quốc)", "4. Gộp tổng thể toàn mạng lưới"]
-)
+fig = go.Figure()
 
-# 5. Xử lý logic lọc nút và sợi dây theo chế độ hiển thị được chọn
-visible_nodes = []
-visible_edges = []
-
-if view_mode == "1. Toàn cảnh vĩ mô (Mỹ ↔ Trung Quốc)":
-    # Chỉ hiển thị 2 siêu nút và các sợi dây xuyên biên giới kết nối 2 nước
-    visible_nodes = ["US_SuperNode", "CN_SuperNode"]
-    visible_edges = [e for e in edges_data if (e[0] == "US_SuperNode" and e[1] == "CN_SuperNode") or (e[0] == "CN_SuperNode" and e[1] == "US_SuperNode")]
-    axis_range_x = [-8, 8]
-    axis_range_y = [-4, 4]
-
-elif view_mode == "2. Phóng to Điểm A (Xem sơ đồ nội địa Mỹ)":
-    # Ẩn Trung Quốc, hiển thị toàn bộ sơ đồ 4 cấp chi tiết bên trong Mỹ
-    visible_nodes = [n for n in nodes_data if "US_" in n]
-    visible_edges = [e for e in edges_data if "US_" in e[0] and "US_" in e[1]]
-    axis_range_x = [-8.5, -3.5]
-    axis_range_y = [-3, 3]
-
-elif view_mode == "3. Phóng to Điểm B (Xem sơ đồ nội địa Trung Quốc)":
-    # Ẩn Mỹ, hiển thị toàn bộ sơ đồ 4 cấp chi tiết bên trong Trung Quốc
-    visible_nodes = [n for n in nodes_data if "CN_" in n]
-    visible_edges = [e for e in edges_data if "CN_" in e[0] and "CN_" in e[1]]
-    axis_range_x = [3.5, 8.5]
-    axis_range_y = [-3, 3]
-
-else: # Gộp tổng thể toàn mạng lưới
-    visible_nodes = list(nodes_data.keys())
-    visible_edges = edges_data
-    axis_range_x = [-9, 9]
-    axis_range_y = [-4, 4]
-
-# 6. DỰNG ĐỒ HỌA MẠNG LƯỚI TƯƠNG TÁC BẰNG PLOTLY GO
-edge_traces = []
-
-# Vẽ các sợi dây liên kết đổi màu theo đúng quy ước trạng thái dữ liệu của bạn
-for edge in visible_edges:
-    u, v, attrs = edge[0], edge[1], edge[2]
-    x0, y0 = nodes_data[u]["x"], nodes_data[u]["y"]
-    x1, y1 = nodes_data[v]["x"], nodes_data[v]["y"]
+# 5. ĐỒ HỌA ĐƯỜNG DÂY DÒNG CHẢY TIỀN TỆ
+for flow in global_flows:
+    lon0, lat0 = global_locations[flow["from"]]
+    lon1, lat1 = global_locations[flow["to"]]
+    flow_color = color_map.get(flow["status"], "#FFFFFF")
     
-    # Tạo đường dây vẽ riêng biệt kèm mũi tên hướng dòng chảy bóng mờ
-    edge_trace = go.Scatter(
-        x=[x0, x1, None], y=[y0, y1, None],
-        line=dict(width=3, color=attrs["color"]),
+    is_global = "WallStreet" in flow["from"] or "Central" in flow["from"] or "Hub" in flow["from"]
+    line_width = 4 if is_global else 2
+    
+    fig.add_trace(go.Scattergeo(
+        lon=[lon0, lon1],
+        lat=[lat0, lat1],
+        mode='lines+markers',
+        line=dict(width=line_width, color=flow_color),
+        marker=dict(size=4, color=flow_color),
         hoverinfo='text',
-        text=[f"Dòng chảy: {attrs['desc']}"],
-        mode='lines'
-    )
-    edge_traces.append(edge_trace)
+        text=flow["desc"],
+        opacity=0.85
+    ))
 
-# Vẽ các điểm nút (Thực thể hệ thống kinh tế)
-node_x = []
-node_y = []
-node_text = []
+# 6. ĐỒ HỌA ĐIỂM NÚT QUỐC GIA PHÂN CẤP SỐNG ĐỘNG
+node_lons = []
+node_lats = []
+node_texts = []
 node_colors = []
 node_sizes = []
 
-for node in visible_nodes:
-    node_x.append(nodes_data[node]["x"])
-    node_y.append(nodes_data[node]["y"])
-    node_text.append(nodes_data[node]["label"])
-    node_colors.append(nodes_data[node]["color"])
-    node_sizes.append(nodes_data[node]["size"])
+for name, coords in global_locations.items():
+    node_lons.append(coords[0])
+    node_lats.append(coords[1])
+    node_texts.append(name.replace("_", " "))
+    
+    if any(k in name for k in ["Central", "Street", "Hub"]) and "Huyen" not in name:
+        node_colors.append("#FF6600") 
+        node_sizes.append(14)
+    else:
+        node_colors.append("#00FFFF") 
+        node_sizes.append(8)
 
-node_trace = go.Scatter(
-    x=node_x, y=node_y,
-    mode='markers+text',
-    hoverinfo='text',
-    text=node_text,
-    textposition="top center",
+fig.add_trace(go.Scattergeo(
+    lon=node_lons,
+    lat=node_lats,
+    mode='markers',
     marker=dict(
         size=node_sizes,
         color=node_colors,
-        line=dict(width=2, color='#ffffff')
+        line=dict(width=1, color='#FFFFFF'),
+        symbol='circle'
+    ),
+    hoverinfo='text',
+    text=node_texts
+))
+
+# 7. THIẾT KẾ BẢN ĐỒ THẾ GIỚI PHẲNG MÀU CYBERPUNK
+fig.update_layout(
+    showlegend=False,
+    margin=dict(l=0, r=0, t=0, b=0),
+    paper_bgcolor='#000000', 
+    geo=dict(
+        showland=True,
+        landcolor='#05131a',       
+        showlakes=False,
+        showcountries=True,
+        countrycolor='#006688',    
+        showocean=True,
+        oceancolor='#000000',      
+        projection_type='equirectangular', 
+        showframe=False,
+        coastlinecolor='#00aaff',  
+        coastlinewidth=1.2,
+        center=dict(lon=10.0, lat=25.0), 
+        lonaxis=dict(range=[-140, 160]),
+        lataxis=dict(range=[-10, 65])
     )
 )
 
-# 7. Thiết lập giao diện màn hình trung tâm điều khiển (Dark UI Layout)
-layout = go.Layout(
-    showlegend=False,
-    hovermode='closest',
-    margin=dict(b=0, l=0, r=0, t=10),
-    paper_bgcolor='#000000', # Nền đen sâu tuyệt đối
-    plot_bgcolor='#000000',
-    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=axis_range_x),
-    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=axis_range_y),
-    clickmode='event+select'
-)
-
-# 8. Gom tất cả thành phần đồ họa mạng lưới và hiển thị lên web Streamlit
-fig = go.Figure(data=edge_traces + [node_trace], layout=layout)
-
-# Cấu hình tính năng zoom tương tác kéo chuột tự do của Plotly
-st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True})
+# 8. Hiển thị đồ họa tương tác cao cấp lên giao diện web
+st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True, 'displayModeBar': False})
