@@ -64,9 +64,9 @@ global_flows = [
 
 # 4. Định nghĩa mã màu dạng danh sách RGBA chuẩn của Pydeck
 color_map = {
-    "strong_in":,     # 🟢 Xanh lá
-    "strong_out":,    # 🔴 Đỏ
-    "neutral": [255, 255, 0, 200]     # 🟡 Vàng
+    "strong_in": [0, 255, 0, 200],     # 🟢 Xanh lá
+    "strong_out": [255, 0, 0, 200],    # 🔴 Đỏ
+    "neutral": [255, 255, 0, 220],     # 🟡 Vàng
 }
 
 # 5. Xử lý dữ liệu nạp các đường dây (Arcs)
