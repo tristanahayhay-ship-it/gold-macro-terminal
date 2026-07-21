@@ -55,9 +55,10 @@ global_flows = [
 
 # 4. Sửa lỗi cú pháp: Định nghĩa mã màu dạng danh sách RGBA [R, G, B, Alpha] hợp lệ
 color_map = {
-    "strong_in":,    # 🟢 Xanh lá: Dòng tiền vào mạnh / Mua mạnh
-    "strong_out":,   # 🔴 Đỏ: Dòng tiền rút mạnh / Bán mạnh
-    "neutral": [255, 255, 0, 200]     # 🟡 Vàng: Lưỡng lự / Đi ngang
+color_map = {
+    "strong_in":,      # 🟢 Màu xanh lá cây
+    "strong_out":,     # 🔴 Màu đỏ
+    "neutral": [255, 255, 0, 200]       # 🟡 Màu vàng (giữ nguyên của bạn)
 }
 
 # 5. Xây dựng bộ lọc tương tác trên Sidebar
