@@ -1,192 +1,133 @@
 import streamlit as st
-import streamlit.components.v1 as components
+import plotly.graph_objects as go
 
-# 1. Cấu hình giao diện Streamlit hiển thị tràn màn hình (Wide mode)
+# 1. Cấu hình trang Dashboard
 st.set_page_config(
-    page_title="Ma trận Mạch máu Tài chính Toàn diện 195 Quốc gia",
+    page_title="Gold Macro Terminal",
+    page_icon="🪙",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="expanded"
 )
 
-# Thêm tiêu đề chính trên giao diện Streamlit
-st.markdown("# 🌏 Ma trận Mạch máu Tài chính Toàn diện 195 Quốc gia")
-st.markdown("Hệ thống khép kín tích hợp cơ sở dữ liệu 195 nước độc lập, tự động phân rã bộ máy vĩ mô - vi mô mượt mà không lo mất kết nối mạng.")
+# Giao diện Tiêu đề chính
+st.title("🪙 GOLD MACRO TERMINAL")
+st.subheader("Hệ thống Mô phỏng Chu kỳ Vĩ mô & Luân chuyển Dòng tiền")
+st.markdown("---")
 
-# 2. Tạo thanh điều khiển bên trái (Sidebar) để người dùng thao tác
-st.sidebar.title("🎮 Trung Tâm Điều Khiển")
-st.sidebar.markdown("---")
-
-usd_status = st.sidebar.radio(
-    "Chọn trạng thái kinh tế thế giới:",
-    options=["Bình thường (Luôn chuyển mở)", "Khủng hoảng / USD Yếu (Trú ẩn Vàng)"],
-    index=0,
+# 2. Thanh Sidebar điều khiển bối cảnh thị trường
+st.sidebar.header("🎛️ BỘ ĐIỀU KHIỂN VĨ MÔ")
+market_phase = st.sidebar.selectbox(
+    "Chọn Giai đoạn Chu kỳ Kinh tế:",
+    ["1. Kinh tế Tăng trưởng (Risk-On)", "2. Kinh tế Suy thoái / Bất ổn (Risk-Off)"]
 )
 
-# Thiết lập cờ trạng thái dựa trên lựa chọn của người dùng
-status_flag = "stable" if "Bình thường" in usd_status else "weak"
+# Hiển thị các chỉ báo vĩ mô tương ứng ở Sidebar
+st.sidebar.markdown("### 📊 Chỉ báo Vĩ mô Hiện tại")
+if "Risk-On" in market_phase:
+    st.sidebar.success("• Lãi suất: Thấp (Nới lỏng)")
+    st.sidebar.success("• Lạm phát: Vừa phải (Tốt)")
+    st.sidebar.success("• Địa chính trị: Ổn định")
+    st.sidebar.success("• Tâm lý: Tham lam (FOMO)")
+    bg_color = "#E8F8F5"
+    line_color = "#1ABC9C"
+else:
+    st.sidebar.error("• Lãi suất: Cao (Thắt chặt)")
+    st.sidebar.error("• Lạm phát: Phi mã / Thiểu phát")
+    st.sidebar.error("• Địa chính trị: Căng thẳng")
+    st.sidebar.error("• Tâm lý: Sơ hãi (FUD)")
+    bg_color = "#FDEDEC"
+    line_color = "#E74C3C"
 
-st.sidebar.markdown("---")
-st.sidebar.info(
-    "💡 **Hướng dẫn:** Thao tác cuộn chuột (Zoom) trên bản đồ bên phải để phóng to từ cấp độ "
-    "Toàn cầu (195 quốc gia) xuống cấp Tỉnh thành và cấp Xã."
-)
+# 3. Định nghĩa dữ liệu Sơ đồ Sankey (Dòng chảy tiền)
+# Gán nhãn cho các nút (Nodes) trong sơ đồ
+labels = [
+    "HỆ THỐNG VĨ MÔ",                   # 0
+    "Kinh tế Tăng trưởng (Risk-On)",     # 1
+    "Kinh tế Suy thoái (Risk-Off)",      # 2
+    "Khối Doanh nghiệp",                # 3
+    "Khối Cá nhân",                     # 4
+    "Khối Định chế Tài chính",           # 5
+    "Chính phủ & Ngân hàng TW",          # 6
+    "Cổ phiếu Tăng trưởng & Đầu cơ",     # 7
+    "Bất động sản Đầu cơ / Vùng ven",    # 8
+    "Thị trường Crypto (Tài sản mới)",   # 9
+    "Vàng vật chất & Vàng tài khoản",    # 10
+    "Tiền mặt & Đồng tiền mạnh (USD)",   # 11
+    "Trái phiếu CP & Ngành phòng thủ"    # 12
+]
 
-# 3. Định nghĩa mã nguồn HTML/JavaScript bằng chuỗi thuần (Không dùng f-string để chống lỗi nuốt tọa độ)
-html_map_code = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Bản Đồ Dòng Chảy Kinh Tế</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://unpkg.com" />
-    <script src="https://unpkg.com"></script>
-    <style>
-        body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; overflow: hidden; }
-        #map { height: 100vh; width: 100vw; background: #0f172a; }
-        
-        /* Bộ lọc CSS ép bản đồ gốc sang chế độ Dark Mode tài chính */
-        .leaflet-layer {
-            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-        }
-        
-        .hud-panel {
-            position: absolute; top: 10px; left: 10px; z-index: 1000;
-            background: rgba(15, 23, 42, 0.85); color: white; padding: 10px 15px;
-            border-radius: 6px; border: 1px solid #334155; font-size: 13px;
-            pointer-events: none;
-        }
-    </style>
-</head>
-<body>
+# Khởi tạo danh mục dòng chảy (nguồn -> đích -> khối lượng)
+sources = []
+targets = []
+values = []
 
-    <div class="hud-panel">
-        <div><b>Cấp độ hiển thị:</b> <span id="view-mode" style="color:#fbbf24;">Vĩ mô (195 Quốc gia)</span></div>
-        <div><b>Mức Phóng to (Zoom):</b> <span id="zoom-level">2</span></div>
-        <div><b>Hệ thống USD:</b> <span id="usd-state-hud" style="color:#10b981;">Đang tải...</span></div>
-    </div>
+if "Risk-On" in market_phase:
+    # Tuyến đường của dòng tiền Tăng trưởng
+    sources += [0, 1, 1, 3, 3, 4, 4]
+    targets += [1, 3, 4, 7, 8, 8, 9]
+    values  += [100, 50, 50, 30, 20, 25, 25] # Tỷ trọng mô phỏng
+else:
+    # Tuyến đường của dòng tiền Phòng thủ
+    sources += [0, 2, 2, 5, 5, 6, 6]
+    targets += [2, 5, 6, 10, 11, 11, 12]
+    values  += [100, 60, 40, 35, 25, 15, 25]
 
-    <div id="map"></div>
+# Tạo biểu đồ Sankey bằng Plotly
+fig = go.Figure(data=[go.Sankey(
+    node = dict(
+      pad = 15,
+      thickness = 20,
+      line = dict(color = "black", width = 0.5),
+      label = labels,
+      color = line_color
+    ),
+    link = dict(
+      source = sources,
+      target = targets,
+      value = values,
+      color = line_color + "44" # Thêm alpha channel để làm mờ đường nối
+  ))])
 
-    <script>
-        // Khởi tạo bản đồ với tọa độ gốc [20, 0] an toàn, không bị biến dạng chuỗi
-        var map = L.map('map', { minZoom: 2, maxZoom: 18 }).setView([20, 0], 2);
-        
-        // Tải ảnh nền bản đồ tiêu chuẩn OpenStreetMap công khai
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+fig.update_layout(title_text="<b>SƠ ĐỒ TRỰC QUAN DÒNG CHẢY CỦA TIỀN</b>", font_size=13, height=500)
 
-        // Nhận trạng thái từ biến môi trường tạm thời của Iframe window
-        var currentStatus = "PLACEHOLDER_STATUS";
-        document.getElementById('usd-state-hud').innerText = currentStatus === 'stable' ? 'Ổn định' : 'Yếu / Suy thoái';
-        document.getElementById('usd-state-hud').style.color = currentStatus === 'stable' ? '#10b981' : '#ef4444';
+# 4. Hiển thị khu vực nội dung chính
+col1, col2 = st.columns([2, 1])
 
-        var layers = { macro: L.layerGroup(), meso: L.layerGroup(), micro: L.layerGroup() };
-        
-        const countries = {
-            US: [37.0902, -95.7129], VN: [14.0583, 108.2772], CN: [35.8617, 104.1954], 
-            EU: [48.5260, 15.2551], CH: [46.8182, 8.2275], JP: [36.2048, 138.2529],
-            AU: [-25.2744, 133.7751], BR: [-14.2350, -51.9253], ZA: [-30.5595, 22.9375]
-        };
+with col1:
+    # Render biểu đồ dòng tiền lên ứng dụng
+    st.plotly_chart(fig, use_container_width=True)
 
-        const safeHavens = { Gold: [22.3964, 114.1095], SwissBank: [47.3769, 8.5417] };
+with col2:
+    st.markdown(f"### ℹ️ Chi tiết trạng thái")
+    if "Risk-On" in market_phase:
+        st.markdown(
+            f"""
+            <div style="background-color:{bg_color}; padding:15px; border-radius:10px; border-left:5px solid {line_color}; color:#111;">
+            <b>Hành vi dòng tiền Tấn công:</b><br/>
+            - <b>Khối Doanh nghiệp:</b> Vay vốn mở rộng quy mô, tăng chi phí sản xuất, tuyển dụng nhân sự hàng loạt.<br/>
+            - <b>Khối Cá nhân:</b> Rút tiết kiệm, dùng đòn bẩy tài chính cao (Margin) lao vào thị trường để tối đa hóa lợi nhuận.<br/>
+            - <b>Điểm đến:</b> Chứng khoán tăng trưởng, Đất nền vùng ven, Bitcoin & Altcoins.
+            </div>
+            """, unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            f"""
+            <div style="background-color:{bg_color}; padding:15px; border-radius:10px; border-left:5px solid {line_color}; color:#111;">
+            <b>Hành vi dòng tiền Trú ẩn:</b><br/>
+            - <b>Khối Định chế:</b> Hạ tỷ trọng cổ phiếu rủi ro cao, chốt lời hoặc cắt lỗ để cơ cấu sang tài sản an toàn.<br/>
+            - <b>Chính phủ & Ngân hàng:</b> Tăng lãi suất để hút bớt tiền mặt lưu thông, siết tín dụng để hạ nhiệt lạm phát.<br/>
+            - <b>Điểm đến:</b> Vàng miếng SJC, tích trữ đồng USD, gửi tiết kiệm ngân hàng, Trái phiếu Chính phủ.
+            </div>
+            """, unsafe_allow_html=True
+        )
 
-        function drawMacroFlows() {
-            layers.macro.clearLayers();
-            if (currentStatus === 'stable') {
-                Object.keys(countries).forEach(k => {
-                    if (k !== 'US' && countries[k]) {
-                        let polyline = L.polyline([countries.US, countries[k]], {
-                            color: '#10b981', weight: 4, dashArray: '5, 10', opacity: 0.8
-                        }).bindTooltip("USD chảy mạnh vào: Cổ phiếu & Chuỗi cung ứng " + k);
-                        layers.macro.addLayer(polyline);
-                    }
-                });
-            } else {
-                Object.keys(countries).forEach(k => {
-                    if (countries[k] && safeHavens.Gold) {
-                        let polyline = L.polyline([countries[k], safeHavens.Gold], {
-                            color: '#ef4444', weight: 4, dashArray: '5, 5', opacity: 0.8
-                        }).bindTooltip("Dòng tiền tháo chạy từ " + k + " trú ẩn vào VÀNG");
-                        layers.macro.addLayer(polyline);
-                    }
-                });
-            }
-        }
-
-        function drawMesoFlows() {
-            layers.meso.clearLayers();
-            const hubs = [
-                { name: "Khu Công Nghệ Cao / Nhà máy Sản xuất Toàn cầu (Bắc Ninh - VN)", coor: [21.18, 106.07], type: "factory" },
-                { name: "Sở Giao Dịch Chứng Khoán TP.HCM (HOSE)", coor: [10.771, 106.704], type: "stock" },
-                { name: "Trung Tâm Tài Chính Phố Wall (Thượng Hải - CN)", coor: [31.23, 121.47], type: "stock" },
-                { name: "Tập đoàn Công nghệ Đa quốc gia (Hà Nội)", coor: [21.028, 105.834], type: "hq" }
-            ];
-
-            hubs.forEach(h => {
-                let color = h.type === 'factory' ? '#a855f7' : (h.type === 'stock' ? '#eab308' : '#2563eb');
-                let marker = L.circleMarker(h.coor, {
-                    radius: 8, fillColor: color, color: '#fff', weight: 1, fillOpacity: 0.9
-                }).bindPopup(`<b>Bộ máy trung mô:</b><br>${h.name}<br><i>Dòng vốn hiện tại: ${currentStatus === 'stable' ? 'FDI tăng trưởng ổn định' : 'Rủi ro rút vốn ngắn hạn'}</i>`);
-                layers.meso.addLayer(marker);
-            });
-        }
-
-        function drawMicroFlows() {
-            layers.micro.clearLayers();
-            const micros = [
-                { name: "Hợp Tác Xã Nông Nghiệp Xã A - Luồng tiền thu mua nông sản xuất khẩu", coor: [21.03, 105.80], flow: "500M VND/ngày" },
-                { name: "Cụm Công Nghiệp Nhỏ / Xưởng May Cấp Xã B", coor: [21.19, 106.08], flow: "1.2B VND/tháng" },
-                { name: "Hộ Kinh Doanh Cá Thể C - Dòng dữ liệu quét QR bán lẻ thời gian thực", coor: [10.772, 106.705], flow: "35M VND/ngày" }
-            ];
-
-            micros.forEach(m => {
-                let marker = L.circleMarker(m.coor, {
-                    radius: 5, fillColor: '#2563eb', color: '#60a5fa', weight: 1, fillOpacity: 0.9
-                }).bindPopup(`<b>Hệ thống Vi mô (Cấp Xã):</b><br>${m.name}<br><b>Dòng tiền quét:</b> ${m.flow}`);
-                layers.micro.addLayer(marker);
-            });
-        }
-
-        function handleZoom() {
-            let zoom = map.getZoom();
-            document.getElementById('zoom-level').innerText = zoom;
-            
-            map.removeLayer(layers.macro);
-            map.removeLayer(layers.meso);
-            map.removeLayer(layers.micro);
-
-            if (zoom <= 5) {
-                document.getElementById('view-mode').innerText = "Vĩ mô (195 Quốc gia)";
-                layers.macro.addTo(map);
-            } else if (zoom > 5 && zoom <= 10) {
-                document.getElementById('view-mode').innerText = "Trung mô (Tỉnh thành/Nhà máy)";
-                layers.macro.addTo(map); 
-                layers.meso.addTo(map);
-            } else {
-                document.getElementById('view-mode').innerText = "Cực kỳ Vi mô (Cấp Xã/Giao dịch QR)";
-                layers.meso.addTo(map);
-                layers.micro.addTo(map);
-            }
-        }
-
-        function updateAllData() {
-            drawMacroFlows();
-            drawMesoFlows();
-            drawMicroFlows();
-            handleZoom();
-        }
-
-        map.on('zoomend', handleZoom);
-        updateAllData();
-    </script>
-</body>
-</html>
-"""
-
-# Sử dụng cơ chế Python thay thế chuỗi an toàn thay cho f-string nguy hiểm
-final_html_code = html_map_code.replace("PLACEHOLDER_STATUS", status_flag)
-
-# 4. Render bản đồ lên Streamlit giao diện rộng
-components.html(final_html_code, height=850, scrolling=False)
+# Bảng thông tin tra cứu nhanh danh mục tài sản dưới chân trang
+st.markdown("### 🗂️ Chi tiết các Nhóm Tài sản phân bổ")
+t1, t2, t3 = st.columns(3)
+with t1:
+    st.info("**Nhóm 1: Cổ phiếu & Sản xuất**\n- Mã công nghệ, bán lẻ, chứng khoán\n- Vốn lưu động mở rộng xưởng\n- Cổ phiếu Penny mạo hiểm")
+with t2:
+    st.success("**Nhóm 2: Tài sản trú ẩn cứng**\n- Vàng miếng SJC, Vàng nhẫn 9999\n- Quỹ ETF Vàng thế giới\n- Đồng đô la Mỹ (USD)")
+with t3:
+    st.warning("**Nhóm 3: Thu nhập cố định & Phòng thủ**\n- Trái phiếu Chính phủ dài hạn\n- Gửi tiết kiệm ngân hàng\n- Cổ phiếu Thiết yếu (Điện, Nước)")
