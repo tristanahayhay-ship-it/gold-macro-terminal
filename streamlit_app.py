@@ -48,8 +48,9 @@ else:
     flow_type, pulse_color, base_color, line_style, badge_bg, status_label = "SAFE_HAVEN", "#d63031", "rgba(214, 48, 49, 0.2)", "dash", "#d63031", "KHỦNG HOẢNG THÁO CHẠY VỀ TRÚ ẨN (RISK-OFF)"
 
 # ==============================================================================
-# 3. TỌA ĐỘ MA TRẬN LƯỚI TẤM (X, Y) THAY THẾ CHO (LAT, LON) Địa Lý
+# 3. TỌA ĐỘ MA TRẬN LƯỚI TẤM (X, Y) THAY THẾ CHO (LAT, LON) ĐỊA LÝ
 # ==============================================================================
+# Khởi tạo ma trận lưới cố định cho các điểm tấm tài sản toàn cầu
 us_tile = {"name": "Mỹ (Fed HQ)", "x": 1, "y": 3}
 
 macro_tiles = {
@@ -68,7 +69,6 @@ macro_tiles = {
 fig = go.Figure()
 
 # 4.1. Vẽ Tấm gốc trung tâm: Nước Mỹ (Điểm neo Dòng tiền)
-# SỬA LỖI: Chuyển textposition thành "middle center" để tương thích go.Scatter
 fig.add_trace(go.Scatter(
     x=[us_tile["x"]], y=[us_tile["y"]],
     mode="markers+text",
@@ -93,12 +93,12 @@ for country, data in macro_tiles.items():
     line_x = [us_tile["x"], data["x"]] if flow_type == "INVESTMENT" else [data["x"], us_tile["x"]]
     line_y = [us_tile["y"], data["y"]] if flow_type == "INVESTMENT" else [data["y"], us_tile["y"]]
     
-    # Vẽ nét bóng nền đường truyền
+    # Vẽ nét bóng nền đường truyền vĩ mô
     fig.add_trace(go.Scatter(x=line_x, y=line_y, mode="lines", line=dict(width=2, color=base_color), hoverinfo="none"))
-    # Vẽ nét viền nhịp xung lực
+    # Vẽ dải viền nhịp tín hiệu xung lực
     fig.add_trace(go.Scatter(x=line_x, y=line_y, mode="lines", line=dict(width=3, color=pulse_color, dash=line_style), hoverinfo="none"))
     
-    # Khối tấm vuông quốc gia - SỬA LỖI: Đổi textposition sang "middle center"
+    # Khối tấm vuông đại diện cho từng quốc gia (Màu Đỏ - Cam - Vàng)
     fig.add_trace(go.Scatter(
         x=[data["x"]], y=[data["y"]],
         mode="markers+text",
@@ -107,13 +107,13 @@ for country, data in macro_tiles.items():
         hoverinfo="text", hovertext=tile_hover
     ))
 
-# 4.3. Cấu hình khóa cứng toàn bộ trục tọa độ phẳng
+# 4.3. Cấu hình khóa cứng toàn bộ trục tọa độ phẳng (Đã sửa lỗi nạp biên độ)
 fig.update_layout(
     showlegend=False,
     height=600,
     margin=dict(l=40, r=40, t=20, b=40),
     paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="#f5f6fa",
+    plot_bgcolor="#f5f6fa", # Lưới nền sáng chuẩn phong cách ảnh mẫu phẳng
     xaxis=dict(
         range=[0, 10], showgrid=True, gridcolor="rgba(0,0,0,0.05)", zeroline=False,
         showticklabels=False, fixedrange=True
