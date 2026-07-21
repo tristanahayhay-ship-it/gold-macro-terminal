@@ -2,109 +2,109 @@ import streamlit as st
 import folium
 from streamlit_folium import st_folium
 
-# 1. Cấu hình trang giao diện Web (Đặt ở đầu file)
+# 1. Cấu hình trang giao diện Web toàn màn hình
 st.set_page_config(
-    page_title="Bản đồ Dòng chảy Tiền tệ Việt Nam",
-    page_icon="🇻🇳",
+    page_title="Bản đồ Dòng chảy Tiền tệ Toàn cầu",
+    page_icon="🌍",
     layout="wide"
 )
 
-st.title("🇻🇳 Mô phỏng Bản đồ Dòng chảy Tiền tệ 3 Tầng")
-st.markdown("Hệ thống hiển thị luồng dịch chuyển tiền tệ dựa trên tọa độ địa lý thực tế tại Việt Nam.")
+st.title("🌍 Mô phỏng Bản đồ Dòng chảy Tiền tệ Toàn cầu (Từ Vi mô đến Vĩ mô)")
+st.markdown("Hệ thống mô phỏng cách dòng tiền dịch chuyển xuyên biên giới giữa các trung tâm kinh tế lớn và các tầng kinh tế tại Việt Nam.")
 
-# 2. Thanh điều khiển kịch bản kinh tế
-st.sidebar.header("⚙️ Kịch bản Hệ thống")
+# 2. Thanh điều khiển kịch bản toàn cầu
+st.sidebar.header("⚙️ Kịch bản Khủng hoảng")
 scenario = st.sidebar.selectbox(
-    "Chọn trạng thái hệ thống:",
-    options=["Bình thường", "Khi có BIẾN (Khủng hoảng)"]
+    "Chọn trạng thái hệ thống thế giới:",
+    options=["Bình thường", "Khi Toàn cầu có BIẾN (Khủng hoảng)"]
 )
 
-# 3. Định nghĩa tọa độ địa lý các chủ thể tại Việt Nam
-# [Vĩ độ (Latitude), Kinh độ (Longitude)]
+# 3. Định nghĩa tọa độ các điểm nút trục kinh tế Thế giới & Việt Nam
+# [Vĩ độ, Kinh độ]
 locations = {
-    "QUOC_TE": {"coords": [22.0, 110.0], "name": "🌐 Thị trường Quốc tế (FDI, FII, IMF)", "color": "purple"},
-    "QUOC_GIA": {"coords": [21.0285, 105.8542], "name": "🏛️ Trung ương / Cấp Quốc gia (Hà Nội - NHTW)", "color": "blue"},
-    "TINH_CHINH_QUYEN": {"coords": [16.0544, 108.2022], "name": "🏢 Cấp Tỉnh (Chính quyền & Kho bạc Tỉnh)", "color": "orange"},
-    "TINH_DOANH_NGHIEP": {"coords": [16.4637, 107.5909], "name": "🏭 Khu Công nghiệp / DN lớn cấp Tỉnh", "color": "darkblue"},
-    "XA_CHINH_QUYEN": {"coords": [15.5673, 108.4812], "name": "🔰 Cấp Xã (Ủy ban Nhân dân xã vùng nông thôn)", "color": "cadetblue"},
-    "XA_DAN_CU": {"coords": [15.4573, 108.5512], "name": "🏡 Hộ Gia đình / Nông dân (Kinh tế vi mô)", "color": "green"}
+    # Trục quốc tế
+    "WALL_STREET": {"coords": [40.7128, -74.0060], "name": "🇺🇸 Trung tâm Tài chính Mỹ (Wall Street - Trú ẩn toàn cầu)", "color": "red"},
+    "CHAU_AU": {"coords": [50.1109, 8.6821], "name": "🇪🇺 Ngân hàng Trung ương Châu Âu (Frankfurt)", "color": "purple"},
+    "TRUNG_QUOC": {"coords": [31.2304, 121.4737], "name": "🇨🇳 Công xưởng Thế giới (Thượng Hải - Chuỗi cung ứng)", "color": "darkred"},
+    
+    # Trục Việt Nam (3 tầng từ vĩ mô đến vi mô)
+    "VN_TRUNG_UONG": {"coords": [21.0285, 105.8542], "name": "🏛️ TẦNG 3: Trung ương Việt Nam (Hà Nội - NHTW)", "color": "blue"},
+    "VN_CAP_TINH": {"coords": [16.0544, 108.2022], "name": "🏢 TẦNG 2: Cấp Tỉnh / Khu công nghiệp FDI (Đà Nẵng)", "color": "orange"},
+    "VN_CAP_XA": {"coords": [10.8231, 106.6297], "name": "🏡 TẦNG 1: Cấp Xã / Hộ gia đình sản xuất (Khu vực phía Nam)", "color": "green"}
 }
 
-# 4. Cấu hình dữ liệu luồng tiền tệ dựa trên kịch bản chọn
+# 4. Thiết lập luồng dịch chuyển dòng tiền toàn cầu
 flows = []
 description = ""
 
 if scenario == "Bình thường":
-    description = "🔵 **Trạng thái ổn định**: Tiền thuế luân chuyển nhịp nhàng từ xã lên tỉnh, lên trung ương. Dòng vốn FDI và đơn hàng quốc tế liên tục đổ về doanh nghiệp lớn tạo công ăn việc làm, trả lương đều đặn kích cầu tiêu dùng nông thôn."
+    description = "🔵 **Môi trường toàn cầu ổn định**: Dòng vốn đầu tư nước ngoài (FDI/FII) chảy mạnh từ Mỹ và Châu Âu vào chuỗi sản xuất Trung Quốc và Việt Nam. Các nhà máy cấp Tỉnh hoạt động hết công suất, xuất khẩu hàng hóa ra thế giới và trả lương đều đặn, kích thích dòng tiền tiêu dùng luân chuyển mạnh mẽ xuống tận cấp Xã."
     flows = [
-        {"from": "QUOC_TE", "to": "TINH_DOANH_NGHIEP", "label": "Bơm vốn đầu tư FDI", "color": "#1f77b4"},
-        {"from": "TINH_DOANH_NGHIEP", "to": "QUOC_GIA", "label": "Nộp thuế xuất nhập khẩu", "color": "#1f77b4"},
-        {"from": "QUOC_GIA", "to": "TINH_CHINH_QUYEN", "label": "Phân bổ ngân sách điều tiết", "color": "#1f77b4"},
-        {"from": "TINH_CHINH_QUYEN", "to": "XA_CHINH_QUYEN", "label": "Hỗ trợ hạ tầng phát triển nông thôn", "color": "#1f77b4"},
-        {"from": "TINH_DOANH_NGHIEP", "to": "XA_DAN_CU", "label": "Trả lương công nhân & Thu mua sản phẩm", "color": "#1f77b4"},
-        {"from": "XA_DAN_CU", "to": "TINH_DOANH_NGHIEP", "label": "Tiêu dùng hàng hóa dịch vụ sản xuất", "color": "#1f77b4"},
-        {"from": "XA_DAN_CU", "to": "XA_CHINH_QUYEN", "label": "Nộp phí, thuế địa phương", "color": "#1f77b4"},
-        {"from": "XA_CHINH_QUYEN", "to": "TINH_CHINH_QUYEN", "label": "Nộp nghĩa vụ ngân sách tuyến trên", "color": "#1f77b4"}
+        {"from": "WALL_STREET", "to": "VN_TRUNG_UONG", "label": "Dòng vốn đầu tư tài chính quốc tế (FII)", "color": "#1f77b4"},
+        {"from": "CHAU_AU", "to": "VN_CAP_TINH", "label": "Đơn hàng xuất khẩu dệt may/điện tử sang EU", "color": "#1f77b4"},
+        {"from": "TRUNG_QUOC", "to": "VN_CAP_TINH", "label": "Nhập khẩu nguyên vật liệu đầu vào linh kiện", "color": "#1f77b4"},
+        {"from": "VN_TRUNG_UONG", "to": "VN_CAP_TINH", "label": "Phân bổ ngân sách phát triển hạ tầng", "color": "#1f77b4"},
+        {"from": "VN_CAP_TINH", "to": "VN_CAP_XA", "label": "Tiền lương công nhân và tiền thu mua nông sản", "color": "#1f77b4"},
+        {"from": "VN_CAP_XA", "to": "VN_CAP_TINH", "label": "Tiêu dùng nhu yếu phẩm, phân bón sản xuất", "color": "#1f77b4"},
+        {"from": "VN_CAP_TINH", "to": "VN_TRUNG_UONG", "label": "Nộp thuế doanh nghiệp về ngân sách quốc gia", "color": "#1f77b4"}
     ]
 else:
-    description = "⚠️ **Kịch bản Khủng hoảng (Có BIẾN)**: Kích hoạt dòng tiền phòng thủ. Tiền mặt tháo chạy khỏi sản xuất và dịch vụ rủi ro để quay ngược dòng về trú ẩn tại két sắt nhà dân hoặc hệ thống tài sản quốc gia an toàn (Ngân hàng quốc doanh, Vàng, USD). Vốn ngoại rút rỗng khỏi biên giới."
+    description = "⚠️ **Khủng hoảng toàn cầu (Có BIẾN)**: Khối ngoại hoảng loạn kích hoạt cơ chế rút vốn. Tiền tháo chạy xuyên biên giới, xả mạnh khỏi thị trường Việt Nam để gom về mua Trái phiếu Chính phủ Mỹ và giữ USD tại Wall Street. Đơn hàng quốc tế bị hủy làm các nhà máy cấp Tỉnh đóng băng, dòng tiền lương đổ về nông thôn cấp Xã bị rút rỗng, người dân siết chặt tiêu dùng phòng thủ."
     flows = [
-        {"from": "QUOC_GIA", "to": "QUOC_TE", "label": "💸 Vốn ngoại tháo chạy (Capital Flight)", "color": "#d62728"}, # Đỏ: Xả ra
-        {"from": "QUOC_TE", "to": "QUOC_GIA", "label": "🟢 Tiếp cận cứu trợ tài chính vĩ mô quốc tế", "color": "#2ca02c"}, # Xanh: Đổ vào
-        {"from": "TINH_DOANH_NGHIEP", "to": "QUOC_GIA", "label": "🟢 Đổi nội tệ lấy USD / Vàng bảo toàn vốn", "color": "#2ca02c"},
-        {"from": "QUOC_GIA", "to": "TINH_CHINH_QUYEN", "label": "🟢 Giải ngân Đầu tư công khẩn cấp", "color": "#2ca02c"},
-        {"from": "TINH_DOANH_NGHIEP", "to": "TINH_CHINH_QUYEN", "label": "💸 Thất thu thuế (Đóng băng nhà máy)", "color": "#d62728"},
-        {"from": "TINH_CHINH_QUYEN", "to": "XA_CHINH_QUYEN", "label": "🟢 Bơm ngân sách cứu trợ an sinh xã hội", "color": "#2ca02c"},
-        {"from": "XA_DAN_CU", "to": "QUOC_GIA", "label": "🟢 Gửi tiết kiệm Ngân hàng quốc doanh lớn", "color": "#2ca02c"},
-        {"from": "XA_DAN_CU", "to": "TINH_DOANH_NGHIEP", "label": "💸 Thắt lưng buộc bụng, ngừng tiêu dùng", "color": "#d62728"}
+        {"from": "VN_TRUNG_UONG", "to": "WALL_STREET", "label": "💸 Vốn ngoại tháo chạy (Capital Flight về Mỹ)", "color": "#d62728"}, # Đỏ: Tháo chạy
+        {"from": "VN_CAP_TINH", "to": "WALL_STREET", "label": "💸 Đứt gãy đơn hàng, rút rỗng dòng tiền doanh nghiệp", "color": "#d62728"},
+        {"from": "TRUNG_QUOC", "to": "VN_CAP_TINH", "label": "💸 Đình trệ chuỗi cung ứng nguyên liệu", "color": "#d62728"},
+        {"from": "VN_TRUNG_UONG", "to": "VN_CAP_TINH", "label": "🟢 Ngân hàng Nhà nước bơm vốn cứu trợ, hạ lãi suất", "color": "#2ca02c"}, # Xanh: Phòng thủ
+        {"from": "VN_CAP_TINH", "to": "VN_CAP_XA", "label": "💸 Sa thải lao động, dòng tiền lương sụt giảm 80%", "color": "#d62728"},
+        {"from": "VN_CAP_XA", "to": "VN_TRUNG_UONG", "label": "🟢 Người dân ôm tiền gửi tiết kiệm ngân hàng quốc doanh lớn", "color": "#2ca02c"}
     ]
 
-# 5. Khởi tạo bản đồ Folium, đặt trung tâm ở khu vực miền trung Việt Nam
-m = folium.Map(location=[16.5, 107.5], zoom_start=6, tiles="CartoDB positron")
+# 5. Khởi tạo bản đồ Folium, đặt trung tâm ở khu vực Châu Á nhưng zoom rộng thấy cả thế giới
+m = folium.Map(location=[25.0, 40.0], zoom_start=3, tiles="CartoDB positron")
 
-# Thêm các điểm mốc (Markers) đại diện cho các chủ thể
+# Thêm các vị trí mốc (Markers) cố định
 for key, info in locations.items():
     folium.Marker(
         location=info["coords"],
         popup=info["name"],
         tooltip=info["name"],
-        icon=folium.Icon(color=info["color"], icon="info-sign")
+        icon=folium.Icon(color=info["color"], icon="globe")
     ).add_to(m)
 
-# Vẽ các đường dòng chảy tiền tệ (AntPath để tạo hiệu ứng chuyển động dòng nước)
+# Vẽ các đường liên kết luồng tiền chạy xuyên lục địa
 for flow in flows:
     start_coords = locations[flow["from"]]["coords"]
     end_coords = locations[flow["to"]]["coords"]
     
-    # Tạo đường di chuyển có hướng trên nền bản đồ
+    # Sử dụng PolyLine vẽ đường kết nối thẳng xuyên quốc gia
     folium.PolyLine(
         locations=[start_coords, end_coords],
         color=flow["color"],
         weight=4,
-        opacity=0.8,
+        opacity=0.7,
         tooltip=flow["label"],
         popup=flow["label"]
     ).add_to(m)
 
-# 6. Hiển thị bố cục trên Streamlit Web
-col1, col2 = st.columns([1, 2])
+# 6. Đẩy cấu trúc hiển thị lên trang Streamlit Cloud
+col1, col2 = st.columns([1, 2]) # Chia tỷ lệ cột trái nhỏ, cột bản đồ to để dễ nhìn
 
 with col1:
-    st.subheader("📝 Tổng quan Kịch bản")
+    st.subheader("📋 Báo cáo tác động vĩ mô")
     st.info(description)
     
-    st.subheader("💡 Hướng dẫn xem bản đồ")
+    st.subheader("🗺️ Bản đồ thế giới tương tác")
     st.markdown("""
-    *   **Di chuột vào các bong bóng định vị** để xem tên chủ thể kinh tế (Xã, Tỉnh, Quốc gia).
-    *   **Di chuột trực tiếp vào các đường liên kết** để đọc nội dung dòng tiền luân chuyển tương ứng.
+    *   **Cuộn chuột** để phóng to/thu nhỏ toàn bộ bản đồ thế giới từ Mỹ sang Việt Nam.
+    *   **Nhấp hoặc di chuột vào các đường chỉ hướng** nối giữa New York (Mỹ), Frankfurt (Đức), Thượng Hải (Trung Quốc) và Việt Nam để đọc bản chất dòng tiền.
     """)
-    if scenario == "Khi có BIẾN (Khủng hoảng)":
-        st.error("🔴 Đường Đỏ: Luồng tháo chạy vốn / Đóng băng suy thoái.")
-        st.success("🟢 Đường Xanh Lá: Luồng dòng tiền co cụm phòng thủ an toàn.")
+    if scenario == "Khi Toàn cầu có BIẾN (Khủng hoảng)":
+        st.error("🔴 Luồng Đỏ: Tiền tháo chạy xuyên biên giới hoặc đóng băng chuỗi giá trị.")
+        st.success("🟢 Luồng Xanh lá: Biện pháp cứu trợ/Co cụm tài sản nội địa Việt Nam.")
     else:
-        st.info("🔵 Đường Xanh Dương: Luồng tiền tệ thông suốt bình thường.")
+        st.info("🔵 Luồng Xanh dương: Dòng vốn lưu thông tự do toàn cầu.")
 
 with col2:
-    st.subheader("🗺️ Bản đồ Số hóa Hệ thống Kinh tế")
-    # Render bản đồ tương tác trực tiếp lên trang web
-    st_folium(m, width=900, height=650)
+    st.subheader("🌐 Hệ thống dòng chảy tài chính vĩ mô toàn cầu")
+    # Render bản đồ thế giới lên trình duyệt
+    st_folium(m, width=1000, height=650)
