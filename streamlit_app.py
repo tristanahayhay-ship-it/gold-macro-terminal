@@ -14,7 +14,7 @@ st.write("Giao diện tối kết hợp hiệu ứng Neon phát sáng sắc nét
 def generate_data():
     # Tạo ngẫu nhiên 500 điểm xung quanh một khu vực trung tâm
     chart_data = pd.DataFrame(
-        np.random.randn(500, 2) / [50, 50] + [21.0285, 105.8542], # Tọa độ mặc định: Hà Nội
+        (np.random.randn(500, 2) / 100) + [21.0285, 105.8542], # Tọa độ mặc định: Hà Nội
         columns=['lat', 'lon']
     )
     # Thêm cột giá trị độ cao và màu sắc sắc nét (Đỏ/Cam/Vàng Neon)
