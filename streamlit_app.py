@@ -22,7 +22,6 @@ market_phase = st.sidebar.selectbox(
 )
 
 # Hiển thị các chỉ báo vĩ mô tương ứng ở Sidebar
-st.sidebar.markdown("### 📊 Chỉ báo Vĩ mô Hiện tại")
 if "Risk-On" in market_phase:
     st.sidebar.success("• Lãi suất: Thấp (Nới lỏng)")
     st.sidebar.success("• Lạm phát: Vừa phải (Tốt)")
@@ -30,6 +29,7 @@ if "Risk-On" in market_phase:
     st.sidebar.success("• Tâm lý: Tham lam (FOMO)")
     bg_color = "#E8F8F5"
     line_color = "#1ABC9C"
+    link_color = "rgba(26, 188, 156, 0.2)"
 else:
     st.sidebar.error("• Lãi suất: Cao (Thắt chặt)")
     st.sidebar.error("• Lạm phát: Phi mã / Thiểu phát")
@@ -37,9 +37,9 @@ else:
     st.sidebar.error("• Tâm lý: Sợ hãi (FUD)")
     bg_color = "#FDEDEC"
     line_color = "#E74C3C"
+    link_color = "rgba(231, 76, 60, 0.2)"
 
 # 3. Định nghĩa dữ liệu Sơ đồ Sankey (Dòng chảy tiền)
-# Gán nhãn cho các nút (Nodes) trong sơ đồ
 labels = [
     "HỆ THỐNG VĨ MÔ",                   # 0
     "Khối Doanh nghiệp",                # 1
@@ -54,51 +54,42 @@ labels = [
     "Trái phiếu CP & Ngành phòng thủ"    # 10
 ]
 
-# Khởi tạo danh mục dòng chảy (nguồn -> đích -> khối lượng dòng tiền)
 if "Risk-On" in market_phase:
-    # Tuyến đường của dòng tiền Tăng trưởng:
-    # Vĩ mô (0) -> Doanh nghiệp (1), Cá nhân (2)
-    # Doanh nghiệp (1) -> Cổ phiếu (5), Bất động sản (6)
-    # Cá nhân (2) -> Cổ phiếu (5), Bất động sản (6), Crypto (7)
     sources = [0, 0, 1, 1, 2, 2, 2]
     targets = [1, 2, 5, 6, 5, 6, 7]
-    values  = [50, 50, 30, 20, 15, 15, 20]
+    values  = [50, 50, 30, 20, 20, 20, 10]
 else:
-    # Tuyến đường của dòng tiền Phòng thủ:
-    # Vĩ mô (0) -> Định chế (3), Chính phủ & Ngân hàng TW (4)
-    # Định chế (3) -> Vàng (8), Tiền mặt/USD (9), Trái phiếu (10)
-    # Chính phủ/TW (4) -> Tiền mặt/USD (9), Trái phiếu (10)
     sources = [0, 0, 3, 3, 3, 4, 4]
     targets = [3, 4, 8, 9, 10, 9, 10]
-    values  = [60, 40, 30, 15, 15, 20, 20]
+    values  = [60, 40, 30, 20, 10, 25, 15]
 
-# Tạo biểu đồ Sankey bằng Plotly
+# Tạo biểu đồ Sankey bằng Plotly (Đã đóng ngoặc chuẩn xác)
 fig = go.Figure(data=[go.Sankey(
     node = dict(
-      pad = 15,
-      thickness = 20,
-      line = dict(color = "black", width = 0.5),
-      label = labels,
-      color = line_color
+        pad = 15,
+        thickness = 20,
+        line = dict(color = "black", width = 0.5),
+        label = labels,
+        color = line_color
     ),
     link = dict(
-      source = sources,
-      target = targets,
-      value = values,
-      color = "rgba(26, 188, 156, 0.2)" if "Risk-On" in market_phase else "rgba(231, 76, 60, 0.2)"
-  )
+        source = sources,
+        target = targets,
+        value = values,
+        color = link_color
+    )
+)])
 
 fig.update_layout(title_text="<b>SƠ ĐỒ TRỰC QUAN DÒNG CHẢY CỦA TIỀN</b>", font_size=13, height=500)
 
 # 4. Hiển thị khu vực nội dung chính
-col1, col2 = st.columns([2, 1]) # Cột biểu đồ rộng gấp đôi cột chữ
+col1, col2 = st.columns([2, 1])
 
 with col1:
-    # Render biểu đồ dòng tiền lên ứng dụng
     st.plotly_chart(fig, use_container_width=True)
 
 with col2:
-    st.markdown(f"### ℹ️ Chi tiết trạng thái")
+    st.markdown("### ℹ️ Chi tiết trạng thái")
     if "Risk-On" in market_phase:
         st.markdown(
             f"""
@@ -122,7 +113,6 @@ with col2:
             """, unsafe_allow_html=True
         )
 
-# Bảng thông tin tra cứu nhanh danh mục tài sản dưới chân trang
 st.markdown("---")
 st.markdown("### 🗂️ Chi tiết các Nhóm Tài sản phân bổ")
 t1, t2, t3 = st.columns(3)
