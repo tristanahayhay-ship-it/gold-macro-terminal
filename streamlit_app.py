@@ -1,10 +1,10 @@
 import streamlit as st
-import pydeck as pdk
+import plotly.graph_objects as go
 
 # Cấu hình giao diện rộng toàn màn hình
-st.set_page_config(layout="wide", page_title="Quả Cầu 3D Chi Tiết Đường Sá")
+st.set_page_config(layout="wide", page_title="Quả Cầu Trái Đất Chi Tiết")
 
-# Ép giao diện tối toàn diện cho nền trang web màu xám
+# Ép giao diện tối toàn diện cho thanh điều hướng và nền trang web màu xám
 st.markdown(
     """
     <style>
@@ -20,26 +20,33 @@ st.markdown(
 )
 
 st.title("🌌 Quả Cầu Trái Đất 3D Đầy Đủ Đường Sá & Địa Danh")
-st.write("Cấu trúc quả cầu 3D xoay tự do trên nền xám. Hãy cuộn chuột phóng to sát vào Việt Nam để xem chi tiết đường phố.")
+st.write("Hãy cuộn chuột phóng to (Zoom in) sát vào bất kỳ đâu để xem chi tiết tên đường phố và địa điểm.")
 
-# 1. Cấu hình góc nhìn ban đầu thành quả địa cầu 3D (Globe) tâm nhìn tại Việt Nam
-view_state = pdk.ViewState(
-    latitude=16.0471,
-    longitude=108.2068,
-    zoom=2.5,  # Góc nhìn bao quát ban đầu từ không gian
-    pitch=0,
-    bearing=0
+# Khởi tạo biểu đồ đồ họa Mapbox
+fig = go.Figure()
+
+# Thêm một lớp điểm mờ ẩn để giữ bản đồ sạch sẽ hoàn toàn không có hột tròn
+fig.add_trace(go.Scattermapbox(
+    lat=[16.0471],
+    lon=[108.2068],
+    mode='markers',
+    marker=dict(size=0, opacity=0), 
+    hoverinfo='none'
+))
+
+# Cấu hình hiển thị bản đồ nền xám tối đầy đủ nhãn đường sá toàn cầu
+fig.update_layout(
+    mapbox=dict(
+        # Nguồn dữ liệu bản đồ tối tích hợp đầy đủ tên quốc gia, thành phố, đường sá
+        style="https://cartocdn.com",
+        center=dict(lat=16.0471, lon=108.2068), # Đặt tâm nhìn ban đầu tại Việt Nam
+        zoom=4.5 # Mức độ thu phóng ban đầu vừa vặn tầm mắt
+    ),
+    paper_bgcolor='#1e1e24', # Đồng bộ màu nền bao quanh thành màu xám tối của bạn
+    plot_bgcolor='#1e1e24',
+    margin=dict(l=0, r=0, t=0, b=0), # Triệt tiêu lề thừa giúp bản đồ tràn viền sắc nét
+    height=800
 )
 
-# 2. Render quả cầu 3D tích hợp cơ sở dữ liệu đường phố chi tiết
-r = pdk.Deck(
-    layers=[], # Giữ sạch bề mặt bản đồ, không thêm hột tròn rối mắt
-    initial_view_state=view_state,
-    # Ép kiểu hiển thị phẳng thông thường thành Quả Cầu 3D Trái Đất (GLOBE)
-    views=[pdk.View(type="GlobeView", controller=True)],
-    # Sử dụng bản đồ nền xám đen chứa toàn bộ tên đường sá, địa danh chi tiết toàn cầu
-    map_style="https://cartocdn.com",
-    paper_bgcolor='#1e1e24' # Đồng bộ viền xung quanh màu xám
-)
-
-st.pydeck_chart(r)
+# Render đồ họa map lên giao diện Streamlit
+st.plotly_chart(fig, use_container_width=True)
