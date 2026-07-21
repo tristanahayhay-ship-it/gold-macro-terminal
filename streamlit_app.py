@@ -87,8 +87,16 @@ df_flows["from_lon"] = df_flows["from"].map(lambda x: centers[x]["lon"])
 df_flows["to_lat"] = df_flows["to"].map(lambda x: centers[x]["lat"])
 df_flows["to_lon"] = df_flows["to"].map(lambda x: centers[x]["lon"])
 
-# DÒNG ĐÃ SỬA LỖI CÚ PHÁP: Gán màu dựa trên trạng thái inflow/outflow
-df_flows["color"] = df_flows["type"].apply(lambda x: [0, 255, 204, 200] if x == "inflow" else)
+# 1. Định nghĩa hàm gán màu sắc rõ ràng
+def assign_color(flow_type):
+    if flow_type == "inflow":
+        return [0, 255, 204, 200]    # Màu Xanh ngọc nếu tiền chảy vào
+    else:
+        return [255, 51, 102, 200]  # Màu Đỏ hồng nếu tiền tháo ra
+
+# 2. Áp dụng hàm vào bảng dữ liệu
+df_flows["color"] = df_flows["type"].apply(assign_color)
+
 
 # 4. Lưu trạng thái Zoom hiện tại bằng Streamlit Session State
 if "zoom_level" not in st.session_state:
