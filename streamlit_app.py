@@ -66,7 +66,7 @@ global_flows = [
 color_map = {
     "strong_in": [0, 255, 0, 200],    # 🟢 Xanh lá dạ quang rực rỡ
     "strong_out": [255, 0, 0, 200],  # 🔴 Đỏ sậm quyền lực
-    "neutral": [255, 255, 0, 220],        # 🟡 Vàng rực sáng
+    "neutral": [255, 255, 0, 220],   # 🟡 Vàng rực sáng
 }
 
 # 5. Xử lý dữ liệu nạp các đường dây (Arcs)
@@ -82,18 +82,17 @@ for flow in global_flows:
     })
 df_arcs = pd.DataFrame(processed_arcs)
 
-# 6. Xử lý dữ liệu nạp các điểm nút quốc gia (Nodes) đã được sửa lỗi biến số trống
+# 6. Xử lý dữ liệu nạp các điểm nút quốc gia (Nodes)
 processed_nodes = []
 for name, coords in global_locations.items():
     is_major_hub = any(k in name for k in ["Central", "Street", "Hub"]) and "Huyen" not in name
     
-    # Ép giá trị màu cố định để tránh lỗi cú pháp
     if is_major_hub:
         node_color = [255, 100, 0, 230]   # 🟠 Các trung tâm kinh tế lớn màu Cam rực rỡ
-        radius_size = 120000
+        radius_size = 140000
     else:
         node_color = [0, 200, 255, 230]   # 🔵 Cấp xã/huyện cơ sở màu Xanh Cyan công nghệ
-        radius_size = 45000
+        radius_size = 50000
 
     processed_nodes.append({
         "lon": coords[0], "lat": coords[1], "name": name,
@@ -102,7 +101,7 @@ for name, coords in global_locations.items():
     })
 df_nodes = pd.DataFrame(processed_nodes)
 
-# 7. NÂNG CẤP LỚP NỀN: ĐẤT LIỀN MÀU XANH TEAL NEON BÓNG ĐÊM SỐNG ĐỘNG
+# 7. ĐÃ SỬA: Thay thế link github chuẩn xác để lấy file GeoJSON lục địa thế giới phẳng 2D
 DATA_URL = "https://githubusercontent.com"
 
 background_map_layer = pdk.Layer(
@@ -110,8 +109,9 @@ background_map_layer = pdk.Layer(
     DATA_URL,
     stroked=True,
     filled=True,
-    get_fill_color=[10, 35, 45, 200],   # Đất liền màu Teal bóng đêm cực sang
-    get_line_color=[0, 160, 200, 180],  # Viền bờ biển phát sáng màu xanh dạ quang
+    # ĐÃ SỬA: Biến mảng màu thành hàm trả về chuỗi đại diện để ép Pydeck bắt buộc hiển thị màu Neon rực rỡ
+    get_fill_color="[15, 45, 55, 220]",   # Đất liền màu xanh Teal Cyberpunk bóng đêm cực đẹp
+    get_line_color="[0, 195, 255, 200]",  # Viền bờ biển phát sáng neon rõ nét
     line_width_min_pixels=1.5,
 )
 
@@ -138,20 +138,20 @@ node_layer = pdk.Layer(
     pickable=True
 )
 
-# 10. Cấu hình góc nhìn camera vĩ mô bao quát thế giới
+# 10. Cấu hình góc nhìn phẳng đứng hoàn toàn (2D phẳng)
 view_state = pdk.ViewState(
-    latitude=23.0,
-    longitude=20.0,
-    zoom=1.3,
-    pitch=0,
-    bearing=0
+    latitude=25.0,
+    longitude=15.0,
+    zoom=1.2,
+    pitch=0,       # 0 độ = Bản đồ phẳng đứng nhìn thẳng từ trên xuống
+    bearing=0      # 0 độ = Bản đồ thẳng trục hướng Bắc, không nghiêng vẹo
 )
 
 # 11. Render toàn bộ hệ thống ma trận lên màn hình
 r = pdk.Deck(
     layers=[background_map_layer, arc_layer, node_layer],
     initial_view_state=view_state,
-    map_style=None, 
+    map_style=None, # Tắt Mapbox cũ để hiển thị màu sắc GeoJson tự vẽ sống động
     tooltip={"text": "{tooltip_text}"}
 )
 
