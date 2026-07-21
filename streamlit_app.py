@@ -1,11 +1,10 @@
 import streamlit as st
-import plotly.graph_objects as go
-import numpy as np
+import pydeck as pdk
 
 # Cấu hình giao diện rộng toàn màn hình
-st.set_page_config(layout="wide", page_title="Quả Cầu Trái Đất Nghệ Thuật")
+st.set_page_config(layout="wide", page_title="Quả Cầu 3D Chi Tiết Đường Sá")
 
-# Ép giao diện tối toàn diện cho thanh điều hướng và nền trang web màu xám
+# Ép giao diện tối toàn diện cho nền trang web màu xám
 st.markdown(
     """
     <style>
@@ -20,51 +19,27 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title("🌌 Quả Cầu Trái Đất Không Gian Tối Giản")
-st.write("Cấu trúc quả cầu 3D cũ được bổ sung nhãn tên quốc gia và địa danh chi tiết khi phóng to.")
+st.title("🌌 Quả Cầu Trái Đất 3D Đầy Đủ Đường Sá & Địa Danh")
+st.write("Cấu trúc quả cầu 3D xoay tự do trên nền xám. Hãy cuộn chuột phóng to sát vào Việt Nam để xem chi tiết đường phố.")
 
-# Khởi tạo biểu đồ đồ họa 3D
-fig = go.Figure()
-
-# --- TÍNH NĂNG 1: TẠO HIỆU ỨNG KHÍ QUYỂN BAO QUANH TRÁI ĐẤT ---
-theta = np.linspace(0, 2*np.pi, 100)
-fig.add_trace(go.Scattergeo(
-    lon = 100 * np.cos(theta), 
-    lat = 40 * np.sin(theta),
-    mode = 'lines',
-    line = dict(width=2.5, color='rgba(0, 238, 255, 0.35)'), 
-    hoverinfo = 'none'
-))
-
-# --- TÍNH NĂNG 2: THIẾT LẬP MÀU SẮC TRÁI ĐẤT, NỀN XÁM VÀ NHÃN ĐỊA DANH ---
-fig.update_layout(
-    geo = dict(
-        showland = True,
-        showcountries = True,
-        showocean = True,
-        showlakes = True,
-        showrivers = True, # Hiển thị thêm hệ thống sông ngòi lớn khi zoom
-        
-        # --- BẬT TÊN QUỐC GIA VÀ ĐỊA DANH TRÊN QUẢ CẦU ---
-        showsubunits = True, # Bật ranh giới các bang/tỉnh khi phóng to
-        subunitcolor = '#9f7aea', # Màu ranh giới tỉnh/bang (tím nhạt)
-        
-        landcolor = '#b794f4',      
-        oceancolor = '#1a0b2e',     
-        countrycolor = '#7e57c2',   
-        lakecolor = '#1a0b2e',
-        rivercolor = '#1a0b2e',
-        
-        projection_type = 'orthographic', 
-        lonaxis = dict(showgrid=True, gridcolor='rgba(255, 255, 255, 0.05)'),
-        lataxis = dict(showgrid=True, gridcolor='rgba(255, 255, 255, 0.05)')
-    ),
-    paper_bgcolor = '#1e1e24',     
-    plot_bgcolor = '#1e1e24',
-    showlegend = False,
-    margin = dict(l=0, r=0, t=0, b=0), 
-    height = 800
+# 1. Cấu hình góc nhìn ban đầu thành quả địa cầu 3D (Globe) tâm nhìn tại Việt Nam
+view_state = pdk.ViewState(
+    latitude=16.0471,
+    longitude=108.2068,
+    zoom=2.5,  # Góc nhìn bao quát ban đầu từ không gian
+    pitch=0,
+    bearing=0
 )
 
-# Render đồ họa lên giao diện Streamlit
-st.plotly_chart(fig, use_container_width=True)
+# 2. Render quả cầu 3D tích hợp cơ sở dữ liệu đường phố chi tiết
+r = pdk.Deck(
+    layers=[], # Giữ sạch bề mặt bản đồ, không thêm hột tròn rối mắt
+    initial_view_state=view_state,
+    # Ép kiểu hiển thị phẳng thông thường thành Quả Cầu 3D Trái Đất (GLOBE)
+    views=[pdk.View(type="GlobeView", controller=True)],
+    # Sử dụng bản đồ nền xám đen chứa toàn bộ tên đường sá, địa danh chi tiết toàn cầu
+    map_style="https://cartocdn.com",
+    paper_bgcolor='#1e1e24' # Đồng bộ viền xung quanh màu xám
+)
+
+st.pydeck_chart(r)
