@@ -198,24 +198,15 @@ m.get_root().html.add_child(folium.Element(macro_zoom_script))
 # ====================================================
 # ĐOẠN 6: HIỂN THỊ LÊN DASHBOARD STREAMLIT
 # ====================================================
-
-# Chia cột với tỷ lệ 1:4 và thêm khoảng cách (gap) để giao diện thoáng hơn
-col1, col2 = st.columns([1, 4], gap="medium")
+col1, col2 = st.columns([1, 4])
 
 with col1:
     st.subheader("⚙️ Hệ thống 195 nước")
     st.markdown("""
-    **Mạng lưới khép kín:**
-    * 🌍 **Nhìn từ xa:** Hiển thị đầy đủ cơ quan Trung ương vĩ mô của toàn bộ 195 quốc gia phủ kín quả địa cầu.
-    * 🏭 **Phóng to (Zoom in):** Mạch máu kinh tế tự động bung chi tiết mạng lưới đa điểm cấp Tỉnh và cấp Xã riêng biệt cho từng nước trên đất liền.
+    Mạng lưới khép kín:
+    *   🌍 Nhìn từ xa: Hiển thị đầy đủ cơ quan Trung ương vĩ mô của toàn bộ 195 quốc gia phủ kín quả địa cầu.
+    *   🏭 Phóng to (Zoom in): Mạch máu kinh tế tự động bung chi tiết mạng lưới đa điểm cấp Tỉnh và cấp Xã riêng biệt cho từng nước trên đất liền.
     """)
 
 with col2:
-    # Hiển thị bản đồ Folium với chiều rộng tự động co giãn theo cột (use_container_width=True)
-    st_folium(
-        m, 
-        width=1300, 
-        height=800, 
-        returned_objects=[],
-        use_container_width=True
-    )
+    st_folium(m, width=1300, height=800, returned_objects=[])
