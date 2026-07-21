@@ -40,7 +40,7 @@ html_map_code = f"""
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body, html {{ margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; overflow: hidden; }}
         #map {{ height: 100vh; width: 100vw; background: #f0f2f5; }}
