@@ -85,8 +85,8 @@ fig = go.Figure(data=[go.Sankey(
       source = sources,
       target = targets,
       value = values,
-      color = line_color + "44" # Thêm độ mờ cho đường nối
-  ))])
+      color = "rgba(26, 188, 156, 0.2)" if "Risk-On" in market_phase else "rgba(231, 76, 60, 0.2)"
+  )
 
 fig.update_layout(title_text="<b>SƠ ĐỒ TRỰC QUAN DÒNG CHẢY CỦA TIỀN</b>", font_size=13, height=500)
 
