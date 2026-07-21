@@ -66,9 +66,10 @@ html_map_code = f"""
         var map = L.map('map', {{ minZoom: 2, maxZoom: 18 }}).setView([20, 0], 2);
         
         // Đã sửa đổi đường dẫn ảnh nền chuẩn hóa cho nền tối CARTO DB
-        L.tileLayer('https://{{s}}://{{z}}/{{x}}/{{y}}{{r}}.png', {{
-            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-        }}).addTo(map);
+        // DÁN CỤM NÀY VÀO THAY THẾ:
+L.tileLayer('https://arcgisonline.com{{z}}/{{y}}/{{x}}', {{
+    attribution: 'Tiles &copy; Esri'
+}}).addTo(map);
 
         var currentStatus = '{status_value}';
         var layers = {{ macro: L.layerGroup(), meso: L.layerGroup(), micro: L.layerGroup() }};
