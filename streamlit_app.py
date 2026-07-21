@@ -43,7 +43,7 @@ html_map_code = f"""
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body, html {{ margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; overflow: hidden; }}
-        #map {{ height: 100vh; width: 100vw; background: #f0f2f5; }}
+        #map {{ height: 100vh; width: 100vw; background: #0f172a; }}
         .hud-panel {{
             position: absolute; top: 10px; left: 10px; z-index: 1000;
             background: rgba(15, 23, 42, 0.85); color: white; padding: 10px 15px;
@@ -66,8 +66,8 @@ html_map_code = f"""
         var map = L.map('map', {{ minZoom: 2, maxZoom: 18 }}).setView([20, 0], 2);
         
         // ĐỔI SANG THƯ VIỆN ẢNH NỀN OPENSTREETMAP ĐỂ TRÁNH LỖI ĐEN MÀN HÌNH
-        L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
-            attribution: '&copy; OpenStreetMap contributors'
+        L.tileLayer('https://{{s}}://{{z}}/{{x}}/{{y}}{{r}}.png', {{
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
         }}).addTo(map);
 
         var currentStatus = '{status_value}';
