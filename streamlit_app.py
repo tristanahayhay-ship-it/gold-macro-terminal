@@ -54,21 +54,23 @@ labels = [
     "Trái phiếu CP & Ngành phòng thủ"    # 10
 ]
 
-# Khởi tạo danh mục dòng chảy (nguồn -> đích -> khối lượng)
-sources = []
-targets = []
-values = []
-
+# Khởi tạo danh mục dòng chảy (nguồn -> đích -> khối lượng dòng tiền)
 if "Risk-On" in market_phase:
-    # Tuyến đường của dòng tiền Tăng trưởng (Vĩ mô -> DN/Cá nhân -> Tài sản rủi ro)
-    sources = [0, 0, 1, 1, 1, 2, 2, 2]
-    targets = [1, 2, 5, 6, 7, 5, 6, 7]
-    values  = [50, 50, 20, 20, 10, 20, 20, 10]
+    # Tuyến đường của dòng tiền Tăng trưởng:
+    # Vĩ mô (0) -> Doanh nghiệp (1), Cá nhân (2)
+    # Doanh nghiệp (1) -> Cổ phiếu (5), Bất động sản (6)
+    # Cá nhân (2) -> Cổ phiếu (5), Bất động sản (6), Crypto (7)
+    sources = [0, 0, 1, 1, 2, 2, 2]
+    targets = [1, 2, 5, 6, 5, 6, 7]
+    values  = [50, 50, 30, 20, 15, 15, 20]
 else:
-    # Tuyến đường của dòng tiền Phòng thủ (Vĩ mô -> Định chế/Chính phủ -> Tài sản trú ẩn)
-    sources = [0, 0, 3, 3, 3, 4, 4, 4]
-    targets = [3, 4, 8, 9, 10, 8, 9, 10]
-    values  = [50, 50, 20, 20, 10, 10, 25, 15]
+    # Tuyến đường của dòng tiền Phòng thủ:
+    # Vĩ mô (0) -> Định chế (3), Chính phủ & Ngân hàng TW (4)
+    # Định chế (3) -> Vàng (8), Tiền mặt/USD (9), Trái phiếu (10)
+    # Chính phủ/TW (4) -> Tiền mặt/USD (9), Trái phiếu (10)
+    sources = [0, 0, 3, 3, 3, 4, 4]
+    targets = [3, 4, 8, 9, 10, 9, 10]
+    values  = [60, 40, 30, 15, 15, 20, 20]
 
 # Tạo biểu đồ Sankey bằng Plotly
 fig = go.Figure(data=[go.Sankey(
@@ -83,13 +85,13 @@ fig = go.Figure(data=[go.Sankey(
       source = sources,
       target = targets,
       value = values,
-      color = line_color + "44" # Thêm độ mờ (alpha channel) cho đường nối
+      color = line_color + "44" # Thêm độ mờ cho đường nối
   ))])
 
 fig.update_layout(title_text="<b>SƠ ĐỒ TRỰC QUAN DÒNG CHẢY CỦA TIỀN</b>", font_size=13, height=500)
 
 # 4. Hiển thị khu vực nội dung chính
-col1, col2 = st.columns([2, 1]) # Chia tỷ lệ cột biểu đồ rộng hơn cột text
+col1, col2 = st.columns([2, 1]) # Cột biểu đồ rộng gấp đôi cột chữ
 
 with col1:
     # Render biểu đồ dòng tiền lên ứng dụng
