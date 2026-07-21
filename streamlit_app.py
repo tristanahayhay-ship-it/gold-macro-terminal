@@ -59,7 +59,7 @@ color_map = {
     "strong_in": [0, 255, 0, 200]
     "strong_out": [255, 0, 0, 200]
     "neutral": [255, 255, 0, 200]
-
+}
 # 5. Xây dựng bộ lọc tương tác trên Sidebar
 st.sidebar.header("🕹️ BẢNG ĐIỀU KHIỂN TOÀN CẦU")
 show_level = st.sidebar.radio(
