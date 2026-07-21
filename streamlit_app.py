@@ -21,7 +21,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🗺️ GLOBAL FINANCIAL FLAT TERMINAL (VIETNAM STYLE)")
-st.subheader("Mạng lưới Dòng chảy trên nền Bản đồ phẳng phối màu Đỏ - Cam - Vàng")
+st.subheader("Mạng lưới Dòng chảy: Hệ thống khóa dịch chuyển dọc (Chỉ cuộn ngang & Zoom)")
 st.markdown("---")
 
 # 2. SIDEBAR ĐIỀU KHIỂN DÒNG VỐN
@@ -60,10 +60,9 @@ macro_mesh = {
 # 4. ENGINE DỰNG BẢN ĐỒ PHẲNG ĐỎ VÀNG THEO YÊU CẦU ẢNH MẪU
 fig = go.Figure()
 
-# Bước đột phá: Tạo bản đồ nền phẳng có dải màu Đỏ rực và Vàng giống hệt bức ảnh bạn gửi
-# Bằng cách sử dụng Choropleth kết hợp dải màu Custom (Màu đỏ chủ đạo, màu vàng ở vùng núi/mật độ cao)
+# Tạo bản đồ nền phẳng màu Đỏ - Cam - Vàng theo phong cách ảnh mẫu
 all_countries_sample = ["VNM", "USA", "CHN", "JPN", "DEU", "GBR", "SGP", "CHE"]
-intensities_sample = [95, 40, 85, 75, 60, 55, 90, 85]
+intensities_sample = [95, 40, 80, 75, 70, 65, 85, 90]
 
 fig.add_trace(go.Choropleth(
     locations = all_countries_sample,
@@ -72,11 +71,11 @@ fig.add_trace(go.Choropleth(
     colorscale = [
         [0.0, "#d63031"],  # Đỏ rực phẳng (Lớp nền chính của ảnh)
         [0.5, "#e17055"],  # Cam đất (Vùng chuyển tiếp địa hình)
-        [1.0, "#fdcb6e"]   # Vàng tươi rực rỡ (Trùng khớp vùng núi cao trong ảnh)
+        [1.0, "#fdcb6e"]   # Vàng tươi rực rỡ (Vùng mật độ cao)
     ],
     showscale = False,
     hoverinfo = "none",
-    marker_line_color = "rgba(255,255,255,0.2)" # Đường viền mờ tinh tế
+    marker_line_color = "rgba(255,255,255,0.2)"
 ))
 
 # Vẽ điểm nút gốc nước Mỹ
@@ -88,41 +87,41 @@ fig.add_trace(go.Scattergeo(
 
 # Vẽ các đường chỉ chạy dây và các điểm nút mạng lưới chằng chịt
 for country, data in macro_mesh.items():
-    # Điểm nút Thượng tầng
     fig.add_trace(go.Scattergeo(lon=[data["lon_c1"]], lat=[data["lat_c1"]], text=f"🏛️ {country}", mode="markers", marker=dict(size=8, color="#2d3436", symbol="square")))
-    
-    # Điểm nút tài sản đích
     fig.add_trace(go.Scattergeo(lon=[data["lon_as"]], lat=[data["lat_as"]], text=f"🎯 {data['name_as']}", mode="markers", marker=dict(size=8, color="#ffffff", line=dict(color="#2d3436", width=1.5))))
 
-    # Tạo đường chỉ kết nối liên quốc gia phong cách "chạy chạy" sống động
+    # Đường kết nối liên quốc gia
     cross_lon = [us_hq["lon"], data["lon_c1"]] if flow_type == "INVESTMENT" else [data["lon_c1"], us_hq["lon"]]
     cross_lat = [us_hq["lat"], data["lat_c1"]] if flow_type == "INVESTMENT" else [data["lat_c1"], us_hq["lat"]]
-    
     fig.add_trace(go.Scattergeo(lon=cross_lon, lat=cross_lat, mode="lines", line=dict(width=1, color=base_color), hoverinfo="none"))
     fig.add_trace(go.Scattergeo(lon=cross_lon, lat=cross_lat, mode="lines", line=dict(width=3, color=pulse_color, dash=dash_pattern), hoverinfo="none"))
 
     # Đường dây phân rã nội địa
     local_lon = [data["lon_c1"], data["lon_ag"], data["lon_as"]] if flow_type == "INVESTMENT" else [data["lon_as"], data["lon_ag"], data["lon_c1"]]
     local_lat = [data["lat_c1"], data["lat_ag"], data["lat_as"]] if flow_type == "INVESTMENT" else [data["lat_as"], data["lat_ag"], data["lat_c1"]]
-    
     fig.add_trace(go.Scattergeo(lon=local_lon, lat=local_lat, mode="lines", line=dict(width=1, color=base_color), hoverinfo="none"))
     fig.add_trace(go.Scattergeo(lon=local_lon, lat=local_lat, mode="lines", line=dict(width=3.5, color=pulse_color, dash=dash_pattern), hoverinfo="none"))
 
-# Cấu hình Layout Bản đồ phẳng hoàn toàn (Flat map) trên nền xám nhạt sạch sẽ
+# ĐÃ NÂNG CẤP TIÊU CHÍ: Khóa trục dọc, chỉ cho cuộn ngang và phóng to thu nhỏ
 fig.update_layout(
     showlegend = False,
     height = 700,
     margin = dict(l=0, r=0, t=10, b=0),
     paper_bgcolor = "rgba(0,0,0,0)",
-    plot_bgcolor = "rgba(0,0,0,0)"
+    plot_bgcolor = "rgba(0,0,0,0)",
+    dragmode = "pan" # Ép buộc chế độ chuột luôn kéo trượt (Pan) thay vì quét hộp chọn
 )
 
 fig.update_geos(
     scope = "world",
-    projection_type = "natural earth", # Ép buộc bản đồ phẳng hoàn toàn 2D
-    showland = True, landcolor = "#dfe6e9", # Màu đất các nước nền
-    showocean = True, oceancolor = "#f5f6fa", # Màu nước biển sáng để làm nổi bật khối màu Đỏ-Vàng
-    showcountries = True, countrycolor = "#ffffff"
+    projection_type = "natural earth", # Phép chiếu phẳng 2D chuẩn quốc tế
+    showland = True, landcolor = "#dfe6e9",
+    showocean = True, oceancolor = "#f5f6fa",
+    showcountries = True, countrycolor = "#ffffff",
+    # Tham số cốt lõi khóa trục dọc: Cố định giới hạn vĩ độ (Latitude) để không dịch lên xuống
+    lataxis = dict(range=[-50, 70], showgrid=False),
+    # Giữ nguyên trục kinh độ tự do để người dùng cuộn ngang thoải mái quanh trái đất
+    lonaxis = dict(showgrid=False)
 )
 
 # 5. HIỂN THỊ BẢN ĐỒ GÓC RỘNG TO LÊN TRÊN CÙNG MÀN HÌNH
@@ -137,9 +136,9 @@ with col_text:
     st.markdown("<div class='terminal-card'>", unsafe_allow_html=True)
     st.markdown("#### ⚙️ Cơ chế hoạt họa nhịp dây trên nền phẳng:")
     if flow_type == "INVESTMENT":
-        st.write("🟢 **MÀU XANH LÁ CHẠY TOẢ RA NGOÀI (Outflow):** Chỉ số sức mạnh USD suy yếu. Dòng tiền từ nước Mỹ bắn các luồng hạt sáng chạy liên tục ra các quốc gia có mô hình bản đồ Đỏ - Vàng (đặc biệt là Việt Nam và Đông Nam Á) để gom mua cổ phiếu, tiền kỹ thuật số và đẩy mạnh giải ngân sản xuất.")
+        st.write("🟢 **MÀU XANH LÁ CHẠY TOẢ RA NGOÀI (Outflow):** Chỉ số sức mạnh USD suy yếu. Dòng tiền từ nước Mỹ bắn các luồng hạt sáng chạy liên tục ra các quốc gia có mô hình bản đồ Đỏ - Vàng để gom mua cổ phiếu, tiền kỹ thuật số và đẩy mạnh giải ngân sản xuất.")
     else:
-        st.write("🔴 **MÀU ĐỎ CHẠY CUỘN VÀO TRONG (Inflow):** Khủng hoảng tài chính kích hoạt. Toàn bộ các sợi dây rủi ro bị đóng băng. Tiền tệ từ các hạ tầng tài sản nội địa chạy dồn dập ngược dòng theo dải xung đỏ, xuyên biên giới để rút vốn an toàn về trung tâm lưu ký tại nước Mỹ.")
+        st.write("🔴 **MÀU ĐỎ CHẠY CUỘN VÀO TRONG (Inflow):** Khủng hoảng tài chính kích hoạt. Toàn bộ các sợi dây rủi ro bị đóng băng. Tiền tệ từ các hạ tầng tài sản nội địa chạy dồn dập ngược dòng theo dải xung đỏ, xuyên biên giới để rút vốn an toàn về nước Mỹ.")
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col_stats:
