@@ -1,45 +1,65 @@
 import streamlit as st
-import plotly.graph_objects as go
+import pydeck as pdk
+import pandas as pd
+import numpy as np
 
-# 1. Cấu hình giao diện Streamlit ép nền đen tuyệt đối (Ultra Dark Mode)
-st.set_page_config(layout="wide", page_title="Cyber Global Map Terminal")
+# 1. Cấu hình trang hiển thị giao diện tối toàn diện
+st.set_page_config(layout="wide", page_title="Bản Đồ Đồ Họa Cao Cấp")
 
-st.markdown(
-    """
-    <style>
-    .stApp { background-color: #000000; color: #ffffff; }
-    iframe { background-color: #000000 !important; }
-    header, footer, [data-testid="stSidebar"] { display: none !important; }
-    div.block-container { padding: 0rem !important; }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+st.title("📊 Bản Đồ Đồ Họa 3D Đậm Chất Công Nghệ")
+st.write("Giao diện tối kết hợp hiệu ứng Neon phát sáng sắc nét.")
 
-fig = go.Figure()
-
-# 2. Tạo lớp bản đồ phẳng 2D đồ họa sống động màu Cyberpunk/Neon (Hỗ trợ cuộn chuột Zoom phóng to tự do)
-fig.update_layout(
-    showlegend=False,
-    margin=dict(l=0, r=0, t=0, b=0),
-    paper_bgcolor='#000000', 
-    geo=dict(
-        showland=True,
-        landcolor='#05131a',       # Đất liền màu xanh Teal thẫm bóng đêm cực sang
-        showlakes=False,
-        showcountries=True,
-        countrycolor='#006688',    # Đường biên giới các nước phát sáng màu xanh biển
-        showocean=True,
-        oceancolor='#000000',      # Đại dương màu đen huyền bí làm nổi bật lục địa
-        projection_type='equirectangular', # Bản đồ PHẲNG ĐỨNG chính diện 2D, không nghiêng vẹo
-        showframe=False,
-        coastlinecolor='#00aaff',  # Đường bờ biển phát sáng dải màu xanh Neon rõ nét
-        coastlinewidth=1.2,
-        center=dict(lon=10.0, lat=25.0), # Đặt trung tâm camera cân bằng thế giới
-        lonaxis=dict(range=[-140, 160]),
-        lataxis=dict(range=[-10, 65])
+# 2. Khởi tạo dữ liệu giả lập (Vị trí các điểm sáng đồ họa)
+@st.cache_data
+def generate_data():
+    # Tạo ngẫu nhiên 500 điểm xung quanh một khu vực trung tâm
+    chart_data = pd.DataFrame(
+        np.random.randn(500, 2) / [50, 50] + [21.0285, 105.8542], # Tọa độ mặc định: Hà Nội
+        columns=['lat', 'lon']
     )
+    # Thêm cột giá trị độ cao và màu sắc sắc nét (Đỏ/Cam/Vàng Neon)
+    chart_data['elevation'] = np.random.randint(100, 2000, size=500)
+    return chart_data
+
+df = generate_data()
+
+# 3. Thiết lập lớp bản đồ 3D (Hexagon hoặc Column Layer)
+layer = pdk.Layer(
+    "HexagonLayer",
+    data=df,
+    get_position="[lon, lat]",
+    radius=150,
+    elevation_scale=1,
+    elevation_range=[0, 3000],
+    get_elevation="elevation",
+    pickable=True,
+    extruded=True,
+    # Dải màu sắc phát sáng cực đẹp từ Tím, Hồng đến Cam rực
+    color_range=[
+        [63, 0, 128],
+        [120, 0, 180],
+        [200, 0, 150],
+        [255, 0, 100],
+        [255, 100, 50],
+        [255, 200, 0]
+    ],
 )
 
-# 3. Hiển thị duy nhất màn hình bản đồ tương tác (Hỗ trợ kéo thả và cuộn chuột Zoom tự do)
-st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True, 'displayModeBar': False})
+# 4. Cấu hình góc nhìn và Giao diện nền tối (mapbox_style)
+view_state = pdk.ViewState(
+    latitude=21.0285,
+    longitude=105.8542,
+    zoom=11,
+    pitch=50, # Độ nghiêng tạo góc nhìn 3D đồ họa
+    bearing=30
+)
+
+# Render bản đồ lên giao diện Streamlit với nền bản đồ tối của CartoDB
+r = pdk.Deck(
+    layers=[layer],
+    initial_view_state=view_state,
+    map_style="mapbox://styles/mapbox/dark-v10", # Hoặc dùng chuỗi không cần token: "https://cartocdn.com"
+    tooltip={"text": "Mật độ: {count}\nĐộ cao đồ họa: {elevation}m"}
+)
+
+st.pydeck_chart(r)
