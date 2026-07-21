@@ -174,13 +174,20 @@ for agent_key in active_agents:
             fig.add_trace(go.Scattergeo(lon=path_lon, lat=path_lat, mode="lines", line=dict(width=1.5, color=base_color), hoverinfo="none"))
             fig.add_trace(go.Scattergeo(lon=path_lon, lat=path_lat, mode="lines", line=dict(width=3.5, color=pulse_color, dash=dash_pattern), hoverinfo="none"))
 
+# ĐÃ SỬA: Tách biệt cấu trúc cấu hình geo và layout chính của Plotly để hết sạch lỗi
 fig.update_layout(
-    showlegend = False, height=650, margin=dict(l=0, r=0, t=10, b=0),
+    showlegend = False, 
+    height = 650, 
+    margin = dict(l=0, r=0, t=10, b=0),
     geo = dict(
         projection_type = geo_config["projection_type"],
-        center = geo_config["center"], zoom = geo_config["zoom"],
-        showland = True, landcolor = "#0f131a",
-        countrycolor = "#232b38", showocean = True, oceancolor = "#05070a",
+        center = geo_config["center"], 
+        zoom = geo_config["zoom"],
+        showland = True, 
+        landcolor = "#0f131a",
+        countrycolor = "#232b38", 
+        showocean = True, 
+        oceancolor = "#05070a",
         showcountries = True
     )
 )
@@ -196,7 +203,7 @@ with col_terminal_panel:
     st.write(f"Tọa độ mục tiêu: **{selected_country.upper()}**")
     
     st.markdown("<div class='terminal-card'>", unsafe_allow_html=True)
-    st.markdown("#### ⚙️ Cơ chế hoạtọa nhịp dây:")
+    st.markdown("#### ⚙️ Cơ chế hoạt họa nhịp dây:")
     if flow_type == "INVESTMENT":
         st.write("🟢 **Đường chỉ màu XANH LÁ liền mạch đang CHẠY RA NGOÀI (Outflow):**")
         st.write("Thể hiện trạng thái USD giảm nhiệt, lãi suất nới lỏng. Dòng tiền từ đầu não Thượng tầng bắn luồng xung lực xuống các Chủ thể Vi mô. Từ đây, dòng tiền giải ngân của **Cá nhân** và **Tập đoàn** tạo thành các hạt sáng chạy tốc độ cao đổ thẳng vào Sàn HOSE, sàn Crypto và gom mua Đất nền vùng ven để nhân bản lợi nhuận.")
