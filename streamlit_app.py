@@ -117,7 +117,7 @@ view_state = pdk.ViewState(
 r = pdk.Deck(
     layers=[network_layer],
     initial_view_state=view_state,
-    map_style="mapbox://styles/mapbox/dark-v10", # Nền tối huyền bí tôn vinh các sợi dây màu
+    map_style="https://cartocdn.com", # Nền tối huyền bí tôn vinh các sợi dây màu
     tooltip={"text": "{tooltip_text}"}
 )
 
