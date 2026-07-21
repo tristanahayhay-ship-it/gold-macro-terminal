@@ -32,14 +32,8 @@ def draw_global_map(df_global, line_color):
                 mode='lines', line=dict(width=1.8, color=line_color), opacity=0.5, hoverinfo='none'
             ))
 
-    # SỬA LỖI TẠI ĐÂY: Thay 'rgba(0,0,0,0)' bằng màu chuẩn '#FFFFFF' (hoặc bỏ hẳn backgroundcolor)
+    # GIẢI QUYẾT TRIỆT ĐỂ LỖI PYTHON 3.14: Loại bỏ hoàn toàn 'geo=dict' gây xung đột cấu trúc
     fig_global.update_layout(
-        geo=dict(
-            showframe=False, 
-            showcoastlines=True, 
-            projection_type='natural earth', 
-            backgroundcolor='#FFFFFF'  # Đã sửa thành màu trắng hợp lệ
-        ),
         margin=dict(l=0, r=0, t=0, b=0), 
         height=650, 
         showlegend=False
@@ -53,15 +47,17 @@ def draw_micro_network(nodes, edges, line_color):
     # Tạo tọa độ dòng chảy cho sợi dây vi mô
     edge_x, edge_y = [], []
     for edge in edges:
-        x0, y0 = nodes[edge[0]] # SỬA LỖI LOGIC: Đảm bảo bóc tách đúng phần tử tuple của edge
-        x1, y1 = nodes[edge[1]]
+        start_node = edge[0]
+        end_node = edge[1]
+        x0, y0 = nodes[start_node]
+        x1, y1 = nodes[end_node]
         edge_x.extend([x0, x1, None])
         edge_y.extend([y0, y1, None])
 
     fig_micro.add_trace(go.Scatter(x=edge_x, y=edge_y, line=dict(width=3, color=line_color), mode='lines', hoverinfo='none'))
 
     # Tạo các hộp khối đại diện cho từng cấp vận hành bộ máy
-    node_x = [v[0] for v in nodes.values()] # SỬA LỖI LOGIC: Bóc tách chính xác X và Y từ mảng tọa độ
+    node_x = [v[0] for v in nodes.values()]
     node_y = [v[1] for v in nodes.values()]
     
     fig_micro.add_trace(go.Scatter(
