@@ -3,7 +3,6 @@ import streamlit as st
 import data_loader as dl
 import charts as cr
 
-# Cấu hình giao diện co giãn tối đa toàn màn hình
 st.set_page_config(page_title="Hệ Thống Dòng Tiền Mapbox Toàn Cầu", layout="wide")
 
 st.markdown("""
@@ -14,48 +13,44 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🗺️ BẢN ĐỒ KINH TẾ SỐ ĐA NGÀNH TOÀN CẦU (GOOGLE MAPS STYLE)")
-st.caption("Mô phỏng luồng tiền tương tác vật lý liên mạch. Cuộn Zoom để dịch chuyển camera xem cấu trúc tài sản đa ngành rải rác địa lý.")
+st.caption("Hệ thống đồng bộ hơn 195 quốc gia. Kéo thanh trượt Zoom để phóng sát camera nhìn thấy cấu trúc vi mô đa ngành tại chỗ.")
 
-# =============================================================================
-# CONTROLLER: TRUNG TÂM ĐIỀU PHỐI VĨ MÔ
-# =============================================================================
+# 1. TRUNG TÂM ĐIỀU KHIỂN TRỰC TIẾP TRÊN TRANG CHÍNH
 col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
 
 with col_ctrl1:
     usd_mode = st.segmented_control(
         "🕹️ Chọn Trạng thái Đồng Đô la Mỹ (USD):",
-        options=["USD MẠNH LÊN (DXY Tăng) 📈", "USD YẾU ĐI (DXY Giảm) 📉"],
-        default="USD MẠNH LÊN (DXY Tăng) 📈"
+        options=["USD MẠNH LÊN (Màu Đỏ) 📈", "USD YẾU ĐI (Màu Xanh) 📉"],
+        default="USD MẠNH LÊN (Màu Đỏ) 📈"
     )
     is_usd_strong = "MẠNH" in usd_mode
-    line_color = "#FF4B4B" if is_usd_strong else "#00D46A" # Đỏ thắt chặt phòng thủ / Xanh nới lỏng tấn công
+    line_color = "#FF4B4B" if is_usd_strong else "#00D46A"
 
-# Nạp cơ sở dữ liệu 195 quốc gia thực tế từ ISO
+# Tải cơ sở dữ liệu vĩ mô bao phủ toàn cầu
 df_global = dl.load_economic_database()
 name_list = df_global['NAME'].tolist()
 
 with col_ctrl2:
-    # Cơ chế định vị an toàn chống lỗi index chữ tiếng Việt
     default_index = name_list.index("Việt Nam") if "Việt Nam" in name_list else 0
     target_country = st.selectbox("🔍 Chọn quốc gia mục tiêu ống kính:", name_list, index=default_index)
 
 with col_ctrl3:
-    # MÔ PHỎNG HÀNH VI CUỘN CHUỘT VÔ CẤP CỦA GOOGLE MAPS
     zoom_slider = st.slider(
         "🔍 Tiêu cự Camera (Google Maps Zoom Level):", 
         min_value=1.0, max_value=6.5, value=1.2, step=0.1,
         help="Mức 1.0 - 3.4: Bao quát luồng vốn liên quốc gia vĩ mô. Mức 3.5 - 6.5: Bừng sáng mạng lưới đa ngành và tài sản nội địa."
     )
 
-# Hiển thị thanh thông tin trạng thái hoạt động động
 if zoom_slider >= 3.5:
-    st.success(f"🔬 KÍNH HIỂN VI VI MÔ ĐÃ KÍCH HOẠT: Bạn đang nhìn cận cảnh bộ máy đa ngành rải rác địa lý tại {target_country.upper()}")
+    st.success(f"🔬 KÍNH HIỂN VI ĐÃ KÍCH HOẠT: Bạn đang nhìn cận cảnh bộ máy đa ngành rải rác địa lý tại {target_country.upper()}")
 else:
-    st.info("🌍 CHẾ ĐỘ VĨ MÔ TOÀN CẦU: Bản đồ hiển thị luồng vốn của hơn 195 quốc gia quy tụ tương quan chặt chẽ về Mỹ.")
+    st.info("🌍 CHẾ ĐỘ VĨ MÔ TOÀN CẦU: Bản đồ đang bao quát mạng lưới luồng vốn liên quốc gia của hơn 195 nước đổ về Mỹ.")
 
-# =============================================================================
-# RENDERING: DỰNG BẢN ĐỒ SỐ ĐỒNG BỘ TẠI CHỖ
-# =============================================================================
+# Chuẩn bị cấu trúc dữ liệu an toàn cho bảng phân tích vi mô
+target_data = df_global[df_global['NAME'] == target_country].to_dict('records')[0]
+
+# 2. DỰNG BẢN ĐỒ SỐ ĐỒNG BỘ TẠI CHỖ
 fig = cr.draw_unified_mapbox_engine(df_global, target_country, zoom_slider, line_color)
 st.plotly_chart(fig, use_container_width=True)
 
@@ -78,7 +73,7 @@ if is_usd_strong:
             "Dòng vốn ngoại tệ USD chảy mạnh ra khỏi kho dự trữ quốc gia. NHTW buộc phải bán USD can thiệp bảo vệ tỷ giá hoặc nâng lãi suất nội tệ lên cao.",
             "Dòng vốn tín dụng mạo hiểm quốc tế bị đóng van. Tập đoàn lớn thu hẹp kế hoạch mở rộng quy mô, dừng các dự án thâu tóm M&A.",
             "Dòng vốn lưu động trong chuỗi cung ứng bị thắt nghẹt do sức mua thị trường sụt giảm mạnh và chi phí nhập khẩu máy móc tính bằng USD tăng cao.",
-            "Dòng tiền nhàn rỗi hoảng loạn tháo chạy hoàn toàn khỏi các kênh đầu cơ rủi ro cao (chứng khoán, bất động sản vùng ven) để đưa về thế thủ."
+            "Dòng tiền nhàn rỗi hoảng loạn tháo chạy hoàn toàn khỏi các kênh đầu cơ rủi ro cao (chướng khoán, bất động sản vùng ven) để đưa về thế thủ."
         ],
         "Tiêu Vào Đâu & Đầu Tư Vào Tài Sản Gì?": [
             "**Đầu tư vào**: Trái phiếu Chính phủ Mỹ ngắn hạn, các tài khoản thanh toán tiền mặt định danh USD để hưởng lợi suất đỉnh cao.",
