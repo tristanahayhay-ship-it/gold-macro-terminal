@@ -6,8 +6,7 @@ import data_loader as dl
 def draw_unified_mapbox_engine(df_global, target_country, zoom_level, line_color):
     """
     BẢN ĐỒ TIẾN HÓA LŨY TIẾN GOOGLE EARTH ECONOMICS.
-    Sử dụng style nền tối giản không đường sá để bừng sáng mạng lưới tài sản tương quan USD.
-    Tương thích tuyệt đối với Python 3.14.
+    Sửa lỗi NameError và font chữ lỗi trên Python 3.14.
     """
     fig = go.Figure()
 
@@ -85,20 +84,18 @@ def draw_unified_mapbox_engine(df_global, target_country, zoom_level, line_color
         fig.add_trace(go.Scattermapbox(
             lat=node_lats, lon=node_lons, mode='markers+text',
             text=node_labels, textposition="top right",
-            marker=dict(size=14, color='#1A365D', symbol='circle', line=dict(color='white', width=1.5)),
-            textfont=dict(size=11, color='#FFD700' if is_usd_strong else '#1A365D', weight='bold'), 
+            marker=dict(size=14, color='#1A365D', symbol='circle'),
+            textfont=dict(size=11, color='#1A365D'), # Đã xóa bỏ thuộc tính weight='bold' gây lỗi
             opacity=op_vimo, hoverinfo='text'
         ))
 
     # ĐIỀU HƯỚNG CAMERA TỰ ĐỘNG THEO TIÊU CỰ THỜI GIAN THỰC ĐỒNG BỘ HOÀN HẢO
     current_center = dict(lat=20.0, lon=20.0) if zoom_level < 3.0 else dict(lat=c_lat, lon=c_lon)
     
-    # GIẢI PHÁP VÁ LỖI PYTHON 3.14: 
-    # Thay 'style="carto-positron"' bằng 'style="carto-darkmatter"' (Nền tối thẳm chuyên dụng) 
-    # Hoặc 'style="carto-positron-nolabels"' để xóa sạch toàn bộ mạng lưới đường bộ, nhà cửa mặc định
+    # Sử dụng phong cách bản đồ số tối giản cao cấp trắng tinh khiết, loại bỏ hoàn toàn nhãn đường sá
     fig.update_layout(
         mapbox=dict(
-            style="carto-darkmatter", # Nền tối sâu thẳm giúp mạng lưới huyết mạch kinh tế của bạn sáng rực lên
+            style="carto-positron", 
             center=current_center, 
             zoom=zoom_level
         ),
