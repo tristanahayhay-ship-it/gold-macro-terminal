@@ -3,102 +3,95 @@ import plotly.graph_objects as go
 import numpy as np
 import data_loader as dl
 
-def draw_unified_mapbox_engine(df_global, target_country, zoom_level, line_color):
+def draw_unified_financial_canvas(df_global, target_country, zoom_level, line_color):
     """
-    BẢN ĐỒ TIẾN HÓA LŨY TIẾN GOOGLE EARTH ECONOMICS.
-    Sửa lỗi trích xuất danh sách Pandas và sửa logic kết nối vòng lặp mạng lưới vi mô.
+    Dựng canvas mạng lưới tiền tệ tiến hóa lũy tiến liên mạch.
+    Tối ưu hóa gộp Trace để bảo vệ dữ liệu không bao giờ biến mất khi Zoom sâu.
     """
     fig = go.Figure()
 
-    # SỬA LỖI SẬP MÃ NGUỒN CHÍNH XÁC: Truy cập phần tử đầu tiên [0] của danh sách records
-    target_list = df_global[df_global['NAME'] == target_country].to_dict('records')
-    if target_list and len(target_list) > 0:
-        c_lat = target_list[0]['LAT']
-        c_lon = target_list[0]['LON']
-    else:
-        c_lat, c_lon = 14.0583, 108.2772
-        
-    usa_lat, usa_lon = 37.0902, -95.7129
-    locations, edges = dl.get_google_maps_economic_hierarchy(target_country, c_lat, c_lon)
+    # Trích xuất dữ liệu an toàn
+    target_row = df_global[df_global['NAME'] == target_country].to_dict('records')
+    t_x, t_y = (target_row[0]['X'], target_row[0]['Y']) if target_row else (65.0, 35.0)
+    usa_x, usa_y = 0.0, 0.0
+
+    locations, edges = dl.get_google_maps_economic_hierarchy(target_country, t_x, t_y)
 
     # Tính toán độ mờ (Opacity) động tự nhiên theo nấc Zoom camera
-    macro_opacity = max(0.0, min(1.0, (3.5 - zoom_level) / 2.0))
-    op_vimo = max(0.0, min(1.0, (zoom_level - 2.0) / 1.2)) # Bừng sáng mượt mà từ zoom 2.0 trở lên
+    macro_opacity = max(0.0, min(1.0, (4.0 - zoom_level) / 3.0))
+    micro_opacity = max(0.0, min(1.0, (zoom_level - 2.0) / 3.0))
 
-    # -------------------------------------------------------------------------
-    # LỚP VĨ MÔ: 195 QUỐC GIA (Hiển thị ở tầng không gian vũ trụ xa)
-    # -------------------------------------------------------------------------
+    # --- A. ĐỒ HỌA TẦNG VĨ MÔ (Mạng lưới 195 nước) ---
     if macro_opacity > 0:
-        macro_x, macro_y = [], []
+        edge_macro_x, edge_macro_y = [], []
         for _, row in df_global.iterrows():
             if row['CODE'] != 'USA':
-                macro_x.extend([row['LON'], usa_lon, None])
-                macro_y.extend([row['LAT'], usa_lat, None])
+                edge_macro_x.extend([row['X'], usa_x, None])
+                edge_macro_y.extend([row['Y'], usa_y, None])
                 
-        fig.add_trace(go.Scattermapbox(
-            lat=macro_y, lon=macro_x, mode='lines',
-            line=dict(width=1.5, color=line_color), opacity=macro_opacity * 0.3, hoverinfo='none'
+        fig.add_trace(go.Scatter(
+            x=edge_macro_x, y=edge_macro_y, mode='lines',
+            line=dict(width=1.2, color=line_color), opacity=macro_opacity * 0.25, hoverinfo='none'
         ))
         
-        fig.add_trace(go.Scattermapbox(
-            lat=df_global['LAT'], lon=df_global['LON'],
-            mode='text+markers', text=df_global['NAME'], textposition="top center",
-            marker=dict(size=12, color='#FFD700', opacity=macro_opacity),
-            textfont=dict(size=10, color='gray'), hoverinfo='none'
+        fig.add_trace(go.Scatter(
+            x=df_global['X'], y=df_global['Y'], mode='markers+text',
+            text=df_global['NAME'], textposition="top center",
+            marker=dict(size=np.log1p(df_global['Gold']) * 2 + 5, color='#FFD700', opacity=macro_opacity),
+            textfont=dict(size=9, color='gray'), hoverinfo='none'
         ))
 
-    # -------------------------------------------------------------------------
-    # LỚP VI MÔ: MẠNG LƯỚI ĐẠI LỘ TIỀN TỆ ĐAN CHÉO TƯƠNG QUAN TRỰC TIẾP USD
-    # -------------------------------------------------------------------------
-    if op_vimo > 0:
-        # BIỆN PHÁP SỬA LỖI: Bóc tách chính xác phần tử start và end trong tuple của edge
+    # --- B. ĐỒ HỌA TẦNG VI MÔ (Đại lộ tiền tệ chằng chịt đa ngành bừng sáng) ---
+    if micro_opacity > 0:
         micro_x, micro_y = [], []
-        for edge in edges:
-            node_start = edge[0]
-            node_end = edge[1]
-            if node_start in locations and node_end in locations:
-                lat0, lon0 = locations[node_start]
-                lat1, lon1 = locations[node_end]
-                micro_x.extend([lon0, lon1, None])
-                micro_y.extend([lat0, lat1, None])
-                
-        fig.add_trace(go.Scattermapbox(
-            lat=micro_y, lon=micro_x, mode='lines',
-            line=dict(width=3.5, color=line_color), opacity=op_vimo * 0.75, hoverinfo='none'
+        for start, end in edges:
+            x0, y0 = locations[start]
+            x1, y1 = locations[end]
+            micro_x.extend([x0, x1, None])
+            micro_y.extend([y0, y1, None])
+            
+        fig.add_trace(go.Scatter(
+            x=micro_x, y=micro_y, mode='lines+markers',
+            line=dict(width=3.5, color=line_color), marker=dict(size=4, color='white'),
+            opacity=micro_opacity * 0.85, hoverinfo='none'
         ))
-
-        # LOGIC TỐI CAO: Dây kết nối liên mạch cắm xuyên đại dương từ Mỹ vào thẳng Cổng USD sở tại
-        usd_gate_key = [k for k in locations.keys() if "CỔNG USD" in k or "GATEWAY" in k]
-        if usd_gate_key:
-            gate_lat, gate_lon = locations[usd_gate_key[0]]
-            fig.add_trace(go.Scattermapbox(
-                lat=[usa_lat, gate_lat], lon=[usa_lon, gate_lon],
-                mode='lines', line=dict(width=2.5, color=line_color, dash='dash'), 
-                opacity=op_vimo * 0.6, hoverinfo='none'
-            ))
-
-        # Ghim các bảng tên thực thể đa ngành đè lên tọa độ bản đồ số
-        node_lats = [v[0] for v in locations.values()]
-        node_lons = [v[1] for v in locations.values()]
+        
+        # SỢI DÂY LIÊN MẠCH TỐI CAO: Nối từ Hoa Kỳ (0,0) cắm sâu vào Gateway ngoại hối nội địa
+        gate_x, gate_y = locations["🌐 [GATEWAY] Cổng thanh khoản USD quốc tế"]
+        fig.add_trace(go.Scatter(
+            x=[usa_x, gate_x], y=[usa_y, gate_y], mode='lines',
+            line=dict(width=2.5, color=line_color, dash='dash'),
+            opacity=micro_opacity * 0.6, hoverinfo='none'
+        ))
+        
+        # Ghim nhãn tên thực thể đa ngành lên màn hình
+        node_x_coords = [v[0] for v in locations.values()]
+        node_y_coords = [v[1] for v in locations.values()]
         node_labels = list(locations.keys())
-
-        fig.add_trace(go.Scattermapbox(
-            lat=node_lats, lon=node_lons, mode='markers+text',
-            text=node_labels, textposition="top right",
-            marker=dict(size=14, color='#1A365D', symbol='circle'),
-            textfont=dict(size=11, color='#1A365D'), 
-            opacity=op_vimo, hoverinfo='text'
+        
+        fig.add_trace(go.Scatter(
+            x=node_x_coords, y=node_y_coords, mode='markers+text',
+            text=node_labels, textposition="top center",
+            marker=dict(size=14, color='#1A365D', symbol='square'),
+            textfont=dict(size=11, color='#1A365D'),
+            opacity=micro_opacity, hoverinfo='text'
         ))
 
-    # ĐIỀU HƯỚNG CAMERA TỰ ĐỘNG THEO TIÊU CỰ THỜI GIAN THỰC ĐỒNG BỘ HOÀN HẢO
-    current_center = dict(lat=20.0, lon=20.0) if zoom_level < 3.0 else dict(lat=c_lat, lon=c_lon)
-    
+    # THUẬT TOÁN ĐIỀU CHỈNH CAMERA VÔ CẤP THEO SLIDER
+    if zoom_level < 3.0:
+        x_range = [-115, 115]
+        y_range = [-95, 95]
+    else:
+        factor = 1.0 / (zoom_level - 1.9)
+        x_range = [t_x - 30 * factor, t_x + 30 * factor]
+        y_range = [t_y - 25 * factor, t_y + 25 * factor]
+
+    # VẼ KHUNG NỀN SẠCH TUYỆT ĐỐI - KHÔNG ĐƯỜNG XÁ ĐỊA LÝ - CHỈ HIỆN ĐẠI LỘ TIỀN TỆ KINH TẾ
     fig.update_layout(
-        mapbox=dict(
-            style="carto-positron", 
-            center=current_center, 
-            zoom=zoom_level
-        ),
-        margin=dict(l=0, r=0, t=0, b=0), height=750, showlegend=False
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=x_range),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=y_range),
+        margin=dict(l=0, r=0, t=0, b=0), height=750,
+        plot_bgcolor='#F8F9FA',
+        showlegend=False
     )
     return fig
