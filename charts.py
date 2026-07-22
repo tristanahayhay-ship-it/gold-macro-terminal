@@ -10,9 +10,10 @@ def draw_unified_mapbox_engine(df_global, target_country, zoom_level, line_color
     """
     fig = go.Figure()
 
-    # Tìm tọa độ quốc gia mục tiêu để điều phối tiêu cự
-    target_row = df_global[df_global['NAME'] == target_country].iloc
-    c_lat, c_lon = target_row['LAT'], target_row['LON']
+    # SỬA LỖI PANDAS PHOÊN BẢN MỚI: Bóc tách dòng bằng .to_dict('records')[0] để trích xuất LAT, LON an toàn
+    target_data = df_global[df_global['NAME'] == target_country].to_dict('records')[0]
+    c_lat = target_data['LAT']
+    c_lon = target_data['LON']
     usa_lat, usa_lon = 37.0902, -95.7129
 
     # -------------------------------------------------------------------------
@@ -58,7 +59,7 @@ def draw_unified_mapbox_engine(df_global, target_country, zoom_level, line_color
         # Lấy tọa độ nút Cổng USD quốc tế để làm điểm tiếp nhận dòng vốn xuyên đại dương
         usd_gate_key = [k for k in locations.keys() if "CỔNG USD" in k]
         if usd_gate_key:
-            gate_lat, gate_lon = locations[usd_gate_key[0]]
+            gate_lat, gate_lon = locations[usd_gate_key]
             # LOGIC TỐI CAO: Kẻ sợi dây xuyên mạch liên mạch nối trực tiếp từ Hoa Kỳ cắm thẳng vào Cổng USD nội địa
             fig.add_trace(go.Scattermapbox(
                 lat=[usa_lat, gate_lat], lon=[usa_lon, gate_lon],
