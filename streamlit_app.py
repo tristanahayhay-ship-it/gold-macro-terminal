@@ -4,17 +4,18 @@ import data_loader as dl
 import charts as cr
 import pandas as pd
 
-st.set_page_config(page_title="Hệ Thống Dòng Tiền Toàn Cầu", layout="wide")
+st.set_page_config(page_title="Vũ Trụ Đường Xá Tiền Tệ Toàn Cầu", layout="wide")
 
 st.markdown("""
     <style>
     .reportview-container .main .block-container{ max-width: 100%; padding-top: 1rem; }
-    h1, h3 { text-align: center; }
+    h1, h3 { text-align: center; color: #FFFFFF; }
+    body { background-color: #111111; }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🗺️ BẢN ĐỒ MẠNG LƯỚI ĐƯỜNG XÁ KINH TẾ ĐA NGÀNH TƯƠNG QUAN USD")
-st.caption("Bản đồ tiến hóa lũy tiến. Xóa bỏ hoàn toàn đường sá địa lý thô sơ, thay bằng hệ thống mạch máu thanh khoản chằng chịt quy tụ về USD.")
+st.caption("Mô phỏng dòng chảy tài sản vô cấp. Tắt bỏ hoàn toàn đường sá địa lý vật lý thô sơ - Thay thế bằng hệ thống đường xá bằng tiền tệ dày đặc quy tụ về USD.")
 
 # 1. TRUNG TÂM ĐIỀU KHIỂN TRÊN TRANG CHÍNH
 col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
@@ -28,32 +29,33 @@ with col_ctrl1:
     is_usd_strong = "MẠNH" in usd_mode
     line_color = "#FF4B4B" if is_usd_strong else "#00D46A"
 
-# Tải cơ sở dữ liệu vĩ mô bao phủ toàn cầu 195 nước
+# Tải cơ sở dữ liệu vĩ mô liên kết 195 quốc gia thực tế
 df_global = dl.load_unified_financial_database()
 name_list = df_global['NAME'].tolist()
 
 with col_ctrl2:
     default_index = name_list.index("Việt Nam") if "Việt Nam" in name_list else 0
-    target_country = st.selectbox("🔍 Chọn quốc gia mục tiêu ống kính:", name_list, index=default_index)
+    target_country = st.selectbox("🔍 Chọn quốc gia mục tiêu phóng camera:", name_list, index=default_index)
 
 with col_ctrl3:
+    # THANH TRƯỢT TIÊU CỰ KÍNH HIỂN VI VÔ CẤP LŨY TIẾN MÔ PHỎNG SỰ TIẾN HÓA CỦA GOOGLE EARTH
     zoom_slider = st.slider(
         "🔍 Tiêu cự Kính hiển vi (Zoom Level):", 
         min_value=1.0, max_value=10.0, value=1.0, step=0.1,
-        help="Nấc 1.0-3.4: Tầng Khí Quyển vĩ mô toàn cầu. Nấc 3.5-10.0: Lao sát bừng sáng đại lộ đường xá bằng tiền tệ chằng chịt."
+        help="Nấc càng lớn camera lao sát đất bừng sáng hệ thống đại lộ tài sản chằng chịt, đan chéo chéo mạch."
     )
 
 if zoom_slider >= 3.5:
-    st.success(f"🔬 KÍNH HIỂN VI ĐÃ KÍCH HOẠT: Toàn bộ đường sá giao thông biến mất, nhường không gian cho mạng lưới tài sản kinh tế tương quan USD tại {target_country}.")
+    st.success(f"🔬 KÍNH HIỂN VI VI MÔ ĐÃ KÍCH HOẠT: Đang phóng sát bừng sáng hệ thống đường xá bằng tiền tệ chằng chịt, đa ngành đan chéo quy tụ về USD tại {target_country}.")
 else:
-    st.info("🌌 TẦNG KHÍ QUYỂN VĨ MÔ: Bản đồ bao quát hơn 195 quốc gia kết nối mạch máu dòng chảy liên quốc gia về Mỹ.")
+    st.info("🌌 TẦNG KHÍ QUYỂN VĨ MÔ: Bản đồ bao quát mạng lưới liên kết luồng vốn của hơn 195 quốc gia chảy về tâm dịch Hoa Kỳ.")
 
-# 2. RENDERING BẢN ĐỒ SỐ TIẾN HÓA VÔ CẤP HỢP NHẤT TẠI CHỐNG
-fig = cr.draw_unified_financial_canvas(df_global, target_country, zoom_slider, line_color)
+# 2. RENDERING BẢN ĐỒ SỐ KHÔNG GIAN TIỀN TỆ ĐỘC BẢN
+fig = cr.draw_financial_universe_canvas(df_global, target_country, zoom_slider, line_color)
 st.plotly_chart(fig, use_container_width=True)
 
 # =============================================================================
-# MA TRẬN BẢN CHẤT KINH TẾ ĐỒNG BỘ CHẶT CHẼ
+# MA TRẬN BẢN CHẤT KINH TẾ ĐỒNG BỘ CHẶT CHẼ THEO CÁC CẤP BẬC THỰC TẾ
 # =============================================================================
 st.markdown("---")
 st.markdown("### 🧱 MA TRẬN BẢN CHẤT KINH TẾ VÀ ĐIỂM TRÚ ẨN CỦA CÁC LOẠI TÀI SẢN CHI TIẾT XUYÊN SUỐT CÁC CẤP")
@@ -80,7 +82,7 @@ if is_usd_strong:
 else:
     st.success("🚀 HỆ THỐNG BUNG XÕA TẤN CÔNG & TRÚ ẨN LẠM PHÁT (KHI USD YẾU / TIỀN RẺ TRÀN RA THẾ GIỚI)")
     matrix_data = {
-        "Phân Cấp Bộ Máy Đa Ngành": ["Cấp 1: Toàn Cầu (195 Nước)", "Cấp 2: Ngân Hàng Trung Ương", "Cấp 3: Tập Đoàn Đa Ngành Lớn", "Cấp 4: Doanh Nghiệp Sản Xuất (SME)", "Cấp 5: Người Dân & Nhà Đầu Tư"],
+        "Phân Cấp Bộ Máy Đa Ngành": ["Cấp 1: Toàn Cầu (195 Nước)", "Cấp 2: Ngân Hàng Trung Ương", "Cấp 3: Tập Đoàn Đa Quốc Gia", "Cấp 4: Doanh Nghiệp Sản Xuất (SME)", "Cấp 5: Người Dân & Nhà Đầu Tư"],
         "Bản Chất Dòng Tiền Đi Đâu?": [
             "Dòng tiền rẻ từ Mỹ tràn ra khắp mạng lưới 195 nước (Chuỗi mạch máu dây màu XANH) đi săn tìm tỷ suất sinh lời cao tại các nước mới nổi.",
             "Áp lực tỷ giá hạ nhiệt, kho dự trữ ngoại hối an toàn. NHTW lập tức hạ lãi suất cơ bản, bơm thanh khoản dồi dào kích thích tăng trưởng nội địa.",
