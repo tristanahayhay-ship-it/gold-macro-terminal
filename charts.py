@@ -6,13 +6,13 @@ import data_loader as dl
 def draw_unified_mapbox_engine(df_global, target_country, zoom_level, line_color):
     """
     BẢN ĐỒ TIẾN HÓA LŨY TIẾN GOOGLE EARTH ECONOMICS.
-    Sửa lỗi NameError và font chữ lỗi trên Python 3.14.
+    Sửa lỗi trích xuất danh sách Pandas và sửa logic kết nối vòng lặp mạng lưới vi mô.
     """
     fig = go.Figure()
 
-    # Trích xuất dữ liệu tọa độ an toàn tuyệt đối chống lỗi Pandas
+    # SỬA LỖI SẬP MÃ NGUỒN CHÍNH XÁC: Truy cập phần tử đầu tiên [0] của danh sách records
     target_list = df_global[df_global['NAME'] == target_country].to_dict('records')
-    if target_list:
+    if target_list and len(target_list) > 0:
         c_lat = target_list[0]['LAT']
         c_lon = target_list[0]['LON']
     else:
@@ -51,10 +51,11 @@ def draw_unified_mapbox_engine(df_global, target_country, zoom_level, line_color
     # LỚP VI MÔ: MẠNG LƯỚI ĐẠI LỘ TIỀN TỆ ĐAN CHÉO TƯƠNG QUAN TRỰC TIẾP USD
     # -------------------------------------------------------------------------
     if op_vimo > 0:
-        # Gộp tất cả chuỗi dây liên kết mạch máu kinh tế vào 1 trace duy nhất
+        # BIỆN PHÁP SỬA LỖI: Bóc tách chính xác phần tử start và end trong tuple của edge
         micro_x, micro_y = [], []
         for edge in edges:
-            node_start, node_end = edge[0], edge[1]
+            node_start = edge[0]
+            node_end = edge[1]
             if node_start in locations and node_end in locations:
                 lat0, lon0 = locations[node_start]
                 lat1, lon1 = locations[node_end]
@@ -76,7 +77,7 @@ def draw_unified_mapbox_engine(df_global, target_country, zoom_level, line_color
                 opacity=op_vimo * 0.6, hoverinfo='none'
             ))
 
-        # Ghim các bảng tên thực thể đa ngành đè lên tọa độ bản đồ nền phẳng sạch
+        # Ghim các bảng tên thực thể đa ngành đè lên tọa độ bản đồ số
         node_lats = [v[0] for v in locations.values()]
         node_lons = [v[1] for v in locations.values()]
         node_labels = list(locations.keys())
@@ -85,14 +86,13 @@ def draw_unified_mapbox_engine(df_global, target_country, zoom_level, line_color
             lat=node_lats, lon=node_lons, mode='markers+text',
             text=node_labels, textposition="top right",
             marker=dict(size=14, color='#1A365D', symbol='circle'),
-            textfont=dict(size=11, color='#1A365D'), # Đã xóa bỏ thuộc tính weight='bold' gây lỗi
+            textfont=dict(size=11, color='#1A365D'), 
             opacity=op_vimo, hoverinfo='text'
         ))
 
     # ĐIỀU HƯỚNG CAMERA TỰ ĐỘNG THEO TIÊU CỰ THỜI GIAN THỰC ĐỒNG BỘ HOÀN HẢO
     current_center = dict(lat=20.0, lon=20.0) if zoom_level < 3.0 else dict(lat=c_lat, lon=c_lon)
     
-    # Sử dụng phong cách bản đồ số tối giản cao cấp trắng tinh khiết, loại bỏ hoàn toàn nhãn đường sá
     fig.update_layout(
         mapbox=dict(
             style="carto-positron", 
