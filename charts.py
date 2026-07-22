@@ -5,99 +5,129 @@ import data_loader as dl
 
 def draw_unified_mapbox_engine(df_global, target_country, zoom_level, line_color):
     """
-    Hợp nhất vĩ mô và vi mô. Sửa lỗi ẩn đồ họa khi Zoom to.
-    Bảo toàn mạng lưới liên kết dây dẫn đè trực tiếp lên Google Maps.
+    BẢN ĐỒ TIẾN HÓA LŨY TIẾN (GOOGLE EARTH ECONOMICS).
+    Mật độ hiển thị của tài sản và sợi dây biến đổi liên tục theo độ cao camera (zoom_level).
     """
     fig = go.Figure()
 
-    # SỬA LỖI PANDAS PHOÊN BẢN MỚI: Bóc tách dòng bằng .to_dict('records')[0] để trích xuất LAT, LON an toàn
-    target_data = df_global[df_global['NAME'] == target_country].to_dict('records')[0]
-    c_lat = target_data['LAT']
-    c_lon = target_data['LON']
+    # Bóc tách tọa độ quốc gia mục tiêu an toàn
+    target_data = df_global[df_global['NAME'] == target_country].to_dict('records')
+    c_lat, c_lon = (target_data[0]['LAT'], target_data[0]['LON']) if target_data else (14.0583, 108.2772)
     usa_lat, usa_lon = 37.0902, -95.7129
 
-    # -------------------------------------------------------------------------
-    # LỚP VĨ MÔ 195 QUỐC GIA (Luôn vẽ làm nền, không lo bị xám màn hình khi Zoom)
-    # -------------------------------------------------------------------------
-    fig.add_trace(go.Scattermapbox(
-        lat=df_global['LAT'], lon=df_global['LON'],
-        mode='markers',
-        marker=dict(size=12, color='#FFD700', opacity=0.6 if zoom_level < 3.5 else 0.2),
-        hoverinfo='none'
-    ))
+    # Tải trước toàn bộ hệ thống dữ liệu vi mô đa ngành đa địa điểm
+    locations, edges = dl.get_google_maps_economic_hierarchy(target_country, c_lat, c_lon)
 
     # -------------------------------------------------------------------------
-    # CHẾ ĐỘ 1: GÓC NHÌN VĨ MÔ TOÀN CẦU (Zoom < 3.5)
+    # TẦNG 1: KHÍ QUYỂN (NỀN 195 QUỐC GIA VÀ DÂY XUYÊN ĐẠI DƯƠNG)
+    # Hiển thị mạnh ở Zoom thấp, mờ dần và ẩn hẳn khi lao sát mặt đất để tránh rối mắt
     # -------------------------------------------------------------------------
-    if zoom_level < 3.5:
-        # Kẻ dây luồng vốn vĩ mô từ 195 nước kết nối trực tiếp về tâm dịch Mỹ
+    macro_opacity = max(0.0, min(1.0, (3.5 - zoom_level) / 2.0))
+    
+    if macro_opacity > 0:
+        # Kẻ dây luồng vốn vĩ mô từ 195 nước kết nối về Mỹ
         for _, row in df_global.iterrows():
             if row['CODE'] != 'USA':
                 fig.add_trace(go.Scattermapbox(
                     lat=[row['LAT'], usa_lat], lon=[row['LON'], usa_lon],
-                    mode='lines', line=dict(width=1.5, color=line_color), opacity=0.3, hoverinfo='none'
+                    mode='lines', line=dict(width=1.5, color=line_color), 
+                    opacity=macro_opacity * 0.3, hoverinfo='none'
                 ))
         
-        # Hiện tên quốc gia và bong bóng hầm vàng
+        # Điểm mốc và tên 195 nước trên thế giới
         fig.add_trace(go.Scattermapbox(
             lat=df_global['LAT'], lon=df_global['LON'],
             mode='text+markers', text=df_global['NAME'],
             textposition="top center",
-            marker=dict(size=14, color='#FF4B4B' if line_color=="#FF4B4B" else "#00D46A"),
-            hovertemplate="<b>%{text}</b><br>Đã đồng bộ mạch máu dòng tiền vĩ mô<extra></extra>"
+            marker=dict(size=12, color='#FFD700', opacity=macro_opacity),
+            textfont=dict(size=10, color='gray'),
+            hoverinfo='none'
         ))
-        
-        mapbox_config = dict(style="open-street-map", center=dict(lat=20.0, lon=20.0), zoom=zoom_level)
 
     # -------------------------------------------------------------------------
-    # CHẾ ĐỘ 2: GÓC NHÌN VI MÔ CHI TIẾT ĐA NGÀNH (Zoom >= 3.5) -> BỪNG SÁNG TẠI CHỖ
+    # MẠNG LƯỚI VI MÔ TIẾN HÓA LŨY TIẾN THEO ĐỘ CAO CAMERA (ZOOM >= 2.0)
     # -------------------------------------------------------------------------
-    else:
-        # Tải cấu trúc địa điểm đa ngành thực tế rải rác địa lý của nước đó
-        locations, edges = dl.get_google_maps_economic_hierarchy(target_country, c_lat, c_lon)
+    if zoom_level >= 2.0:
+        # Lọc và phân loại các thực thể kinh tế theo từng tầng sâu lớp địa lý
+        # Tầng 2 (Tầng Mây): Cổng USD và NHTW (Hà Nội / Q1 TP.HCM)
+        nodes_layer_2 = {k: v for k, v in locations.items() if "CỔNG USD" in k or "NHTW" in k}
         
-        # Lấy tọa độ nút Cổng USD quốc tế để làm điểm tiếp nhận dòng vốn xuyên đại dương
-        usd_gate_key = [k for k in locations.keys() if "CỔNG USD" in k]
-        if usd_gate_key:
-            gate_lat, gate_lon = locations[usd_gate_key]
-            # LOGIC TỐI CAO: Kẻ sợi dây xuyên mạch liên mạch nối trực tiếp từ Hoa Kỳ cắm thẳng vào Cổng USD nội địa
-            fig.add_trace(go.Scattermapbox(
-                lat=[usa_lat, gate_lat], lon=[usa_lon, gate_lon],
-                mode='lines', line=dict(width=3, color=line_color, dash='dash'), opacity=0.7, hoverinfo='none'
-            ))
+        # Tầng 3 (Tầng Mặt Đất): Các tập đoàn đa ngành lớn, tổ hợp sản xuất (Hải Phòng, Bắc Ninh)
+        nodes_layer_3 = {k: v for k, v in locations.items() if "TẬP ĐOÀN" in k or "TRÚ ẨN" in k}
+        
+        # Tầng 4 (Tầng Sinh Vật): Doanh nghiệp SME, Quỹ mạo hiểm, Người dân (Hải Dương, Q3, Vĩnh Long)
+        nodes_layer_4 = {k: v for k, v in locations.items() if "SME" in k or "RỦI RO" in k or "NHÀ ĐẦU TƯ" in k}
 
-        # Kẻ chuỗi sợi dây mạch máu nội bộ (Xanh/Đỏ) kết nối xuyên suốt qua các tỉnh thành đa ngành
+        # Tính toán độ mờ (Opacity) động tự tăng trưởng khi camera phóng càng sâu
+        op_layer_2 = max(0.0, min(1.0, (zoom_level - 2.0) / 1.0)) # Hiện từ zoom 2.0, rõ nét ở 3.0
+        op_layer_3 = max(0.0, min(1.0, (zoom_level - 3.2) / 1.0)) # Hiện từ zoom 3.2, rõ nét ở 4.2
+        op_layer_4 = max(0.0, min(1.0, (zoom_level - 4.2) / 1.0)) # Hiện từ zoom 4.2, rõ nét ở 5.2
+
+        # --- VẼ SỢI DÂY LIÊN KẾT MẠCH MÁU THEO TẦNG ---
         for edge in edges:
-            lat0, lon0 = locations[edge]
-            lat1, lon1 = locations[edge]
+            node_start, node_end = edge[0], edge[1]
+            lat0, lon0 = locations[node_start]
+            lat1, lon1 = locations[node_end]
+            
+            # Quyết định sợi dây thuộc tầng nào thì ăn theo độ mờ của tầng đó
+            current_edge_opacity = op_layer_2
+            if any(x in node_start or x in node_end for x in ["SME", "RỦI RO", "NHÀ ĐẦU TƯ"]):
+                current_edge_opacity = op_layer_4
+            elif any(x in node_start or x in node_end for x in ["TẬP ĐOÀN", "TRÚ ẨN"]):
+                current_edge_opacity = op_layer_3
+
+            if current_edge_opacity > 0:
+                fig.add_trace(go.Scattermapbox(
+                    lat=[lat0, lat1], lon=[lon0, lon1],
+                    mode='lines', line=dict(width=3.5, color=line_color), 
+                    opacity=current_edge_opacity * 0.8, hoverinfo='none'
+                ))
+
+        # --- LOGIC TỐI CAO: DÂY NỐI TỪ MỸ CẮM THẲNG VÀO CỔNG USD SỞ TẠI ---
+        if op_layer_2 > 0:
+            usd_gate_key = [k for k in locations.keys() if "CỔNG USD" in k]
+            if usd_gate_key:
+                gate_lat, gate_lon = locations[usd_gate_key[0]]
+                fig.add_trace(go.Scattermapbox(
+                    lat=[usa_lat, gate_lat], lon=[usa_lon, gate_lon],
+                    mode='lines', line=dict(width=2, color=line_color, dash='dash'), 
+                    opacity=op_layer_2 * 0.5, hoverinfo='none'
+                ))
+
+        # --- GHIM CÁC KHỐI THỰC THỂ LÊN GOOGLE MAPS THEO TỪNG CẤP ĐỘ TIẾN HÓA ---
+        # Vẽ Tầng 2: Cổng USD và NHTW (Xuất hiện trước tiên khi lao từ mây xuống)
+        if op_layer_2 > 0:
             fig.add_trace(go.Scattermapbox(
-                lat=[lat0, lat1], lon=[lon0, lon1],
-                mode='lines+markers', 
-                line=dict(width=4, color=line_color), 
-                opacity=0.9, hoverinfo='none'
+                lat=[v[0] for v in nodes_layer_2.values()], lon=[v[1] for v in nodes_layer_2.values()],
+                mode='markers+text', text=list(nodes_layer_2.keys()), textposition="top right",
+                marker=dict(size=16, color='#E67E22', symbol='circle'), opacity=op_layer_2,
+                textfont=dict(size=11, color='#E67E22', weight='bold'), hoverinfo='text'
+            ))
+            
+        # Vẽ Tầng 3: Các tập đoàn xương sống đa ngành (Xuất hiện tiếp theo khi thấy rõ núi đồi)
+        if op_layer_3 > 0:
+            fig.add_trace(go.Scattermapbox(
+                lat=[v[0] for v in nodes_layer_3.values()], lon=[v[1] for v in nodes_layer_3.values()],
+                mode='markers+text', text=list(nodes_layer_3.keys()), textposition="top center",
+                marker=dict(size=15, color='#2980B9', symbol='circle'), opacity=op_layer_3,
+                textfont=dict(size=11, color='#2980B9', weight='bold'), hoverinfo='text'
             ))
 
-        # Ghim các bảng tên thực thể đa ngành (NHTW, Tập đoàn, Doanh nghiệp, Hầm vàng) đè lên vị trí địa lý Google Maps
-        node_lats = [v for v in locations.values()]
-        node_lons = [v for v in locations.values()]
-        node_labels = list(locations.keys())
+        # Vẽ Tầng 4: Doanh nghiệp SME, Quỹ đầu tư và túi tiền người dân (Xuất hiện cuối cùng khi nhìn rõ nhà cửa)
+        if op_layer_4 > 0:
+            fig.add_trace(go.Scattermapbox(
+                lat=[v[0] for v in nodes_layer_4.values()], lon=[v[1] for v in nodes_layer_4.values()],
+                mode='markers+text', text=list(nodes_layer_4.keys()), textposition="bottom center",
+                marker=dict(size=14, color='#27AE60', symbol='circle'), opacity=op_layer_4,
+                textfont=dict(size=11, color='#27AE60', weight='bold'), hoverinfo='text'
+            ))
 
-        fig.add_trace(go.Scattermapbox(
-            lat=node_lats, lon=node_lons,
-            mode='markers+text',
-            text=node_labels,
-            textposition="top right",
-            marker=dict(size=16, color='#1A365D', symbol='circle'),
-            textfont=dict(size=11, color='black', weight='bold'),
-            hoverinfo='text'
-        ))
-
-        # Điều khiển ống kính phóng sát vào tọa độ thực tế của quốc gia
-        mapbox_config = dict(style="open-street-map", center=dict(lat=c_lat, lon=c_lon), zoom=zoom_level)
-
-    # Cấu hình Layout tối ưu hóa cho Python 3.14 trên Streamlit Cloud
+    # ĐIỀU KHIỂN ỐNG KÍNH CAMERA THEO THỜI GIAN THỰC ĐỒNG BỘ SLIDER
+    # Khi zoom nhỏ thì camera ở trung tâm thế giới, khi zoom lớn camera tự động hạ độ cao xuống nước chọn
+    current_center = dict(lat=20.0, lon=20.0) if zoom_level < 3.0 else dict(lat=c_lat, lon=c_lon)
+    
     fig.update_layout(
-        mapbox=mapbox_config,
+        mapbox=dict(style="open-street-map", center=current_center, zoom=zoom_level),
         margin=dict(l=0, r=0, t=0, b=0), height=750, showlegend=False
     )
     return fig
