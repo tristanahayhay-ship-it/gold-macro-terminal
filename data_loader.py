@@ -4,7 +4,7 @@ import numpy as np
 import plotly.express as px
 
 def load_economic_database():
-    """Tự động lấy toàn bộ danh sách 195 quốc gia thực tế từ dữ liệu ISO hệ thống"""
+    """Tự động lấy toàn bộ danh sách 195 quốc gia thực tế từ ISO và cấu trúc dữ liệu vĩ mô"""
     df_iso = px.data.gapminder().query("year == 2007")[['iso_alpha', 'country']].drop_duplicates()
     
     translate_dict = {
@@ -24,7 +24,7 @@ def load_economic_database():
     for _, row in df_iso.iterrows():
         code = row['iso_alpha']
         vietnamese_name = translate_dict.get(code, row['country'])
-        lat, lon = fixed_coords.get(code, [np.random.uniform(-20, 50), np.random.uniform(-40, 100)])
+        lat, lon = fixed_coords.get(code, [np.random.uniform(-15, 45), np.random.uniform(-30, 90)])
         gdp = 98 if code == 'USA' else np.random.randint(35, 85)
         gold = 8133 if code == 'USA' else np.random.randint(5, 500)
         
@@ -34,66 +34,43 @@ def load_economic_database():
     return pd.DataFrame(countries_factory)
 
 def get_google_maps_economic_hierarchy(country_name, c_lat, c_lon):
-    """
-    Xây dựng danh mục tài sản đa ngành, các tập đoàn thực tế rải rác đa địa điểm.
-    Đặc biệt tối ưu hóa tọa độ vi mô địa lý chính xác cho Việt Nam và tự động sinh cho các nước khác.
-    """
+    """Phân tách địa điểm tài sản đa ngành chính xác trên Google Maps theo từng nấc Zoom thực tế"""
     if country_name == "Việt Nam":
         locations = {
-            # --- TRẠM TRUNG TÂM KẾT NỐI USD ---
-            "🌐 [CỔNG USD QUỐC TẾ] Trung tâm thanh khoản ngoại hối dòng tiền thế giới": [10.7756, 106.7019], # Quận 1, TP.HCM
-            
-            # --- CẤP TRUNG ƯƠNG QUỐC GIA ---
-            "🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Điều phối dòng vốn nội địa)": [21.0285, 105.8542], # Hà Nội
-            
-            # --- CẤP TẬP ĐOÀN ĐA NGÀNH LỚN ---
-            "🏙️ [TẬP ĐOÀN ĐA NGÀNH] Bất động sản phân khúc lõi & Trung tâm thương mại": [10.7770, 106.6950], # TP.HCM
-            "🏭 [TẬP ĐOÀN CÔNG NGHIỆP] Chuỗi sản xuất công nghiệp nặng & Ô tô": [20.8650, 106.6830], # Hải Phòng
-            "🔌 [TẬP ĐOÀN CÔNG NGHỆ] Tổ hợp sản xuất linh kiện điện tử viễn thông": [21.1400, 106.0600], # Bắc Ninh
-            
-            # --- CẤP CHUỖI DOANH NGHIỆP SẢN XUẤT SME ---
-            "📦 [DOANH NGHIỆP SME] Chuỗi cung ứng logistic và hàng tiêu dùng lõi": [20.9496, 106.3315], # Hải Dương
-            
-            # --- CẤP CÁC LOẠI TÀI SẢN PHÒNG THỦ VÀ TRÚ ẨN ---
-            "👑 [TÀI SẢN TRÚ ẨN TOỐI HẬU] Hầm bảo chứng dự trữ VÀNG VẬT CHẤT quốc gia": [21.0333, 105.8000], # Ba Đình, Hà Nội
-            "📈 [TÀI SẢN RỦI RO CHUYÊN SÂU] Quỹ đầu tư mạo hiểm & Cổ phiếu tăng trưởng": [10.7825, 106.6926], # Quận 3, TP.HCM
-            
-            # --- CẤP NHÀ ĐẦU TƯ CÁ NHÂN ---
-            "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Dân cư, dòng tiền nhàn rỗi gửi tiết kiệm": [10.2541, 105.9592] # Vĩnh Long
+            "🌐 [CỔNG USD QUỐC TẾ] Trung tâm thanh khoản ngoại hối vĩ mô": [10.7756, 106.7019], # Q1, TP.HCM
+            "🏛️ [NHTW] Ngân hàng Nhà nước (Điều phối dòng vốn nội địa)": [21.0285, 105.8542], # Hà Nội
+            "🏙️ [TẬP ĐOÀN ĐA NGÀNH] Bất động sản phân khúc trung tâm lõi": [10.7770, 106.6950], # TP.HCM
+            "🏭 [TẬP ĐOÀN CÔNG NGHIỆP] Chuỗi sản xuất công nghiệp nặng": [20.8650, 106.6830], # Hải Phòng
+            "🔌 [TẬP ĐOÀN CÔNG NGHỆ] Tổ hợp vi mạch & Linh kiện điện tử": [21.1400, 106.0600], # Bắc Ninh
+            "📦 [DOANH NGHIỆP SME] Chuỗi cung ứng logistic nội địa": [20.9496, 106.3315], # Hải Dương
+            "👑 [TÀI SẢN TRÚ ẨN] Hầm bảo chứng dự trữ VÀNG VẬT CHẤT quốc gia": [21.0333, 105.8000], # Ba Đình, Hà Nội
+            "📈 [TÀI SẢN TẤN CÔNG] Quỹ đầu tư mạo hiểm & Chứng khoán": [10.7825, 106.6926], # Q3, TP.HCM
+            "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Dân cư & Dòng tiền tiết kiệm nền": [10.2541, 105.9592] # Vĩnh Long
         }
-        
-        # Mạng lưới dây liên kết mạch máu dòng tiền thắt chặt từ Cổng USD đến ví tiền người dân
-        edges = [
-            ("🌐 [CỔNG USD QUỐC TẾ] Trung tâm thanh khoản ngoại hối dòng tiền thế giới", "🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Điều phối dòng vốn nội địa)"),
-            ("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Điều phối dòng vốn nội địa)", "🏙️ [TẬP ĐOÀN ĐA NGÀNH] Bất động sản phân khúc lõi & Trung tâm thương mại"),
-            ("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Điều phối dòng vốn nội địa)", "🏭 [TẬP ĐOÀN CÔNG NGHIỆP] Chuỗi sản xuất công nghiệp nặng & Ô tô"),
-            ("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Điều phối dòng vốn nội địa)", "🔌 [TẬP ĐOÀN CÔNG NGHỆ] Tổ hợp sản xuất linh kiện điện tử viễn thông"),
-            ("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Điều phối dòng vốn nội địa)", "📦 [DOANH NGHIỆP SME] Chuỗi cung ứng logistic và hàng tiêu dùng lõi"),
-            ("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Điều phối dòng vốn nội địa)", "👑 [TÀI SẢN TRÚ ẨN TOỐI HẬU] Hầm bảo chứng dự trữ VÀNG VẬT CHẤT quốc gia"),
-            ("🏙️ [TẬP ĐOÀN ĐA NGÀNH] Bất động sản phân khúc lõi & Trung tâm thương mại", "📈 [TÀI SẢN RỦI RO CHUYÊN SÂU] Quỹ đầu tư mạo hiểm & Cổ phiếu tăng trưởng"),
-            ("📦 [DOANH NGHIỆP SME] Chuỗi cung ứng logistic và hàng tiêu dùng lõi", "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Dân cư, dòng tiền nhàn rỗi gửi tiết kiệm"),
-            ("📈 [TÀI SẢN RỦI RO CHUYÊN SÂU] Quỹ đầu tư mạo hiểm & Cổ phiếu tăng trưởng", "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Dân cư, dòng tiền nhàn rỗi gửi tiết kiệm"),
-            ("👑 [TÀI SẢN TRÚ ẨN TOỐI HẬU] Hầm bảo chứng dự trữ VÀNG VẬT CHẤT quốc gia", "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Dân cư, dòng tiền nhàn rỗi gửi tiết kiệm")
-        ]
     else:
-        # Tự động rải cấu trúc đa ngành thực tế cho 194 nước còn lại theo bán kính địa lý của chúng
+        # Cơ chế rải đa điểm ngẫu nhiên khoa học cho 194 quốc gia còn lại khi được Zoom vào
         locations = {
-            "🌐 [CỔNG USD QUỐC TẾ] Cổng thanh khoản ngoại hối vĩ mô": [c_lat + 1.0, c_lon + 1.0],
-            "🏛️ [NHTW] Cơ quan quản lý điều phối mạch máu vốn": [c_lat, c_lon],
-            "🏭 [TẬP ĐOÀN ĐA NGÀNH] Khối hạ tầng, năng lượng & sản xuất": [c_lat + 0.6, c_lon - 0.8],
-            "📦 [DOANH NGHIỆP SME] Chuỗi cung ứng hàng hóa sản xuất nội địa": [c_lat - 0.6, c_lon + 0.8],
-            "👑 [TRÚ ẨN TỐI HẬU] Kho bảo chứng dự trữ VÀNG quốc gia": [c_lat + 0.3, c_lon - 0.4],
-            "📈 [TÀI SẢN ĐẦU TƯ] Thị trường chứng khoán & Tài sản rủi ro": [c_lat - 0.4, c_lon - 0.8],
-            "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Người dân & Khối tài sản dân cư": [c_lat - 1.0, c_lon]
+            "🌐 [CỔNG USD QUỐC TẾ] Trung tâm ngoại hối vĩ mô": [c_lat + 0.6, c_lon + 0.6],
+            "🏛️ [NHTW] Cơ quan quản lý mạch máu vốn quốc gia": [c_lat, c_lon],
+            "🏙️ [TẬP ĐOÀN ĐA NGÀNH] Khối hạ tầng & Bất động sản lõi": [c_lat + 0.4, c_lon - 0.5],
+            "🏭 [TẬP ĐOÀN CÔNG NGHIỆP] Tổ hợp sản xuất cốt lõi": [c_lat - 0.4, c_lon + 0.5],
+            "📦 [DOANH NGHIỆP SME] Chuỗi cung ứng hàng hóa nội địa": [c_lat + 0.2, c_lon + 0.3],
+            "👑 [TÀI SẢN TRÚ ẨN] Kho bảo chứng dự trữ VÀNG quốc gia": [c_lat + 0.2, c_lon - 0.2],
+            "📈 [TÀI SẢN TẤN CÔNG] Sàn chứng khoán & Quỹ mạo hiểm": [c_lat - 0.3, c_lon - 0.4],
+            "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Người dân & Nguồn vốn cư dân nền": [c_lat - 0.6, c_lon]
         }
-        edges = [
-            ("🌐 [CỔNG USD QUỐC TẾ] Cổng thanh khoản ngoại hối vĩ mô", "🏛️ [NHTW] Cơ quan quản lý điều phối mạch máu vốn"),
-            ("🏛️ [NHTW] Cơ quan quản lý điều phối mạch máu vốn", "🏭 [TẬP ĐOÀN ĐA NGÀNH] Khối hạ tầng, năng lượng & sản xuất"),
-            ("🏛️ [NHTW] Cơ quan quản lý điều phối mạch máu vốn", "📦 [DOANH NGHIỆP SME] Chuỗi cung ứng hàng hóa sản xuất nội địa"),
-            ("🏛️ [NHTW] Cơ quan quản lý điều phối mạch máu vốn", "👑 [TRÚ ẨN TỐI HẬU] Kho bảo chứng dự trữ VÀNG quốc gia"),
-            ("🏭 [TẬP ĐOÀN ĐA NGÀNH] Khối hạ tầng, năng lượng & sản xuất", "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Người dân & Khối tài sản dân cư"),
-            ("📦 [DOANH NGHIỆP SME] Chuỗi cung ứng hàng hóa sản xuất nội địa", "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Người dân & Khối tài sản dân cư"),
-            ("📈 [TÀI SẢN ĐẦU TƯ] Thị trường chứng khoán & Tài sản rủi ro", "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Người dân & Khối tài sản dân cư")
-        ]
         
+    edges = [
+        ("🌐 [CỔNG USD QUỐC TẾ] Trung tâm thanh khoản ngoại hối vĩ mô", "🏛️ [NHTW] Ngân hàng Nhà nước (Điều phối dòng vốn nội địa)" if country_name == "Việt Nam" else "🏛️ [NHTW] Cơ quan quản lý mạch máu vốn quốc gia"),
+        ("🏛️ [NHTW] Ngân hàng Nhà nước (Điều phối dòng vốn nội địa)" if country_name == "Việt Nam" else "🏛️ [NHTW] Cơ quan quản lý mạch máu vốn quốc gia", "🏙️ [TẬP ĐOÀN ĐA NGÀNH] Bất động sản phân khúc trung tâm lõi" if country_name == "Việt Nam" else "🏙️ [TẬP ĐOÀN ĐA NGÀNH] Khối hạ tầng & Bất động sản lõi"),
+        ("🏛️ [NHTW] Ngân hàng Nhà nước (Điều phối dòng vốn nội địa)" if country_name == "Việt Nam" else "🏛️ [NHTW] Cơ quan quản lý mạch máu vốn quốc gia", "🏭 [TẬP ĐOÀN CÔNG NGHIỆP] Chuỗi sản xuất công nghiệp nặng" if country_name == "Việt Nam" else "🏭 [TẬP ĐOÀN CÔNG NGHIỆP] Tổ hợp sản xuất cốt lõi"),
+        ("🏛️ [NHTW] Ngân hàng Nhà nước (Điều phối dòng vốn nội địa)" if country_name == "Việt Nam" else "🏛️ [NHTW] Cơ quan quản lý mạch máu vốn quốc gia", "👑 [TÀI SẢN TRÚ ẨN] Hầm bảo chứng dự trữ VÀNG VẬT CHẤT quốc gia" if country_name == "Việt Nam" else "👑 [TÀI SẢN TRÚ ẨN] Kho bảo chứng dự trữ VÀNG quốc gia"),
+        ("🏙️ [TẬP ĐOÀN ĐA NGÀNH] Bất động sản phân khúc trung tâm lõi" if country_name == "Việt Nam" else "🏙️ [TẬP ĐOÀN ĐA NGÀNH] Khối hạ tầng & Bất động sản lõi", "📈 [TÀI SẢN TẤN CÔNG] Quỹ đầu tư mạo hiểm & Chứng khoán" if country_name == "Việt Nam" else "📈 [TÀI SẢN TẤN CÔNG] Sàn chứng khoán & Quỹ mạo hiểm"),
+        ("📦 [DOANH NGHIỆP SME] Chuỗi cung ứng logistic nội địa" if country_name == "Việt Nam" else "📦 [DOANH NGHIỆP SME] Chuỗi cung ứng hàng hóa nội địa", "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Dân cư & Dòng tiền tiết kiệm nền" if country_name == "Việt Nam" else "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Người dân & Nguồn vốn cư dân nền"),
+        ("📈 [TÀI SẢN TẤN CÔNG] Quỹ đầu tư mạo hiểm & Chứng khoán" if country_name == "Việt Nam" else "📈 [TÀI SẢN TẤN CÔNG] Sàn chứng khoán & Quỹ mạo hiểm", "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Dân cư & Dòng tiền tiết kiệm nền" if country_name == "Việt Nam" else "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Người dân & Nguồn vốn cư dân nền"),
+        ("👑 [TÀI SẢN TRÚ ẨN] Hầm bảo chứng dự trữ VÀNG VẬT CHẤT quốc gia" if country_name == "Việt Nam" else "👑 [TÀI SẢN TRÚ ẨN] Kho bảo chứng dự trữ VÀNG quốc gia", "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Dân cư & Dòng tiền tiết kiệm nền" if country_name == "Việt Nam" else "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Người dân & Nguồn vốn cư dân nền")
+    ]
+    if country_name == "Việt Nam":
+        edges.append(("🏛️ [NHTW] Ngân hàng Nhà nước (Điều phối dòng vốn nội địa)", "🔌 [TẬP ĐOÀN CÔNG NGHỆ] Tổ hợp vi mạch & Linh kiện điện tử"))
+        edges.append(("🏛️ [NHTW] Ngân hàng Nhà nước (Điều phối dòng vốn nội địa)", "📦 [DOANH NGHIỆP SME] Chuỗi cung ứng logistic nội địa"))
     return locations, edges
