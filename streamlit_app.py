@@ -1,109 +1,214 @@
 # streamlit_app.py
 import streamlit as st
-import data_loader as dl
-import charts as cr
+import plotly.graph_objects as go
 import pandas as pd
+import numpy as np
+import plotly.express as px
 
-# Cấu hình diện tích hiển thị co giãn tối đa toàn màn hình
-st.set_page_config(page_title="Hệ Thống Dòng Tiền Địa Lý Toàn Cầu", layout="wide")
+# 1. CẤU HÌNH GIAO DIỆN KHÔNG GIAN SỐ HỌC VÔ CỰC
+st.set_page_config(page_title="Vũ Trụ Mạch Máu Tiền Tệ Vô Cực", layout="wide")
 
 st.markdown("""
     <style>
     .reportview-container .main .block-container{ max-width: 100%; padding-top: 1rem; }
-    h1, h3 { text-align: center; }
+    h1, h3 { text-align: center; color: #FFFFFF; }
+    body { background-color: #050505; }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🗺️ BẢN ĐỒ MẠNG LƯỚI ĐƯỜNG XÁ KINH TẾ ĐA NGÀNH TƯƠNG QUAN USD")
-st.caption("Hệ thống đồng bộ ranh giới địa lý 195 quốc gia. Xóa bỏ hoàn toàn đường sá giao thông thô sơ, thay thế bằng mạch máu tài sản chằng chịt tại chỗ.")
+st.title("⚡ BẢN ĐỒ MA TRẬN MẠCH MÁU TIỀN TỆ ĐA NGÀNH TƯƠNG QUAN USD")
+st.caption("Xóa bỏ hoàn toàn thế giới vật lý thô sơ. Hệ thống tự động sinh hàng ngàn đại lộ dòng chảy tiền tệ đan chéo dày đặc khi phóng to.")
 
-# =============================================================================
-# 1. TRUNG TÂM ĐIỀU KHIỂN VĨ MÔ TRÊN TRANG CHÍNH
-# =============================================================================
+# TRUNG TÂM ĐIỀU KHIỂN LUỒNG NĂNG LƯỢNG
 col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
 
 with col_ctrl1:
     usd_mode = st.segmented_control(
-        "🕹️ Chọn Trạng thái Đồng Đô la Mỹ (USD):",
+        "🕹️ Trạng thái Trọng Lực USD (DXY):",
         options=["USD MẠNH LÊN (Màu Đỏ) 📈", "USD YẾU ĐI (Màu Xanh) 📉"],
         default="USD MẠNH LÊN (Màu Đỏ) 📈"
     )
     is_usd_strong = "MẠNH" in usd_mode
-    line_color = "#FF4B4B" if is_usd_strong else "#00D46A" # Đỏ thắt chặt phòng thủ / Xanh nới lỏng tấn công
+    line_color = "#FF3333" if is_usd_strong else "#00FF66" # Đỏ rực thắt chặt / Xanh neon bung xõa
 
-# Tải cơ sở dữ liệu vĩ mô liên kết tọa độ Kinh/Vĩ độ thực tế của 195 nước thế giới
-df_global = dl.load_unified_financial_database()
+# 2. ĐỒNG BỘ 195 QUỐC GIA THỰC TẾ TRÊN HỆ TRỤC TỌA ĐỘ VŨ TRỤ (MỸ LÀM TÂM 0,0)
+@st.cache_data
+def load_infinite_financial_database():
+    df_iso = px.data.gapminder().query("year == 2007")[['iso_alpha', 'country']].drop_duplicates()
+    translate_dict = {
+        'USA': 'Hoa Kỳ', 'VNM': 'Việt Nam', 'CHN': 'Trung Quốc', 'JPN': 'Nhật Bản', 
+        'DEU': 'Đức', 'GBR': 'Anh Quốc', 'FRA': 'Pháp', 'IND': 'Ấn Độ', 
+        'BRA': 'Brazil', 'AUS': 'Australia', 'CAN': 'Canada', 'RUS': 'Nga'
+    }
+    
+    fixed_coords = {
+        'USA': [0.0, 0.0], # Hoa Kỳ là tâm hố đen vũ trụ tiền tệ
+        'VNM': [55.0, 30.0], 'CHN': [40.0, 35.0], 'JPN': [50.0, 45.0], 'DEU': [-35.0, 40.0], 
+        'GBR': [-45.0, 50.0], 'FRA': [-38.0, 35.0], 'IND': [30.0, 15.0], 'BRA': [-45.0, -40.0], 
+        'AUS': [65.0, -50.0], 'CAN': [-25.0, -55.0], 'RUS': [20.0, 60.0]
+    }
+    
+    countries_factory = []
+    for _, row in df_iso.iterrows():
+        code = row['iso_alpha']
+        vietnamese_name = translate_dict.get(code, row['country'])
+        
+        if code in fixed_coords:
+            x, y = fixed_coords[code]
+        else:
+            ang = np.random.uniform(0, 2*np.pi)
+            rad = np.random.uniform(35, 90)
+            x, y = rad * np.cos(ang), rad * np.sin(ang)
+            
+        countries_factory.append({
+            'CODE': code, 'NAME': vietnamese_name, 'Gold': np.random.randint(5, 500) if code != 'USA' else 8133, 'X': x, 'Y': y
+        })
+    return pd.DataFrame(countries_factory)
+
+df_global = load_infinite_financial_database()
 name_list = df_global['NAME'].tolist()
 
 with col_ctrl2:
-    # Định vị mặc định an toàn chống sập ứng dụng nếu không tìm thấy chữ
     default_index = name_list.index("Việt Nam") if "Việt Nam" in name_list else 0
-    target_country = st.selectbox("🔍 Chọn quốc gia mục tiêu ống kính:", name_list, index=default_index)
+    target_country = st.selectbox("🔍 Chọn tâm điểm quốc gia điều hướng:", name_list, index=default_index)
 
 with col_ctrl3:
-    # THANH TRƯỢT TIÊU CỰ KÍNH HIỂN VI VÔ CẤP LŨY TIẾN MÔ PHỎNG SỰ TIẾN HÓA CỦA GOOGLE EARTH
+    # THANH TRƯỢT ZOOM TIẾN HÓA VÔ CẤP ĐA TẦNG DỮ LIỆU
     zoom_slider = st.slider(
         "🔍 Tiêu cự Kính hiển vi (Zoom Level):", 
-        min_value=1.0, max_value=12.0, value=1.0, step=0.1,
-        help="Nấc càng lớn camera lao sát đất bừng sáng hệ thống đại lộ tài sản chằng chịt, đan chéo chéo mạch ngay trên đất nước."
+        min_value=1.0, max_value=10.0, value=1.0, step=0.1
     )
 
-# Kích hoạt thanh thông báo động dựa trên cao độ ống kính camera
-if zoom_slider >= 3.5:
-    st.success(f"🔬 KÍNH HIỂN VI VI MÔ ĐÃ KÍCH HOẠT: Toàn bộ đường sá giao thông biến mất, bừng sáng mạng lưới đường xá tiền tệ đa ngành đan chéo chằng chịt tại {target_country}.")
-else:
-    st.info("🌌 TẦNG KHÍ QUYỂN VĨ MÔ: Bản đồ bao quát ranh giới địa lý thực tế của hơn 195 quốc gia kết nối mạch máu luồng vốn xuyên đại dương về Mỹ.")
+# 3. THUẬT TOÁN FRACTAL TỰ ĐỘNG SINH MẠNG LƯỚI ĐƯỜNG XÁ TIỀN TỆ CHẰNG CHỊT
+fig = go.Figure()
 
-# =============================================================================
-# 2. RENDERING ĐỒ HỌA: ĐỒNG BỘ TÊN HÀM CHUẨN XÁC VỚI FILE CHARTS.PY
-# =============================================================================
-# SỬA LỖI ATTRIBUTERROR: Thay thế draw_financial_universe_canvas bằng draw_unified_mapbox_engine
-fig = cr.draw_unified_mapbox_engine(df_global, target_country, zoom_slider, line_color)
+target_row = df_global[df_global['NAME'] == target_country].to_dict('records')[0]
+t_x, t_y = target_row['X'], target_row['Y']
+usa_x, usa_y = 0.0, 0.0
+
+# Tính toán tỷ lệ hiển thị lũy tiến
+macro_opacity = max(0.0, min(1.0, (4.0 - zoom_slider) / 3.0))
+micro_opacity = max(0.0, min(1.0, (zoom_slider - 1.5) / 3.5))
+
+# --- TẦNG 1: KHÍ QUYỂN (MẠNG LƯỚI VĨ MÔ 195 NƯỚC QUY TỤ VỀ MỸ) ---
+if macro_opacity > 0:
+    edge_macro_x, edge_macro_y = [], []
+    for _, row in df_global.iterrows():
+        if row['CODE'] != 'USA':
+            edge_macro_x.extend([row['X'], usa_x, None])
+            edge_macro_y.extend([row['Y'], usa_y, None])
+            
+    fig.add_trace(go.Scatter(
+        x=edge_macro_x, y=edge_macro_y, mode='lines',
+        line=dict(width=1.0, color=line_color), opacity=macro_opacity * 0.2, hoverinfo='none'
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=df_global['X'], y=df_global['Y'], mode='markers+text',
+        text=df_global['NAME'], textposition="top center",
+        marker=dict(size=np.log1p(df_global['Gold']) * 2 + 4, color='#FFD700', opacity=macro_opacity),
+        textfont=dict(size=9, color='#888888'), hoverinfo='none'
+    ))
+
+# --- TẦNG 2: MẠNG LƯỚI ĐƯỜNG XÁ TIỀN TỆ DÀY ĐẶC (BỪNG SÁNG VÔ CỰC KHI ZOOM SÂU) ---
+if micro_opacity > 0:
+    # 🌟 ĐỘT PHÁ THUẬT TOÁN: Tự động sinh ngẫu nhiên hàng trăm nút tài sản, ngành nghề phụ trợ 
+    # rải rác xung quanh quốc gia để tạo độ dày đặc, đan chéo chằng chịt thực sự của nền kinh tế
+    np.random.seed(42) # Cố định hạt giống để lưới không bị nhảy hình khi kéo slider
+    num_nodes = 45     # Sinh ra 45 điểm nút thực thể đa ngành đan cài chéo mạch
+    
+    sub_nodes = {}
+    categories = ["🏭 Nhà Máy SME", "🏙️ BĐS Phân Khúc Lõi", "🔌 Tổ Hợp Công Nghệ", "🛢️ Năng Lượng Lõi", "📈 Chứng Khoán Tăng Trưởng", "👥 Hộ Dân Cư / Nhà Đầu Tư"]
+    
+    # Khởi tạo các điểm thực thể hạt nhân chính
+    sub_nodes["🌐 [GATEWAY] Cổng Thanh Khoản USD Quốc Tế"] = [t_x + 2.0, t_y + 2.0]
+    sub_nodes["🏛️ [NHTW] Ngân Hàng Trung Ương Điều Phối Vốn"] = [t_x, t_y]
+    sub_nodes["👑 [GOLD RESERVES] Hầm Dự Trữ Vàng Quốc Gia"] = [t_x + 0.8, t_y - 0.8]
+    
+    # Tự động sinh hàng chục thực thể ngành dọc chằng chịt rải rác xung quanh
+    for i in range(num_nodes):
+        cat = np.random.choice(categories)
+        off_x = np.random.uniform(-4.0, 4.0)
+        off_y = np.random.uniform(-4.0, 4.0)
+        sub_nodes[f"{cat} [Mã Sector-{100+i}]"] = [t_x + off_x, t_y + off_y]
+        
+    # THUẬT TOÁN MA TRẬN DÂY: Tự động kẻ hàng trăm đường kết nối chéo liên hoàn, đan xen chằng chịt quy tụ về NHTW và USD
+    micro_x, micro_y = [], []
+    node_keys = list(sub_nodes.keys())
+    
+    # Kết nối lõi xương sống
+    micro_x.extend([sub_nodes[node_keys[0]][0], sub_nodes[node_keys[1]][0], None])
+    micro_y.extend([sub_nodes[node_keys[0]][1], sub_nodes[node_keys[1]][1], None])
+    micro_x.extend([sub_nodes[node_keys[1]][0], sub_nodes[node_keys[2]][0], None])
+    micro_y.extend([sub_nodes[node_keys[1]][1], sub_nodes[node_keys[2]][1], None])
+    
+    # Thuật toán liên kết chéo (Cross-industry Matrix Strands)
+    for i in range(3, len(node_keys)):
+        # Mỗi ngành nghề phụ phụ sẽ kéo dây nối chằng chịt về NHTW
+        micro_x.extend([sub_nodes[node_keys[i]][0], sub_nodes[node_keys[1]][0], None])
+        micro_y.extend([sub_nodes[node_keys[i]][1], sub_nodes[node_keys[1]][1], None])
+        
+        # Tạo kết nối đan chéo sang 2 ngành nghề ngẫu nhiên khác bên cạnh để tạo độ dày đặc như mạng nhện
+        for _ in range(2):
+            random_partner = np.random.choice(node_keys)
+            micro_x.extend([sub_nodes[node_keys[i]][0], sub_nodes[random_partner][0], None])
+            micro_y.extend([sub_nodes[node_keys[i]][1], sub_nodes[random_partner][1], None])
+
+    # Vẽ toàn bộ bó sợi mạch máu tiền tệ dày đặc vào 1 lớp trace duy nhất để tối ưu phần cứng
+    fig.add_trace(go.Scatter(
+        x=micro_x, y=micro_y, mode='lines',
+        line=dict(width=1.5, color=line_color),
+        opacity=micro_opacity * 0.7, hoverinfo='none'
+    ))
+    
+    # KÉO TUYẾN ĐẠI LỘ TỐI CAO: Chạy thẳng từ Mỹ (0,0) đâm xuyên không gian cắm vào cổng Gateway USD sở tại
+    gate_x, gate_y = sub_nodes["🌐 [GATEWAY] Cổng Thanh Khoản USD Quốc Tế"]
+    fig.add_trace(go.Scatter(
+        x=[usa_x, gate_x], y=[usa_y, gate_y], mode='lines',
+        line=dict(width=2.5, color=line_color, dash='dash'),
+        opacity=micro_opacity * 0.6, hoverinfo='none'
+    ))
+    
+    # Ghim các biểu tượng điểm thắt bừng sáng và bảng tên đa ngành
+    node_x_coords = [v[0] for v in sub_nodes.values()]
+    node_y_coords = [v[1] for v in sub_nodes.values()]
+    
+    fig.add_trace(go.Scatter(
+        x=node_x_coords, y=node_y_coords, mode='markers+text',
+        text=node_keys, textposition="top center",
+        marker=dict(size=8, color='#00FFCC', symbol='circle', line=dict(color='white', width=1)),
+        textfont=dict(size=9, color='#00FFCC'),
+        opacity=micro_opacity, hoverinfo='text'
+    ))
+
+# 4. ĐIỀU CHỈNH ỐNG KÍNH CAMERA THEO NẤC SLIDER
+if zoom_slider < 3.0:
+    x_range = [-115, 115]
+    y_range = [-95, 95]
+else:
+    factor = 1.0 / (zoom_slider - 1.9)
+    x_range = [t_x - 30 * factor, t_x + 30 * factor]
+    y_range = [t_y - 25 * factor, t_y + 25 * factor]
+
+# LAYOUT KHÔNG GIAN SỐ VÔ CỰC - NỀN ĐEN SÂU THẲM - CHỈ CÓ MẠNG LƯỚI ĐƯỜNG TIỀN
+fig.update_layout(
+    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=x_range),
+    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=y_range),
+    margin=dict(l=0, r=0, t=0, b=0), height=750,
+    plot_bgcolor='#050505', # Nền vũ trụ tối sâu thẳm giúp mạng lưới huyết mạch đường xá bằng tiền rực sáng neon
+    showlegend=False
+)
+
 st.plotly_chart(fig, use_container_width=True)
 
-# =============================================================================
-# 3. MA TRẬN BẢN CHẤT KINH TẾ ĐỒNG BỘ CHẶT CHẼ THEO CÁC CẤP BẬC THỰC TẾ
-# =============================================================================
+# 5. KHỐI MA TRẬN PHÂN TÍCH LOGIC KINH TẾ (ĐỒNG BỘ 100%)
 st.markdown("---")
 st.markdown("### 🧱 MA TRẬN BẢN CHẤT KINH TẾ VÀ ĐIỂM TRÚ ẨN CỦA CÁC LOẠI TÀI SẢN CHI TIẾT XUYÊN SUỐT CÁC CẤP")
-
-if is_usd_strong:
-    st.error("🚨 HỆ THỐNG CO CỤM PHÒNG THỦ TOÀN DIỆN (KHI USD MẠNH / LỰC HÚT VỐN VỀ MỸ)")
-    matrix_data = {
-        "Phân Cấp Bộ Máy Đa Ngành": ["Cấp 1: Toàn Cầu (195 Nước)", "Cấp 2: Ngân Hàng Trung Ương", "Cấp 3: Tập Đoàn Đa Ngành Lớn", "Cấp 4: Doanh Nghiệp Sản Xuất (SME)", "Cấp 5: Người Dân & Nhà Đầu Tư"],
-        "Bản Chất Dòng Tiền Đi Đâu?": [
-            "Thanh khoản bị hút cạn từ 195 nước, dòng tiền tháo chạy dọc theo chuỗi mạch máu dây màu ĐỎ hướng ngược về tâm dịch tài sản Hoa Kỳ.",
-            "Dòng vốn ngoại tệ USD chảy mạnh ra khỏi kho dự trữ quốc gia. NHTW buộc phải bán USD can thiệp bảo vệ tỷ giá hoặc nâng lãi suất nội tệ lên cao.",
-            "Dòng vốn tín dụng mạo hiểm quốc tế bị đóng van. Tập đoàn lớn thu hẹp kế hoạch mở rộng quy mô, dừng các dự án thâu tóm M&A.",
-            "Dòng vốn lưu động trong chuỗi cung ứng bị thắt nghẹt do sức mua thị trường sụt giảm mạnh và chi phí nhập khẩu máy móc tính bằng USD tăng cao.",
-            "Dòng tiền nhàn rỗi hoảng loạn tháo chạy hoàn toàn khỏi các kênh đầu cơ rủi ro cao (chứng khoán, bất động sản vùng ven) để đưa về thế thủ."
-        ],
-        "Tiêu Vào Đâu & Đầu Tư Vào Tài Sản Gì?": [
-            "**Đầu tư vào**: Trái phiếu Chính phủ Mỹ ngắn hạn, các tài khoản thanh toán tiền mặt định danh USD để hưởng lợi suất đỉnh cao.",
-            "**Tiêu vào**: Nghiệp vụ thị trường mở, bù đắp cán cân thanh toán quốc gia bị thiếu hụt do dòng vốn ngoại tháo lui.",
-            "**Đầu tư vào**: Tất toán trước hạn toàn bộ các khoản vay nợ trái phiếu bằng ngoại tệ USD (Deleveraging) để chặn đứng rủi ro lỗ tỷ giá.",
-            "**Tiêu vào**: Duy trì chi phí vận hành bộ máy tối thiểu, gửi tiền mặt dự phòng vào tài khoản tiết kiệm của hệ thống ngân hàng nhà nước.",
-            "**Đầu tư vào**: Nắm giữ tiền mặt phòng thủ tối đa, gửi tiết kiệm dài hạn hưởng mức lãi suất cao kỷ lục, mua bảo hiểm an toàn."
-        ]
-    }
-else:
-    st.success("🚀 HỆ THỐNG BUNG XÕA TẤN CÔNG & TRÚ ẨN LẠM PHÁT (KHI USD YẾU / TIỀN RẺ TRÀN RA THẾ GIỚI)")
-    matrix_data = {
-        "Phân Cấp Bộ Máy Đa Ngành": ["Cấp 1: Toàn Cầu (195 Nước)", "Cấp 2: Ngân Hàng Trung Ương", "Cấp 3: Tập Đoàn Đa Quốc Gia", "Cấp 4: Doanh Nghiệp Sản Xuất (SME)", "Cấp 5: Người Dân & Nhà Đầu Tư"],
-        "Bản Chất Dòng Tiền Đi Đâu?": [
-            "Dòng tiền rẻ từ Mỹ tràn ra khắp mạng lưới 195 nước (Chuỗi mạch máu dây màu XANH) đi săn tìm tỷ suất sinh lời cao tại các nước mới nổi.",
-            "Áp lực tỷ giá hạ nhiệt, kho dự trữ ngoại hối an toàn. NHTW lập tức hạ lãi suất cơ bản, bơm thanh khoản dồi dào kích thích tăng trưởng nội địa.",
-            "Nguồn vốn vay giá rẻ dồi dào giải tỏa áp lực tài chính. Các tập đoàn đa ngành bung tiền mở rộng các dự án hạ tầng lớn.",
-            "Dòng tiền luân chuyển mượt mà thông suốt trong chuỗi cung ứng nhờ chi phí sử dụng vốn cực thấp và sức mua tiêu dùng phục hồi mạnh mẽ.",
-            "Dòng vốn trong dân tăng vọt do lãi suất gửi tiết kiệm quá thấp, kích hoạt tâm lý lo sợ tiền giấy bốc hơi giá trị do áp lực lạm phát vĩ mô."
-        ],
-        "Tiêu Vào Đâu & Đầu Tư Vào Tài Sản Gì?": [
-            "**Đầu tư vào**: Thị trường hàng hóa vĩ mô (Dầu thô, Đồng), đặc biệt dòng tiền chảy mạnh về các nước có hầm dự trữ **VÀNG VẬT CHẤT** lớn.",
-            "**Tiêu vào**: Gom mua tích trữ thêm ngoại tệ USD giá rẻ vào kho dự trữ chiến lược, đẩy mạnh giải ngân vốn đầu tư công phát triển quốc gia.",
-            "**Đầu tư vào**: Thâu tóm dự án chiến lược (M&A), xây dựng chuỗi nhà máy đa quốc gia, mở rộng chuỗi cung ứng ngành lõi.",
-            "**Tiêu vào**: Gia tăng nhập khẩu nguyên vật liệu thiết bị giá rẻ, tối đa hóa công suất, gia tăng hàng tồn kho để chiếm lĩnh thị phần toàn diện.",
-            "**Đầu tư vào**: **VÀNG VẬT CHẤT** (tấm khiên bảo chứng tài sản tối hậu), **Cổ phiếu tăng trưởng** công nghệ, và **Bất động sản phân khúc lõi** trung tâm."
-        ]
-    }
-
-st.table(pd.DataFrame(matrix_data))
+col_l, col_r = st.columns(2)
+with col_l:
+    st.markdown("#### 🌍 Luồng Vốn Quốc Tế (Vĩ mô toàn cầu)")
+    if is_usd_strong: st.error("🚨 **USD MẠNH:** Lực hút kéo dòng tiền 195 nước chạy dọc theo chuỗi mạch máu màu **ĐỎ** rút ròng về tài sản gửi tại Mỹ.")
+    else: st.success("🌊 **USD YẾU:** Tiền rẻ bung xõa qua mạch máu màu **XANH** đổ dồn vào **VÀNG VẬT CHẤT** chống lạm phát mất giá tiền giấy.")
+with col_r:
+    st.markdown(f"#### 🎯 Hoạt Động Đa Ngành Vi Mô Tại: {target_country}")
+    if is_usd_strong: st.warning("🛡️ **Tài sản phòng thủ lên ngôi:** Các tập đoàn đa ngành ngừng vay nợ USD để tránh lỗ tỷ giá. Người dân rút tiền khỏi chứng khoán gửi tiết kiệm lãi suất cao.")
