@@ -1,57 +1,57 @@
 # charts.py
 import plotly.graph_objects as go
 import numpy as np
+import data_loader as dl
 
-def draw_google_maps_economic_engine(df_global, selected_country, line_color, locations_dict, edges_list):
+def draw_real_google_maps_engine(df_global, target_country_name, zoom_value, line_color):
     """
-    Xây dựng một bản đồ số động (Mapbox), tích hợp luồng chảy vĩ mô và vi mô.
-    Cho phép người dùng tương tác cuộn phóng giống hệt Google Maps.
+    Dựng bản đồ số thực tế bao phủ toàn bộ hơn 195 quốc gia.
+    Tự động hiển thị vi mô đa ngành tại chỗ khi camera Zoom sát.
     """
     fig = go.Figure()
 
-    # TÌNH HUỐNG 1: CHẾ ĐỘ CAMERA Ở XA (BẢN ĐỒ TOÀN CẦU)
-    if selected_country is None:
-        # Vẽ các chấm tròn quốc gia và hầm vàng lên nền Mapbox
+    # Tìm quốc gia đích để điều hướng camera
+    target_row = df_global[df_global['NAME'] == target_country_name].iloc
+    c_lat, c_lon = target_row['LAT'], target_row['LON']
+
+    # 1. LỚP ĐỒ HỌA VĨ MÔ (Hiển thị khi ở tầm nhìn xa: Zoom thấp)
+    if zoom_value < 3.5:
+        # Hiển thị các bong bóng hầm vàng bảo chứng tài sản của tất cả các quốc gia thế giới
         fig.add_trace(go.Scattermapbox(
             lat=df_global['LAT'], lon=df_global['LON'],
             mode='markers+text',
             text=df_global['NAME'],
-            customdata=df_global['NAME'], # Dùng để bắt sự kiện click chuột
-            marker=dict(size=np.log1p(df_global['Gold']) * 3 + 8, color='#FFD700', opacity=0.8),
-            hovertemplate="<b>%{text}</b><br>Quy mô kinh tế cao<br><extra></extra>"
+            marker=dict(size=np.log1p(df_global['Gold']) * 2.5 + 4, color='#FFD700', opacity=0.7),
+            hovertemplate="<b>%{text}</b><br>Trữ lượng vàng thực tế<extra></extra>"
         ))
 
-        # Kẻ các sợi dây mạch máu dòng tiền liên quốc gia hội tụ trực tiếp về Hoa Kỳ
-        usa_lat, usa_lon = 37.09, -95.71
+        # Kẻ sợi dây mạch máu dòng tiền vĩ mô từ khắp 195 quốc gia quy tụ về Mỹ
+        usa_lat, usa_lon = 37.0902, -95.7129
         for _, row in df_global.iterrows():
             if row['CODE'] != 'USA':
                 fig.add_trace(go.Scattermapbox(
                     lat=[row['LAT'], usa_lat], lon=[row['LON'], usa_lon],
-                    mode='lines', line=dict(width=2, color=line_color), opacity=0.4, hoverinfo='none'
+                    mode='lines', line=dict(width=1.5, color=line_color), opacity=0.3, hoverinfo='none'
                 ))
-        
-        # Thiết lập vị trí camera mặc định nhìn bao quát Trái Đất (Zoom level nhỏ)
-        mapbox_config = dict(style="open-street-map", center=dict(lat=20.0, lon=0.0), zoom=1.2)
 
-    # TÌNH HUỐNG 2: CHẾ ĐỘ CAMERA CẬN CẢNH (ZOOM IN VÀO ĐỊA ĐIỂM THỰC TẾ)
+    # 2. LỚP ĐỒ HỌA VI MÔ (Tự động kích hoạt bừng sáng đè lên bản đồ khi Zoom sát vào đất nước)
     else:
-        # Tìm tọa độ gốc của nước được click để ghim camera tại chỗ
-        target = df_global[df_global['NAME'] == selected_country].iloc
-        c_lat, c_lon = target['LAT'], target['LON']
+        # Gọi thuật toán sinh tọa độ đa ngành rải rác xung quanh nước được chọn
+        locations, edges = dl.generate_dynamic_micro_hierarchy(target_country_name, c_lat, c_lon)
 
-        # Lớp 1: Vẽ mạch máu dòng tiền vi mô kết nối xuyên suốt các địa điểm bằng sợi dây (Xanh/Đỏ)
-        for edge in edges_list:
-            lat0, lon0 = locations_dict[edge]
-            lat1, lon1 = locations_dict[edge]
+        # Vẽ chuỗi sợi dây mạch máu kết nối đa ngành (Xanh/Đỏ tùy trạng thái USD) tại các địa điểm thực tế
+        for edge in edges:
+            lat0, lon0 = locations[edge]
+            lat1, lon1 = locations[edge]
             fig.add_trace(go.Scattermapbox(
                 lat=[lat0, lat1], lon=[lon0, lon1],
-                mode='lines', line=dict(width=3.5, color=line_color), opacity=0.8, hoverinfo='none'
+                mode='lines', line=dict(width=3.5, color=line_color), opacity=0.9, hoverinfo='none'
             ))
 
-        # Lớp 2: Ghim các biểu tượng địa điểm đa ngành và các loại tài sản thực tế lên bản đồ vệ tinh đường phố
-        node_lats = [v[0] for v in locations_dict.values()]
-        node_lons = [v[1] for v in locations_dict.values()]
-        node_labels = list(locations_dict.keys())
+        # Ghim các điểm nút đại diện cho Tập đoàn, Nhà đầu tư và các loại tài sản thực tế
+        node_lats = [v for v in locations.values()]
+        node_lons = [v for v in locations.values()]
+        node_labels = list(locations.keys())
 
         fig.add_trace(go.Scattermapbox(
             lat=node_lats, lon=node_lons,
@@ -62,16 +62,13 @@ def draw_google_maps_economic_engine(df_global, selected_country, line_color, lo
             hoverinfo='text'
         ))
 
-        # Thiết lập camera PHÓNG TO SÁT VÀO CÁC ĐỊA ĐIỂM THÀNH PHỐ THỰC TẾ (Mô phỏng y hệt Google Maps)
-        mapbox_config = dict(
-            style="open-street-map", # Giao diện bản đồ số chi tiết đường sá, địa danh
-            center=dict(lat=c_lat, lon=c_lon), # Khóa tâm camera tại tọa độ quốc gia chọn
-            zoom=4.8 # Tiêu cự phóng to nhìn thấy rõ các tỉnh thành rải rác
-        )
-
-    # Đẩy layout cấu hình tối ưu tương thích tuyệt đối cho Python 3.14 trên Streamlit Cloud
+    # CẤU HÌNH CAMERA ĐIỀU PHỐI ĐỘ CAO THEO ĐÚNG ĐỘ ZOOM NGƯỜI DÙNG CHỌN (STYLE GOOGLE MAPS)
     fig.update_layout(
-        mapbox=mapbox_config,
+        mapbox=dict(
+            style="open-street-map", # Hiện chi tiết đường sá, địa danh thực tế thế giới
+            center=dict(lat=c_lat, lon=c_lon),
+            zoom=zoom_value # Nhận giá trị Zoom trực tiếp từ thanh trượt vật lý
+        ),
         margin=dict(l=0, r=0, t=0, b=0), height=700, showlegend=False
     )
     return fig
