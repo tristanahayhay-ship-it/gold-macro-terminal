@@ -4,14 +4,16 @@ import numpy as np
 import plotly.express as px
 
 def load_economic_database():
-    """Tự động lấy toàn bộ danh sách hơn 195 quốc gia/vùng lãnh thổ thực tế từ thư viện hệ thống"""
-    # Lấy danh sách code ISO thực tế của thế giới từ Plotly Express
+    """Tự động lấy danh sách hơn 195 nước thực tế và đồng bộ tên tiếng Việt chuẩn"""
     df_iso = px.data.gapminder().query("year == 2007")[['iso_alpha', 'country']].drop_duplicates()
     
-    # Tạo danh sách dữ liệu vĩ mô thực tế cho toàn bộ hơn 195 nước
-    countries_factory = []
+    # Từ điển dịch tên các quốc gia chính sang tiếng Việt để tránh lỗi tìm kiếm index
+    translate_dict = {
+        'USA': 'Hoa Kỳ', 'VNM': 'Việt Nam', 'CHN': 'Trung Quốc', 'JPN': 'Nhật Bản', 
+        'DEU': 'Đức', 'GBR': 'Anh Quốc', 'FRA': 'Pháp', 'IND': 'Ấn Độ', 
+        'BRA': 'Brazil', 'AUS': 'Australia', 'CAN': 'Canada', 'RUS': 'Nga'
+    }
     
-    # Tọa độ mẫu của một số nước chính để neo giữ luồng tiền chính xác, các nước còn lại tự động phân bổ địa lý
     fixed_coords = {
         'USA': [37.0902, -95.7129], 'VNM': [14.0583, 108.2772], 'CHN': [35.8617, 104.1954],
         'JPN': [36.2048, 138.2529], 'DEU': [51.1657, 10.4515], 'GBR': [55.3781, -3.4360],
@@ -19,19 +21,20 @@ def load_economic_database():
         'AUS': [-25.2744, 133.7751], 'CAN': [56.1304, -106.3468], 'RUS': [61.5240, 105.3188]
     }
     
+    countries_factory = []
     for _, row in df_iso.iterrows():
         code = row['iso_alpha']
-        name = row['country']
+        english_name = row['country']
         
-        # Lấy tọa độ thực tế hoặc giả lập tương đối theo khu vực địa lý
+        # Nếu có trong từ điển thì dịch sang tiếng Việt, nếu không thì giữ tên tiếng Anh hệ thống
+        vietnamese_name = translate_dict.get(code, english_name)
+        
         if code in fixed_coords:
             lat, lon = fixed_coords[code]
         else:
-            # Tự động rải tọa độ ngẫu nhiên bao phủ bề mặt trái đất cho các nước còn lại
             lat = np.random.uniform(-35, 55)
             lon = np.random.uniform(-90, 120)
             
-        # Logic phân bổ kinh tế và dự trữ Vàng
         if code == 'USA':
             gdp = 98; gold = 8133
         elif code == 'DEU':
@@ -43,16 +46,13 @@ def load_economic_database():
             gold = np.random.randint(5, 400)
             
         countries_factory.append({
-            'CODE': code, 'NAME': name, 'GDP': gdp, 'Gold': gold, 'LAT': lat, 'LON': lon
+            'CODE': code, 'NAME': vietnamese_name, 'GDP': gdp, 'Gold': gold, 'LAT': lat, 'LON': lon
         })
         
     return pd.DataFrame(countries_factory)
 
 def generate_dynamic_micro_hierarchy(country_name, c_lat, c_lon):
-    """
-    Tự động sinh ra cấu trúc mạng lưới vi mô đa ngành và các loại tài sản thực tế
-    rải rác xung quanh tọa độ trung tâm của BẤT KỲ quốc gia nào khi được Zoom vào.
-    """
+    """Tự động sinh mạng lưới vi mô đa ngành khi phóng to camera vào ranh giới địa lý"""
     locations = {
         f"🌐 [CỔNG USD] Trung tâm ngoại hối {country_name}": [c_lat + 1.2, c_lon + 1.2],
         f"🏛️ [NHTW] Điều phối vốn {country_name}": [c_lat, c_lon],
