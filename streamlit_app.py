@@ -4,20 +4,22 @@ import data_loader as dl
 import charts as cr
 import pandas as pd
 
-st.set_page_config(page_title="Vũ Trụ Đường Xá Tiền Tệ Toàn Cầu", layout="wide")
+# Cấu hình diện tích hiển thị co giãn tối đa toàn màn hình
+st.set_page_config(page_title="Hệ Thống Dòng Tiền Địa Lý Toàn Cầu", layout="wide")
 
 st.markdown("""
     <style>
     .reportview-container .main .block-container{ max-width: 100%; padding-top: 1rem; }
-    h1, h3 { text-align: center; color: #FFFFFF; }
-    body { background-color: #111111; }
+    h1, h3 { text-align: center; }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🗺️ BẢN ĐỒ MẠNG LƯỚI ĐƯỜNG XÁ KINH TẾ ĐA NGÀNH TƯƠNG QUAN USD")
-st.caption("Mô phỏng dòng chảy tài sản vô cấp. Tắt bỏ hoàn toàn đường sá địa lý vật lý thô sơ - Thay thế bằng hệ thống đường xá bằng tiền tệ dày đặc quy tụ về USD.")
+st.caption("Hệ thống đồng bộ ranh giới địa lý 195 quốc gia. Xóa bỏ hoàn toàn đường sá giao thông thô sơ, thay thế bằng mạch máu tài sản chằng chịt tại chỗ.")
 
-# 1. TRUNG TÂM ĐIỀU KHIỂN TRÊN TRANG CHÍNH
+# =============================================================================
+# 1. TRUNG TÂM ĐIỀU KHIỂN VĨ MÔ TRÊN TRANG CHÍNH
+# =============================================================================
 col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
 
 with col_ctrl1:
@@ -27,35 +29,40 @@ with col_ctrl1:
         default="USD MẠNH LÊN (Màu Đỏ) 📈"
     )
     is_usd_strong = "MẠNH" in usd_mode
-    line_color = "#FF4B4B" if is_usd_strong else "#00D46A"
+    line_color = "#FF4B4B" if is_usd_strong else "#00D46A" # Đỏ thắt chặt phòng thủ / Xanh nới lỏng tấn công
 
-# Tải cơ sở dữ liệu vĩ mô liên kết 195 quốc gia thực tế
+# Tải cơ sở dữ liệu vĩ mô liên kết tọa độ Kinh/Vĩ độ thực tế của 195 nước thế giới
 df_global = dl.load_unified_financial_database()
 name_list = df_global['NAME'].tolist()
 
 with col_ctrl2:
+    # Định vị mặc định an toàn chống sập ứng dụng nếu không tìm thấy chữ
     default_index = name_list.index("Việt Nam") if "Việt Nam" in name_list else 0
-    target_country = st.selectbox("🔍 Chọn quốc gia mục tiêu phóng camera:", name_list, index=default_index)
+    target_country = st.selectbox("🔍 Chọn quốc gia mục tiêu ống kính:", name_list, index=default_index)
 
 with col_ctrl3:
     # THANH TRƯỢT TIÊU CỰ KÍNH HIỂN VI VÔ CẤP LŨY TIẾN MÔ PHỎNG SỰ TIẾN HÓA CỦA GOOGLE EARTH
     zoom_slider = st.slider(
         "🔍 Tiêu cự Kính hiển vi (Zoom Level):", 
-        min_value=1.0, max_value=10.0, value=1.0, step=0.1,
-        help="Nấc càng lớn camera lao sát đất bừng sáng hệ thống đại lộ tài sản chằng chịt, đan chéo chéo mạch."
+        min_value=1.0, max_value=12.0, value=1.0, step=0.1,
+        help="Nấc càng lớn camera lao sát đất bừng sáng hệ thống đại lộ tài sản chằng chịt, đan chéo chéo mạch ngay trên đất nước."
     )
 
+# Kích hoạt thanh thông báo động dựa trên cao độ ống kính camera
 if zoom_slider >= 3.5:
-    st.success(f"🔬 KÍNH HIỂN VI VI MÔ ĐÃ KÍCH HOẠT: Đang phóng sát bừng sáng hệ thống đường xá bằng tiền tệ chằng chịt, đa ngành đan chéo quy tụ về USD tại {target_country}.")
+    st.success(f"🔬 KÍNH HIỂN VI VI MÔ ĐÃ KÍCH HOẠT: Toàn bộ đường sá giao thông biến mất, bừng sáng mạng lưới đường xá tiền tệ đa ngành đan chéo chằng chịt tại {target_country}.")
 else:
-    st.info("🌌 TẦNG KHÍ QUYỂN VĨ MÔ: Bản đồ bao quát mạng lưới liên kết luồng vốn của hơn 195 quốc gia chảy về tâm dịch Hoa Kỳ.")
+    st.info("🌌 TẦNG KHÍ QUYỂN VĨ MÔ: Bản đồ bao quát ranh giới địa lý thực tế của hơn 195 quốc gia kết nối mạch máu luồng vốn xuyên đại dương về Mỹ.")
 
-# 2. RENDERING BẢN ĐỒ SỐ KHÔNG GIAN TIỀN TỆ ĐỘC BẢN
-fig = cr.draw_financial_universe_canvas(df_global, target_country, zoom_slider, line_color)
+# =============================================================================
+# 2. RENDERING ĐỒ HỌA: ĐỒNG BỘ TÊN HÀM CHUẨN XÁC VỚI FILE CHARTS.PY
+# =============================================================================
+# SỬA LỖI ATTRIBUTERROR: Thay thế draw_financial_universe_canvas bằng draw_unified_mapbox_engine
+fig = cr.draw_unified_mapbox_engine(df_global, target_country, zoom_slider, line_color)
 st.plotly_chart(fig, use_container_width=True)
 
 # =============================================================================
-# MA TRẬN BẢN CHẤT KINH TẾ ĐỒNG BỘ CHẶT CHẼ THEO CÁC CẤP BẬC THỰC TẾ
+# 3. MA TRẬN BẢN CHẤT KINH TẾ ĐỒNG BỘ CHẶT CHẼ THEO CÁC CẤP BẬC THỰC TẾ
 # =============================================================================
 st.markdown("---")
 st.markdown("### 🧱 MA TRẬN BẢN CHẤT KINH TẾ VÀ ĐIỂM TRÚ ẨN CỦA CÁC LOẠI TÀI SẢN CHI TIẾT XUYÊN SUỐT CÁC CẤP")
