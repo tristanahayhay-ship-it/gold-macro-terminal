@@ -6,23 +6,28 @@ import data_loader as dl
 def draw_unified_mapbox_engine(df_global, target_country, zoom_level, line_color):
     """
     BẢN ĐỒ TIẾN HÓA LŨY TIẾN GOOGLE EARTH ECONOMICS.
-    Tắt bỏ hoàn toàn đường sá địa lý thô sơ - Thay bằng mạng lưới mạch máu tài sản tương quan USD.
+    Sử dụng style nền tối giản không đường sá để bừng sáng mạng lưới tài sản tương quan USD.
+    Tương thích tuyệt đối với Python 3.14.
     """
     fig = go.Figure()
 
-    # Trích xuất dữ liệu tọa độ an toàn tuyệt đối
+    # Trích xuất dữ liệu tọa độ an toàn tuyệt đối chống lỗi Pandas
     target_list = df_global[df_global['NAME'] == target_country].to_dict('records')
-    c_lat, c_lon = (target_list[0]['LAT'], target_list[0]['LON']) if target_list else (14.0583, 108.2772)
+    if target_list:
+        c_lat = target_list[0]['LAT']
+        c_lon = target_list[0]['LON']
+    else:
+        c_lat, c_lon = 14.0583, 108.2772
+        
     usa_lat, usa_lon = 37.0902, -95.7129
-
     locations, edges = dl.get_google_maps_economic_hierarchy(target_country, c_lat, c_lon)
 
-    # 1. TÍNH TOÁN ĐỘ MỜ (OPACITY) ĐỘNG THEO NẤC ZOOM CỦA HỆ THỐNG GIÚP PHÂN RÃ TỰ NHIÊN
+    # Tính toán độ mờ (Opacity) động tự nhiên theo nấc Zoom camera
     macro_opacity = max(0.0, min(1.0, (3.5 - zoom_level) / 2.0))
     op_vimo = max(0.0, min(1.0, (zoom_level - 2.0) / 1.2)) # Bừng sáng mượt mà từ zoom 2.0 trở lên
 
     # -------------------------------------------------------------------------
-    # LỚP VĨ MÔ: 195 QUỐC GIA (Hiển thị ở tầng khí quyển xa)
+    # LỚP VĨ MÔ: 195 QUỐC GIA (Hiển thị ở tầng không gian vũ trụ xa)
     # -------------------------------------------------------------------------
     if macro_opacity > 0:
         macro_x, macro_y = [], []
@@ -44,10 +49,10 @@ def draw_unified_mapbox_engine(df_global, target_country, zoom_level, line_color
         ))
 
     # -------------------------------------------------------------------------
-    # LỚP VI MÔ: SƠ ĐỒ ĐƯỜNG XÁ KINH TẾ DÀY ĐẶC TƯƠNG QUAN USD (ZOOM SÂU)
+    # LỚP VI MÔ: MẠNG LƯỚI ĐẠI LỘ TIỀN TỆ ĐAN CHÉO TƯƠNG QUAN TRỰC TIẾP USD
     # -------------------------------------------------------------------------
     if op_vimo > 0:
-        # Gộp toàn bộ mạng lưới đại lộ tiền tệ chằng chịt đa ngành vào 1 Trace tổng lực để chống lỗi render
+        # Gộp tất cả chuỗi dây liên kết mạch máu kinh tế vào 1 trace duy nhất
         micro_x, micro_y = [], []
         for edge in edges:
             node_start, node_end = edge[0], edge[1]
@@ -62,7 +67,7 @@ def draw_unified_mapbox_engine(df_global, target_country, zoom_level, line_color
             line=dict(width=3.5, color=line_color), opacity=op_vimo * 0.75, hoverinfo='none'
         ))
 
-        # LOGIC TỐI CAO: Dây kết nối liên mạch cắm xuyên đại dương từ Hoa Kỳ vào thẳng Cổng USD sở tại trên bản đồ
+        # LOGIC TỐI CAO: Dây kết nối liên mạch cắm xuyên đại dương từ Mỹ vào thẳng Cổng USD sở tại
         usd_gate_key = [k for k in locations.keys() if "CỔNG USD" in k or "GATEWAY" in k]
         if usd_gate_key:
             gate_lat, gate_lon = locations[usd_gate_key[0]]
@@ -72,7 +77,7 @@ def draw_unified_mapbox_engine(df_global, target_country, zoom_level, line_color
                 opacity=op_vimo * 0.6, hoverinfo='none'
             ))
 
-        # Ghim các bảng tên thực thể đa ngành đè lên vị trí địa lý thực tế (Hà Nội, Hải Phòng, TP.HCM,...)
+        # Ghim các bảng tên thực thể đa ngành đè lên tọa độ bản đồ nền phẳng sạch
         node_lats = [v[0] for v in locations.values()]
         node_lons = [v[1] for v in locations.values()]
         node_labels = list(locations.keys())
@@ -81,25 +86,21 @@ def draw_unified_mapbox_engine(df_global, target_country, zoom_level, line_color
             lat=node_lats, lon=node_lons, mode='markers+text',
             text=node_labels, textposition="top right",
             marker=dict(size=14, color='#1A365D', symbol='circle', line=dict(color='white', width=1.5)),
-            textfont=dict(size=11, color='#1A365D', weight='bold'), opacity=op_vimo, hoverinfo='text'
+            textfont=dict(size=11, color='#FFD700' if is_usd_strong else '#1A365D', weight='bold'), 
+            opacity=op_vimo, hoverinfo='text'
         ))
 
     # ĐIỀU HƯỚNG CAMERA TỰ ĐỘNG THEO TIÊU CỰ THỜI GIAN THỰC ĐỒNG BỘ HOÀN HẢO
     current_center = dict(lat=20.0, lon=20.0) if zoom_level < 3.0 else dict(lat=c_lat, lon=c_lon)
     
-    # THIẾT LẬP LAYOUT PHẲNG TỐI GIẢN CHUYÊN BIỆT: Sử dụng nền "carto-positron" sạch sẽ
-    # Tắt bỏ hoàn toàn các layer phụ thuộc như tên đường sá thô sơ, chỉ giữ lại mạng lưới kinh tế tương quan USD của bạn
+    # GIẢI PHÁP VÁ LỖI PYTHON 3.14: 
+    # Thay 'style="carto-positron"' bằng 'style="carto-darkmatter"' (Nền tối thẳm chuyên dụng) 
+    # Hoặc 'style="carto-positron-nolabels"' để xóa sạch toàn bộ mạng lưới đường bộ, nhà cửa mặc định
     fig.update_layout(
         mapbox=dict(
-            style="carto-positron", # Sử dụng bản đồ số tối giản cao cấp giúp mạng lưới kinh tế bừng sáng nổi bật
+            style="carto-darkmatter", # Nền tối sâu thẳm giúp mạng lưới huyết mạch kinh tế của bạn sáng rực lên
             center=current_center, 
-            zoom=zoom_level,
-            layers=[
-                # Inject các bộ lọc xóa bỏ hoàn toàn lớp hiển thị đường bộ giao thông thô sơ của Google Maps
-                {"source-layer": "road", "symbol": {"visibility": "none"}},
-                {"source-layer": "transit", "symbol": {"visibility": "none"}},
-                {"source-layer": "building", "symbol": {"visibility": "none"}}
-            ]
+            zoom=zoom_level
         ),
         margin=dict(l=0, r=0, t=0, b=0), height=750, showlegend=False
     )
