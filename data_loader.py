@@ -4,7 +4,7 @@ import numpy as np
 import plotly.express as px
 
 def load_economic_database():
-    """Tự động lấy toàn bộ danh sách 195 quốc gia thực tế từ dữ liệu ISO hệ thống"""
+    """Tự động lấy danh sách 195 quốc gia thực tế từ dữ liệu ISO hệ thống"""
     df_iso = px.data.gapminder().query("year == 2007")[['iso_alpha', 'country']].drop_duplicates()
     
     translate_dict = {
@@ -34,43 +34,83 @@ def load_economic_database():
     return pd.DataFrame(countries_factory)
 
 def get_google_maps_economic_hierarchy(country_name, c_lat, c_lon):
-    """Thiết lập các địa điểm tài sản đa ngành chính xác trên nền địa lý thực tế đất nước"""
+    """
+    Xây dựng MẠNG LƯỚI ĐƯỜNG XÁ KINH TẾ DÀY ĐẶC (Đa địa điểm, đa ngành, đa loại tài sản).
+    Các tuyến đường liên kết chạy chéo đan xen liên hoàn tương quan trực tiếp đến USD.
+    """
     if country_name == "Việt Nam":
+        # Hệ thống hạ tầng địa điểm đa ngành dày đặc bao phủ toàn dải địa lý
         locations = {
-            "🌐 [CỔNG USD QUỐC TẾ] Trung tâm thanh khoản ngoại hối vĩ mô (Quận 1)": [10.7756, 106.7019],
-            "🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Hoàn Kiếm, Hà Nội)": [21.0285, 105.8542],
-            "🏙️ [TẬP ĐOÀN ĐA NGÀNH] Bất động sản phân khúc trung tâm lõi (TP.HCM)": [10.7770, 106.6950],
-            "🏭 [TẬP ĐOÀN CÔNG NGHIỆP] Tổ hợp sản xuất công nghiệp nặng (Hải Phòng)": [20.8650, 106.6830],
-            "🔌 [TẬP ĐOÀN CÔNG NGHỆ] Chuỗi sản xuất linh kiện điện tử (Bắc Ninh)": [21.1400, 106.0600],
-            "📦 [DOANH NGHIỆP SME] Nhà máy sản xuất & Chuỗi cung ứng (Hải Dương)": [20.9496, 106.3315],
-            "👑 [TÀI SẢN TRÚ ẨN] Hầm bảo chứng dự trữ VÀNG VẬT CHẤT quốc gia (Hà Nội)": [21.0333, 105.8000],
-            "📈 [TÀI SẢN TẤN CÔNG] Sàn giao dịch tài sản & Quỹ đầu tư mạo hiểm (Q3)": [10.7825, 106.6926],
-            "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Hộ dân cư & Nguồn dòng tiền nhàn rỗi (Vĩnh Long)": [10.2541, 105.9592]
-        }
-    else:
-        # Tự động rải tọa độ khoa học bao quanh tâm địa lý cho tất cả các nước khác
-        locations = {
-            "🌐 [CỔNG USD QUỐC TẾ] Trung tâm thanh khoản ngoại hối vĩ mô": [c_lat + 0.5, c_lon + 0.5],
-            "🏛️ [NHTW] Cơ quan điều phối mạch máu vốn quốc gia": [c_lat, c_lon],
-            "🏙️ [TẬP ĐOÀN ĐA NGÀNH] Bất động sản phân khúc trung tâm lõi": [c_lat + 0.3, c_lon - 0.4],
-            "🏭 [TẬP ĐOÀN CÔNG NGHIỆP] Tổ hợp sản xuất kinh doanh cốt lõi": [c_lat - 0.3, c_lon + 0.4],
-            "📦 [DOANH NGHIỆP SME] Nhà máy sản xuất hàng hóa nội địa": [c_lat + 0.1, c_lon + 0.2],
-            "👑 [TÀI SẢN TRÚ ẨN] Kho bảo chứng dự trữ VÀNG quốc gia": [c_lat + 0.2, c_lon - 0.2],
-            "📈 [TÀI SẢN TẤN CÔNG] Thị trường chứng khoán & Quỹ đầu tư": [c_lat - 0.2, c_lon - 0.3],
-            "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Người dân & Nguồn vốn cư dân nền": [c_lat - 0.5, c_lon]
+            # --- TRẠM ĐIỀU PHỐI VÀ CỔNG TRUNG CHUYỂN USD ---
+            "🌐 [GATEWAY] Cổng thanh khoản USD quốc tế (Trung tâm Quận 1, TP.HCM)": [10.7756, 106.7019],
+            "🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Trung tâm điều hành vốn vĩ mô - Hà Nội)": [21.0285, 105.8542],
+            
+            # --- KHỐI TÀI SẢN PHÒNG THỦ & TRÚ ẨN LẠM PHÁT ---
+            "👑 [GOLD RESERVES] Hầm dự trữ VÀNG VẬT CHẤT quốc gia (Ba Đình, Hà Nội)": [21.0333, 105.8000],
+            "💵 [CASH TREASURY] Kho dự trữ ngoại hối USD phòng thủ (Hoàn Kiếm, Hà Nội)": [21.0295, 105.8500],
+            "📜 [GOVT BONDS] Tổng kho phát hành Trái phiếu chính phủ an toàn (Hà Nội)": [21.0400, 105.8300],
+            
+            # --- KHỐI TẬP ĐOÀN ĐA NGÀNH XƯƠNG SỐNG ---
+            "🏙️ [REAL ESTATE CORE] Tập đoàn Bất động sản phân khúc trung tâm lõi (TP.HCM)": [10.7770, 106.6950],
+            "🏭 [HEAVY INDUSTRY] Tổ hợp sản xuất công nghiệp nặng và logistics (Hải Phòng)": [20.8650, 106.6830],
+            "🔌 [HIGH-TECH ZONE] Chuỗi nhà máy sản xuất linh kiện vi mạch điện tử (Bắc Ninh)": [21.1400, 106.0600],
+            "🛢️ [COMMODITIES ENGINES] Tập đoàn năng lượng, khai thác khoáng sản dầu thô": [16.0544, 108.2022], # Đà Nẵng
+            
+            # --- KHỐI TÀI SẢN TẤN CÔNG & CHUỖI CUNG ỨNG SME ---
+            "📈 [GROWTH STOCKS] Sàn giao dịch tài sản rủi ro & Quỹ mạo hiểm (Q3, TP.HCM)": [10.7825, 106.6926],
+            "📦 [SME SUPPLY CHAIN] Chuỗi cung ứng logistic doanh nghiệp sản xuất lõi": [20.9496, 106.3315], # Hải Dương
+            
+            # --- KHỐI NHÀ ĐẦU TƯ & DÂN CƯ NỀN ---
+            "👥 [RETAIL INVESTORS] Khối nhà đầu tư cá nhân khu vực miền Bắc": [20.9800, 105.7800], # Hà Đông
+            "👥 [RETAIL INVESTORS] Khối nhà đầu tư cá nhân khu vực miền Trung": [16.4600, 107.5900], # Huế
+            "👥 [RETAIL INVESTORS] Khối nhà đầu tư cá nhân khu vực miền Nam": [10.2541, 105.9592]  # Vĩnh Long
         }
         
-    edges = [
-        ("🌐 [CỔNG USD QUỐC TẾ] Trung tâm thanh khoản ngoại hối vĩ mô (Quận 1)" if country_name == "Việt Nam" else "🌐 [CỔNG USD QUỐC TẾ] Trung tâm thanh khoản ngoại hối vĩ mô", "🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Hoàn Kiếm, Hà Nội)" if country_name == "Việt Nam" else "🏛️ [NHTW] Cơ quan quản lý mạch máu vốn quốc gia"),
-        ("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Hoàn Kiếm, Hà Nội)" if country_name == "Việt Nam" else "🏛️ [NHTW] Cơ quan quản lý mạch máu vốn quốc gia", "🏙️ [TẬP ĐOÀN ĐA NGÀNH] Bất động sản phân khúc trung tâm lõi (TP.HCM)" if country_name == "Việt Nam" else "🏙️ [TẬP ĐOÀN ĐA NGÀNH] Bất động sản phân khúc trung tâm lõi"),
-        ("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Hoàn Kiếm, Hà Nội)" if country_name == "Việt Nam" else "🏛️ [NHTW] Cơ quan quản lý mạch máu vốn quốc gia", "🏭 [TẬP ĐOÀN CÔNG NGHIỆP] Tổ hợp sản xuất công nghiệp nặng (Hải Phòng)" if country_name == "Việt Nam" else "🏭 [TẬP ĐOÀN CÔNG NGHIỆP] Tổ hợp sản xuất kinh doanh cốt lõi"),
-        ("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Hoàn Kiếm, Hà Nội)" if country_name == "Việt Nam" else "🏛️ [NHTW] Cơ quan quản lý mạch máu vốn quốc gia", "👑 [TÀI SẢN TRÚ ẨN] Hầm bảo chứng dự trữ VÀNG VẬT CHẤT quốc gia (Hà Nội)" if country_name == "Việt Nam" else "👑 [TÀI SẢN TRÚ ẨN] Kho bảo chứng dự trữ VÀNG quốc gia"),
-        ("🏙️ [TẬP ĐOÀN ĐA NGÀNH] Bất động sản phân khúc trung tâm lõi (TP.HCM)" if country_name == "Việt Nam" else "🏙️ [TẬP ĐOÀN ĐA NGÀNH] Bất động sản phân khúc trung tâm lõi", "📈 [TÀI SẢN TẤN CÔNG] Sàn giao dịch tài sản & Quỹ đầu tư mạo hiểm (Q3)" if country_name == "Việt Nam" else "📈 [TÀI SẢN TẤN CÔNG] Thị trường chứng khoán & Quỹ đầu tư"),
-        ("📦 [DOANH EXP SME] Nhà máy sản xuất & Chuỗi cung ứng (Hải Dương)" if country_name == "Việt Nam" else "📦 [DOANH NGHIỆP SME] Nhà máy sản xuất hàng hóa nội địa", "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Hộ dân cư & Nguồn dòng tiền nhàn rỗi (Vĩnh Long)" if country_name == "Việt Nam" else "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Người dân & Nguồn vốn cư dân nền"),
-        ("📈 [TÀI SẢN TẤN CÔNG] Sàn giao dịch tài sản & Quỹ đầu tư mạo hiểm (Q3)" if country_name == "Việt Nam" else "📈 [TÀI SẢN TẤN CÔNG] Thị trường chứng khoán & Quỹ đầu tư", "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Hộ dân cư & Nguồn dòng tiền nhàn rỗi (Vĩnh Long)" if country_name == "Việt Nam" else "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Người dân & Nguồn vốn cư dân nền"),
-        ("👑 [TÀI SẢN TRÚ ẨN] Hầm bảo chứng dự trữ VÀNG VẬT CHẤT quốc gia (Hà Nội)" if country_name == "Việt Nam" else "👑 [TÀI SẢN TRÚ ẨN] Kho bảo chứng dự trữ VÀNG quốc gia", "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Hộ dân cư & Nguồn dòng tiền nhàn rỗi (Vĩnh Long)" if country_name == "Việt Nam" else "👥 [NHÀ ĐẦU TƯ CÁ NHÂN] Người dân & Nguồn vốn cư dân nền")
-    ]
-    if country_name == "Việt Nam":
-        edges.append(("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Hoàn Kiếm, Hà Nội)", "🔌 [TẬP ĐOÀN CÔNG NGHỆ] Chuỗi sản xuất linh kiện điện tử (Bắc Ninh)"))
-        edges.append(("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Hoàn Kiếm, Hà Nội)", "📦 [DOANH NGHIỆP SME] Nhà máy sản xuất & Chuỗi cung ứng (Hải Dương)"))
+        # MẠNG LƯỚI ĐƯỜNG XÁ TIỀN TỆ DÀY ĐẶC ĐAN CHÉO LIÊN HOÀN
+        edges = [
+            ("🌐 [GATEWAY] Cổng thanh khoản USD quốc tế (Trung tâm Quận 1, TP.HCM)", "🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Trung tâm điều hành vốn vĩ mô - Hà Nội)"),
+            ("🌐 [GATEWAY] Cổng thanh khoản USD quốc tế (Trung tâm Quận 1, TP.HCM)", "💵 [CASH TREASURY] Kho dự trữ ngoại hối USD phòng thủ (Hoàn Kiếm, Hà Nội)"),
+            ("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Trung tâm điều hành vốn vĩ mô - Hà Nội)", "👑 [GOLD RESERVES] Hầm dự trữ VÀNG VẬT CHẤT quốc gia (Ba Đình, Hà Nội)"),
+            ("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Trung tâm điều hành vốn vĩ mô - Hà Nội)", "📜 [GOVT BONDS] Tổng kho phát hành Trái phiếu chính phủ an toàn (Hà Nội)"),
+            ("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Trung tâm điều hành vốn vĩ mô - Hà Nội)", "🏙️ [REAL ESTATE CORE] Tập đoàn Bất động sản phân khúc trung tâm lõi (TP.HCM)"),
+            ("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Trung tâm điều hành vốn vĩ mô - Hà Nội)", "🏭 [HEAVY INDUSTRY] Tổ hợp sản xuất công nghiệp nặng và logistics (Hải Phòng)"),
+            ("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Trung tâm điều hành vốn vĩ mô - Hà Nội)", "🔌 [HIGH-TECH ZONE] Chuỗi nhà máy sản xuất linh kiện vi mạch điện tử (Bắc Ninh)"),
+            ("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Trung tâm điều hành vốn vĩ mô - Hà Nội)", "🛢️ [COMMODITIES ENGINES] Tập đoàn năng lượng, khai thác khoáng sản dầu thô"),
+            ("🏛️ [NHTW] Ngân hàng Nhà nước Việt Nam (Trung tâm điều hành vốn vĩ mô - Hà Nội)", "📦 [SME SUPPLY CHAIN] Chuỗi cung ứng logistic doanh nghiệp sản xuất lõi"),
+            
+            # Đường sá kết nối chằng chịt giữa doanh nghiệp, tài sản đầu tư và dân cư
+            ("🏙️ [REAL ESTATE CORE] Tập đoàn Bất động sản phân khúc trung tâm lõi (TP.HCM)", "📈 [GROWTH STOCKS] Sàn giao dịch tài sản rủi ro & Quỹ mạo hiểm (Q3, TP.HCM)"),
+            ("🛢️ [COMMODITIES ENGINES] Tập đoàn năng lượng, khai thác khoáng sản dầu thô", "🏭 [HEAVY INDUSTRY] Tổ hợp sản xuất công nghiệp nặng và logistics (Hải Phòng)"),
+            ("📦 [SME SUPPLY CHAIN] Chuỗi cung ứng logistic doanh nghiệp sản xuất lõi", "👥 [RETAIL INVESTORS] Khối nhà đầu tư cá nhân khu vực miền Bắc"),
+            ("🏭 [HEAVY INDUSTRY] Tổ hợp sản xuất công nghiệp nặng và logistics (Hải Phòng)", "👥 [RETAIL INVESTORS] Khối nhà đầu tư cá nhân khu vực miền Bắc"),
+            ("🔌 [HIGH-TECH ZONE] Chuỗi nhà máy sản xuất linh kiện vi mạch điện tử (Bắc Ninh)", "👥 [RETAIL INVESTORS] Khối nhà đầu tư cá nhân khu vực miền Bắc"),
+            ("🛢️ [COMMODITIES ENGINES] Tập đoàn năng lượng, khai thác khoáng sản dầu thô", "👥 [RETAIL INVESTORS] Khối nhà đầu tư cá nhân khu vực miền Trung"),
+            ("🏙️ [REAL ESTATE CORE] Tập đoàn Bất động sản phân khúc trung tâm lõi (TP.HCM)", "👥 [RETAIL INVESTORS] Khối nhà đầu tư cá nhân khu vực miền Nam"),
+            ("📈 [GROWTH STOCKS] Sàn giao dịch tài sản rủi ro & Quỹ mạo hiểm (Q3, TP.HCM)", "👥 [RETAIL INVESTORS] Khối nhà đầu tư cá nhân khu vực miền Nam"),
+            ("👑 [GOLD RESERVES] Hầm dự trữ VÀNG VẬT CHẤT quốc gia (Ba Đình, Hà Nội)", "👥 [RETAIL INVESTORS] Khối nhà đầu tư cá nhân khu vực miền Bắc"),
+            ("👑 [GOLD RESERVES] Hầm dự trữ VÀNG VẬT CHẤT quốc gia (Ba Đình, Hà Nội)", "👥 [RETAIL INVESTORS] Khối nhà đầu tư cá nhân khu vực miền Trung"),
+            ("👑 [GOLD RESERVES] Hầm dự trữ VÀNG VẬT CHẤT quốc gia (Ba Đình, Hà Nội)", "👥 [RETAIL INVESTORS] Khối nhà đầu tư cá nhân khu vực miền Nam")
+        ]
+    else:
+        # Tự động đồng bộ ma trận đường kinh tế tương tự cho 194 quốc gia khác dựa vào tâm nước đó
+        locations = {
+            "🌐 [GATEWAY] Cổng USD quốc tế vĩ mô": [c_lat + 0.6, c_lon + 0.6],
+            "🏛️ [NHTW] Cơ quan quản lý mạch máu vốn": [c_lat, c_lon],
+            "👑 [GOLD] Dự trữ VÀNG trú ẩn tối hậu": [c_lat + 0.3, c_lon - 0.3],
+            "🏙️ [ASSETS] Khối tập đoàn đa ngành cốt lõi": [c_lat + 0.4, c_lon - 0.5],
+            "📦 [SME] Chuỗi cung ứng hàng hóa sản xuất": [c_lat - 0.4, c_lon + 0.5],
+            "📈 [STOCKS] Thị trường chứng khoán rủi ro": [c_lat - 0.3, c_lon - 0.4],
+            "👥 [INVESTORS] Khối nhà đầu tư cư dân nền": [c_lat - 0.6, c_lon]
+        }
+        edges = [
+            ("🌐 [GATEWAY] Cổng USD quốc tế vĩ mô", "🏛️ [NHTW] Cơ quan quản lý mạch máu vốn"),
+            ("🏛️ [NHTW] Cơ quan quản lý mạch máu vốn", "👑 [GOLD] Dự trữ VÀNG trú ẩn tối hậu"),
+            ("🏛️ [NHTW] Cơ quan quản lý mạch máu vốn", "🏙️ [ASSETS] Khối tập đoàn đa ngành cốt lõi"),
+            ("🏛️ [NHTW] Cơ quan quản lý mạch máu vốn", "📦 [SME] Chuỗi cung ứng hàng hóa sản xuất"),
+            ("🏙️ [ASSETS] Khối tập đoàn đa ngành cốt lõi", "📈 [STOCKS] Thị trường chứng khoán rủi ro"),
+            ("📦 [SME] Chuỗi cung ứng hàng hóa sản xuất", "👥 [INVESTORS] Khối nhà đầu tư cư dân nền"),
+            ("📈 [STOCKS] Thị trường chứng khoán rủi ro", "👥 [INVESTORS] Khối nhà đầu tư cư dân nền"),
+            ("👑 [GOLD] Dự trữ VÀNG trú ẩn tối hậu", "👥 [INVESTORS] Khối nhà đầu tư cư dân nền")
+        ]
+        
     return locations, edges
