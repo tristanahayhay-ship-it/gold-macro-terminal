@@ -16,7 +16,7 @@ st.title("🗺️ BẢN ĐỒ KINH TẾ SỐ ĐA NGÀNH TOÀN CẦU (GOOGLE MAPS
 st.caption("Hệ thống đồng bộ hơn 195 quốc gia. Kéo thanh trượt Zoom để phóng sát camera nhìn thấy cấu trúc vi mô đa ngành tại chỗ.")
 
 # 1. TRUNG TÂM ĐIỀU KHIỂN TRỰC TIẾP TRÊN TRANG CHÍNH
-col_ctrl1, col_ctrl2, col_ctrl3 = st.columns([2, 2, 2])
+col_ctrl1, col_ctrl2, col_ctrl3 = st.columns()
 
 with col_ctrl1:
     usd_mode = st.segmented_control(
@@ -29,13 +29,14 @@ with col_ctrl1:
 
 # Tải cơ sở dữ liệu vĩ mô bao phủ toàn cầu
 df_global = dl.load_economic_database()
+name_list = df_global['NAME'].tolist()
 
 with col_ctrl2:
-    # Cho phép chọn bất kỳ quốc gia nào trong danh sách hơn 195 nước thực tế của thế giới
-    target_country = st.selectbox("🔍 Chọn quốc gia mục tiêu điều hướng:", df_global['NAME'].tolist(), index=df_global['NAME'].tolist().index("Việt Nam"))
+    # SỬA LỖI VALUEERROR: Sử dụng cơ chế tìm kiếm index an toàn chống sập ứng dụng
+    default_index = name_list.index("Việt Nam") if "Việt Nam" in name_list else 0
+    target_country = st.selectbox("🔍 Chọn quốc gia mục tiêu điều hướng:", name_list, index=default_index)
 
 with col_ctrl3:
-    # MÔ PHỎNG HÀNH VI CUỘN CHUỘT GOOGLE MAPS: Điều chỉnh tiêu cự để hiện cấu trúc vi mô đa ngành
     zoom_slider = st.slider("🔍 Độ cao Camera (Google Maps Zoom):", min_value=1.0, max_value=6.0, value=1.2, step=0.2,
                             help="Zoom từ 1.0 -> 3.0: Nhìn luồng vốn vĩ mô 195 nước. Zoom từ 3.5 -> 6.0: Thấy rõ địa điểm kinh tế vi mô trong nước.")
 
