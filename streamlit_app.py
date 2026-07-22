@@ -13,17 +13,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🗺️ BẢN ĐỒ KINH TẾ SỐ ĐA NGÀNH TOÀN CẦU (GOOGLE MAPS STYLE)")
-st.caption("Hệ thống đồng bộ toàn thế giới. Kéo thanh trượt Zoom để phóng sát camera nhìn thấy cấu trúc vi mô đa ngành tại chỗ.")
+st.title(" HỆ THỐNG ĐƯỜNG XÁ KINH TẾ ĐA NGÀNH TƯƠNG QUAN USD")
+st.caption("Hệ thống đồng bộ toàn thế giới. Kéo thanh trượt Zoom để hiển thị mạng lưới giao thông dòng tiền dày đặc tại chỗ.")
 
 # 1. TRUNG TÂM ĐIỀU KHIỂN TRÊN TRANG CHÍNH
 col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
 
 with col_ctrl1:
     usd_mode = st.segmented_control(
-        "🕹️ Chọn Trạng thái Đồng Đô la Mỹ (USD):",
-        options=["USD MẠNH LÊN (Màu Đỏ) 📈", "USD YẾU ĐI (Màu Xanh) 📉"],
-        default="USD MẠNH LÊN (Màu Đỏ) 📈"
+        " Chọn Trạng thái Đồng Đô la Mỹ (USD):",
+        options=["USD MẠNH LÊN (Màu Đỏ) ", "USD YẾU ĐI (Màu Xanh) "],
+        default="USD MẠNH LÊN (Màu Đỏ) "
     )
     is_usd_strong = "MẠNH" in usd_mode
     line_color = "#FF4B4B" if is_usd_strong else "#00D46A"
@@ -33,23 +33,19 @@ name_list = df_global['NAME'].tolist()
 
 with col_ctrl2:
     default_index = name_list.index("Việt Nam") if "Việt Nam" in name_list else 0
-    target_country = st.selectbox("🔍 Chọn quốc gia mục tiêu ống kính:", name_list, index=default_index)
+    target_country = st.selectbox(" Chọn quốc gia mục tiêu ống kính:", name_list, index=default_index)
 
 with col_ctrl3:
     zoom_slider = st.slider(
-        "🔍 Tiêu cự Camera (Google Maps Zoom Level):", 
+        " Tiêu cự Camera (Google Maps Zoom Level):", 
         min_value=1.0, max_value=6.5, value=1.2, step=0.1,
-        help="Nấc 1.0-3.4: Tầng Khí Quyển vĩ mô. Nấc 3.5-4.5: Tầng Mặt Đất Đa Ngành. Nấc 4.6-6.5: Tầng Sinh Vật Nhà Đầu Tư."
+        help="Nấc 1.0-3.4: Tầng Khí Quyển vĩ mô. Nấc 3.5-6.5: Bừng sáng mạng lưới đại lộ đường xá bằng tiền tệ chằng chịt."
     )
 
-if zoom_slider >= 4.6:
-    st.success(f"🦠 TẦNG SINH VẬT: Đang phóng sát vào đường phố hiển thị túi tiền Nhà đầu tư cá nhân và chuỗi Doanh nghiệp tại {target_country}.")
-elif zoom_slider >= 3.5:
-    st.warning(f"⛰️ TẦNG MẶT ĐẤT: Đang hiển thị ranh giới địa lý các Tập đoàn công nghiệp, công nghệ lớn của {target_country}.")
-elif zoom_slider >= 2.1:
-    st.info(f"☁️ TẦNG MÂY: Khởi động bừng sáng cổng kết nối ngoại hối USD và Ngân hàng Trung ương.")
+if zoom_slider >= 3.5:
+    st.success(f" KÍNH HIỂN VI VI MÔ ĐÃ KÍCH HOẠT: Toàn bộ đường sá giao thông biến mất, nhường không gian cho mạng lưới tài sản kinh tế tương quan USD tại {target_country}.")
 else:
-    st.info("🌌 TẦNG KHÍ QUYỂN VĨ MÔ: Bản đồ bao quát 195 quốc gia kết nối mạch máu dòng chảy liên quốc gia về Mỹ.")
+    st.info("🌌 TẦNG KHÍ QUYỂN VĨ MÔ: Bản đồ bao quát hơn 195 quốc gia kết nối mạch máu dòng chảy liên quốc gia về Mỹ.")
 
 # 2. RENDERING BẢN ĐỒ SỐ HỢP NHẤT
 fig = cr.draw_unified_mapbox_engine(df_global, target_country, zoom_slider, line_color)
@@ -59,10 +55,10 @@ st.plotly_chart(fig, use_container_width=True)
 # MA TRẬN BẢN CHẤT KINH TẾ ĐỒNG BỘ CHẶT CHẼ
 # =============================================================================
 st.markdown("---")
-st.markdown("### 🧱 MA TRẬN BẢN CHẤT KINH TẾ VÀ ĐIỂM TRÚ ẨN CỦA CÁC LOẠI TÀI SẢN CHI TIẾT XUYÊN SUỐT CÁC CẤP")
+st.markdown("###  MA TRẬN BẢN CHẤT KINH TẾ VÀ ĐIỂM TRÚ ẨN CỦA CÁC LOẠI TÀI SẢN CHI TIẾT XUYÊN SUỐT CÁC CẤP")
 
 if is_usd_strong:
-    st.error("🚨 HỆ THỐNG CO CỤM PHÒNG THỦ TOÀN DIỆN (KHI USD MẠNH / LỰC HÚT VỐN VỀ MỸ)")
+    st.error(" HỆ THỐNG CO CỤM PHÒNG THỦ TOÀN DIỆN (KHI USD MẠNH / LỰC HÚT VỐN VỀ MỸ)")
     matrix_data = {
         "Phân Cấp Bộ Máy Đa Ngành": ["Cấp 1: Toàn Cầu (195 Nước)", "Cấp 2: Ngân Hàng Trung Ương", "Cấp 3: Tập Đoàn Đa Ngành Lớn", "Cấp 4: Doanh Nghiệp Sản Xuất (SME)", "Cấp 5: Người Dân & Nhà Đầu Tư"],
         "Bản Chất Dòng Tiền Đi Đâu?": [
@@ -81,14 +77,14 @@ if is_usd_strong:
         ]
     }
 else:
-    st.success("🚀 HỆ THỐNG BUNG XÕA TẤN CÔNG & TRÚ ẨN LẠM PHÁT (KHI USD YẾU / TIỀN RẺ TRÀN RA THẾ GIỚI)")
+    st.success(" HỆ THỐNG BUNG XÕA TẤN CÔNG & TRÚ ẨN LẠM PHÁT (KHI USD YẾU / TIỀN RẺ TRÀN RA THẾ GIỚI)")
     matrix_data = {
         "Phân Cấp Bộ Máy Đa Ngành": ["Cấp 1: Toàn Cầu (195 Nước)", "Cấp 2: Ngân Hàng Trung Ương", "Cấp 3: Tập Đoàn Đa Quốc Gia", "Cấp 4: Doanh Nghiệp Sản Xuất (SME)", "Cấp 5: Người Dân & Nhà Đầu Tư"],
         "Bản Chất Dòng Tiền Đi Đâu?": [
             "Dòng tiền rẻ từ Mỹ tràn ra khắp mạng lưới 195 nước (Chuỗi mạch máu dây màu XANH) đi săn tìm tỷ suất sinh lời cao tại các nước mới nổi.",
             "Áp lực tỷ giá hạ nhiệt, kho dự trữ ngoại hối an toàn. NHTW lập tức hạ lãi suất cơ bản, bơm thanh khoản dồi dào kích thích tăng trưởng nội địa.",
             "Nguồn vốn vay giá rẻ dồi dào giải tỏa áp lực tài chính. Các tập đoàn đa ngành bung tiền mở rộng các dự án hạ tầng lớn.",
-            "Dòng tiền luân chuyển mượt mà thông suốt trong chuỗi cung ứng nhờ chi phí sử dụng vốn cực thấp và sức mua tiêu dùng phục hồi mạnh mẽ.",
+            "Dòng tiền luân chuyển mượt mầm thông suốt trong chuỗi cung ứng nhờ chi phí sử dụng vốn cực thấp và sức mua tiêu dùng phục hồi mạnh mẽ.",
             "Dòng vốn trong dân tăng vọt do lãi suất gửi tiết kiệm quá thấp, kích hoạt tâm lý lo sợ tiền giấy bốc hơi giá trị do áp lực lạm phát vĩ mô."
         ],
         "Tiêu Vào Đâu & Đầu Tư Vào Tài Sản Gì?": [
